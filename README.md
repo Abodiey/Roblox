@@ -5,7 +5,7 @@
 Roblox Exploiting stuff.
 
 To test, execute this:
-````lua
+```Lua
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/main/HelloWorld.lua"))()
-````
+```
 ***Readme end***
