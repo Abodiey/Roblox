@@ -1,2 +1,2 @@
 print("Hello World.")
---loadstring("https://raw.githubusercontent.com/Abodiey/Roblox/main/HelloWorld.lua")()
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/main/HelloWorld.lua"))()
