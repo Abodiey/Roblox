@@ -1,7 +1,4 @@
 -- ORIGINAL SOURCE: loadstring(game:HttpGet("https://pastebin.com/raw/yJzq5ceV"))()
--- TO USE THIS:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/main/scripts/Ran%20Vaeb's%20RemoteSpy.lua"))()
-
 --[[
 
 	-Created by Vaeb.
