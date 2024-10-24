@@ -163,21 +163,21 @@ local function HopServer()
 			if childinstance.Name == "ErrorPrompt" then
 				if childinstance.Visible then
 					if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
-						childinstance:Destroy()
+						childinstance.Parent:Destroy()
 						HopServer()
 					end
 				end
 				childinstance:GetPropertyChangedSignal("Visible"):Connect(function()
 					if childinstance.Visible then
 						if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
-							childinstance:Destroy()
+							childinstance.Parent:Destroy()
 							HopServer()
 						end
 					end
 				end)
 			end
 		end
-		for k,v in pairs(game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay"):GetChildren()) do
+		for k,v in pairs(game:GetService("CoreGui").RobloxPromptGui.promptOverlay:GetChildren()) do
 			child(v)
 		end
 		game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay").ChildAdded:Connect(child)
