@@ -232,6 +232,6 @@ repeat
 	repeat task.wait() until pingSuccess ~= nil
 	if pingSuccess then
 		HopServer()
-		task.wait(15)
+		task.wait(1)
 	end
 until not game:GetService("Players").LocalPlayer
