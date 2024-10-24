@@ -88,13 +88,13 @@ if not friendIngame and anyFruitFound then
 	game:GetService("Players").LocalPlayer:WaitForChild("Backpack").ChildAdded:Connect(function(v)
 		if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Handle") then
 			repeat
-				task.wait()
 				local storeName = v.Name:gsub(" Fruit","")
 				storeName = storeName.."-"..storeName
 				pcall(function()
 					storeName = v:GetAttribute("OriginalName") or storeName
 				end)
 				game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StoreFruit", storeName, v)
+				task.wait(.1)
 			until not v or not v.Parent or v.Parent ~= game:GetService("Players").LocalPlayer.Backpack
 		end
 	end)
@@ -107,7 +107,7 @@ if not friendIngame and anyFruitFound then
 	local TPSpeed = 350
 	for i,v in ipairs(game:GetService("Workspace"):GetChildren()) do
 		if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Handle") then
-			print("> Found "..v.Name)
+			print("> Found ["..v.Name.."] !")
 			local done, cancelled = false, false
 			local character = game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()
 			local humanoid = character:FindFirstChild("Humanoid")
