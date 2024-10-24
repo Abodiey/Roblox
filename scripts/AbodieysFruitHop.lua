@@ -163,14 +163,14 @@ local function HopServer()
 			if childinstance.Name == "ErrorPrompt" then
 				if childinstance.Visible then
 					if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
-						childinstance.Parent:Destroy()
+						game:GetService("GuiService"):ClearError()
 						HopServer()
 					end
 				end
 				childinstance:GetPropertyChangedSignal("Visible"):Connect(function()
 					if childinstance.Visible then
 						if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
-							childinstance.Parent:Destroy()
+							game:GetService("GuiService"):ClearError()
 							HopServer()
 						end
 					end
