@@ -150,10 +150,12 @@ local function HopServer()
 			for k,v in pairs(serverlist) do
 				if k ~= game.JobId and v.Count < 9 then
 					game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport",k)
+					print("hop success")
 					return true
 				end
 			end
 		end
+		print("hop fail")
 		return false
 	end
 	if not getgenv().Loaded then
@@ -161,22 +163,24 @@ local function HopServer()
 			if childinstance.Name == "ErrorPrompt" then
 				if childinstance.Visible then
 					if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
+						childinstance:Destroy()
 						HopServer()
 					end
 				end
 				childinstance:GetPropertyChangedSignal("Visible"):Connect(function()
 					if childinstance.Visible then
 						if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
+							childinstance:Destroy()
 							HopServer()
 						end
 					end
 				end)
 			end
 		end
-		for k,v in pairs(game:GetService("CoreGui").RobloxPromptGui.promptOverlay:GetChildren()) do
+		for k,v in pairs(game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay"):GetChildren()) do
 			child(v)
 		end
-		game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(child)
+		game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay").ChildAdded:Connect(child)
 		getgenv().Loaded = true
 	end
 	while not Hop() do task.wait() end
