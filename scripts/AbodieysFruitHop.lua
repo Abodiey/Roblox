@@ -226,6 +226,8 @@ repeat task.wait()
 		task.wait(retryTime-1)
 	else
 		button.Text = "Abodiey's Fruit Hop\nRejoining..."
+		button.Interactable = false
+		button.Active = false
 		task.wait()
 		rejoinAccepted = true
 	end
