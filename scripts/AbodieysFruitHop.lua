@@ -164,6 +164,7 @@ local function HopServer()
 				if childinstance.Visible then
 					if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
 						game:GetService("GuiService"):ClearError()
+						task.wait(1)
 						HopServer()
 					end
 				end
@@ -171,6 +172,7 @@ local function HopServer()
 					if childinstance.Visible then
 						if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
 							game:GetService("GuiService"):ClearError()
+							task.wait(1)
 							HopServer()
 						end
 					end
@@ -180,7 +182,7 @@ local function HopServer()
 		for k,v in pairs(game:GetService("CoreGui").RobloxPromptGui.promptOverlay:GetChildren()) do
 			child(v)
 		end
-		game:GetService("CoreGui"):WaitForChild("RobloxPromptGui"):WaitForChild("promptOverlay").ChildAdded:Connect(child)
+		game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ChildAdded:Connect(child)
 		getgenv().Loaded = true
 	end
 	while not Hop() do task.wait() end
