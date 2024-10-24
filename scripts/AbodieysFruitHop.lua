@@ -144,7 +144,7 @@ if not friendIngame and anyFruitFound then
 	end
 	game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TeleportToSpawn")
 end
-local countdownTime = 10
+local countdownTime = 5
 local retryTime = 60
 local betweenClickTime = 1
 local rejoinAccepted
@@ -188,7 +188,6 @@ repeat task.wait()
 		rejoinAccepted = true
 	end
 until rejoinAccepted--first sea: 2753915549, second sea: 4442272183, third sea: 7449423635
-wait(1)
 local function HopServer()
 	local function Hop()
 		for i = 1, 200 do
