@@ -225,7 +225,7 @@ repeat task.wait()
 		rejoinAccepted = true
 	end
 until rejoinAccepted--first sea: 2753915549, second sea: 4442272183, third sea: 7449423635
-hopServer()
+HopServer()
 -- repeat
 -- 	local pingSuccess = (game:HttpGet("example.com") and true) or false
 -- 	repeat task.wait() until pingSuccess ~= nil
