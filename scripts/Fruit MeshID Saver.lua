@@ -44,8 +44,8 @@ if game.PlaceId == 2753915549 or game.PlaceId == 4442272183 or game.PlaceId == 7
 	for _,child in pairs(game:GetService("Workspace"):GetChildren()) do
 		saveIfFruit(child)
 	end
-	game.Workspace.ChildAdded:Connect(saveIfFruit)
-	for _,player in pairs(game.Players:GetPlayers()) do
+	game:GetService("Workspace").ChildAdded:Connect(saveIfFruit)
+	for _,player in pairs(game:GetService("Players"):GetPlayers()) do
 		if player.Character then
 			player.Character.ChildAdded:Connect(saveIfFruit)
 		end
@@ -56,7 +56,7 @@ if game.PlaceId == 2753915549 or game.PlaceId == 4442272183 or game.PlaceId == 7
 			player:WaitForChild("Backpack").ChildAdded:Connect(saveIfFruit)
 		end)
 	end
-	game.Players.PlayerAdded:Connect(function(player)
+	game:GetService("Players").PlayerAdded:Connect(function(player)
 		if player.Character then
 			player.Character.ChildAdded:Connect(saveIfFruit)
 		end
@@ -65,4 +65,4 @@ if game.PlaceId == 2753915549 or game.PlaceId == 4442272183 or game.PlaceId == 7
 		end)
 		player:WaitForChild("Backpack").ChildAdded:Connect(saveIfFruit)
 	end)
-en
+end
