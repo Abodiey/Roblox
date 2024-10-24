@@ -150,6 +150,7 @@ local function HopServer()
 			for k,v in pairs(serverlist) do
 				if k ~= game.JobId and v.Count < 9 then
 					game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport",k)
+					game:GetService("GuiService"):ClearError()
 					print("hop success")
 					return true
 				end
@@ -164,7 +165,6 @@ local function HopServer()
 				if childinstance.Visible then
 					if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
 						game:GetService("GuiService"):ClearError()
-						task.wait(1)
 						HopServer()
 					end
 				end
@@ -172,7 +172,6 @@ local function HopServer()
 					if childinstance.Visible then
 						if childinstance.TitleFrame.ErrorTitle.Text == "Teleport Failed" then
 							game:GetService("GuiService"):ClearError()
-							task.wait(1)
 							HopServer()
 						end
 					end
