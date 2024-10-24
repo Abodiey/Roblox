@@ -103,18 +103,16 @@ if not friendIngame and anyFruitFound then
 	game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
 		char.ChildAdded:Connect(onCharacterChild)
 	end)
+	local TPSpeed = 200
 	for i,v in ipairs(game:GetService("Workspace"):GetChildren()) do
 		if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Handle") then
 			print("> Found "..v.Name)
-			local TweenService = game:GetService("TweenService")
-			local TPSpeed = 200
-			local done = false
-			local cancelled = false
+			local done, cancelled = false, false
 			local character = game:GetService("Players").LocalPlayer.Character or game:GetService("Players").LocalPlayer.CharacterAdded:Wait()
 			local humanoid = character:FindFirstChild("Humanoid")
 			local HRP = character:WaitForChild("HumanoidRootPart")
 			local Target = v.Handle
-			local Tween = TweenService:Create(HRP, TweenInfo.new((v.Handle.Position - HRP.Position).Magnitude / TPSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(v.Handle.Position)})
+			local Tween = game:GetService("TweenService"):Create(HRP, TweenInfo.new((v.Handle.Position - HRP.Position).Magnitude / TPSpeed, Enum.EasingStyle.Linear), {CFrame = CFrame.new(v.Handle.Position)})
 			Tween:Play()
 			task.spawn(function()
 				repeat task.wait() until not v or not v.Parent or not HRP or (v.Parent ~= game:GetService("Workspace") and v.Parent ~= character)
