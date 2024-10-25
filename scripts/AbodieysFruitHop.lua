@@ -149,7 +149,9 @@ local function HopServer()
 			local serverlist = game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer(i)
 			for k,v in pairs(serverlist) do
 				if k ~= game.JobId and v.Count < 12 then
-					print(table.unpack(v))
+					for i,vv in pairs(v) do
+						print(i,vv)
+					end
 					game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport",k)
 					game:GetService("GuiService"):ClearError()
 					print("hop success")
