@@ -150,6 +150,14 @@ local function HopServer()
 			local sorted_serverlist = {} --to do later
 			for k,v in pairs(serverlist) do
 				if k ~= game.JobId and v.Count < 12 then
+					if not sorted_serverlist or not sorted_serverlist[v.Count] then
+						sorted_serverlist[v.Count] = {}
+					end
+					table.insert(sorted_serverlist[v.Count],k]
+				end
+			end
+			for k,v in pairs(serverlist) do
+				if k ~= game.JobId and v.Count < 12 then
 					for i,vv in pairs(v) do
 						print(i,vv)
 					end
