@@ -147,6 +147,7 @@ local function HopServer()
 	local function Hop()
 		for i = 1, 200 do
 			local serverlist = game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer(i)
+			local sorted_serverlist = {} --to do later
 			for k,v in pairs(serverlist) do
 				if k ~= game.JobId and v.Count < 12 then
 					for i,vv in pairs(v) do
@@ -154,12 +155,11 @@ local function HopServer()
 					end
 					game:GetService("ReplicatedStorage").__ServerBrowser:InvokeServer("teleport",k)
 					game:GetService("GuiService"):ClearError()
-					print("hop success")
+					wait(1)
 					return true
 				end
 			end
 		end
-		print("hop fail")
 		return false
 	end
 	if not getgenv().Loaded then
