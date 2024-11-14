@@ -2,7 +2,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 if game.PlaceId ~= 2753915549 and game.PlaceId ~= 4442272183 and game.PlaceId ~= 7449423635 then return end
 local anyFruitFound = false
 for i,v in pairs(game:GetService("Workspace"):GetChildren()) do
-	if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit").MeshId thens
+	if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit").MeshId then
 		anyFruitFound = true
 		break	
 	end
@@ -99,7 +99,6 @@ task.spawn(function()
 	gui:Destroy()
 end)
 local serverUrl = "http://127.0.0.1:8000"
-
 local HttpService = game:GetService("HttpService")
 HttpService.HttpEnabled = true
 local JobId = game.JobId
@@ -122,5 +121,6 @@ local function fetchLatestMessage()
 	else
 		warn("Failed to fetch response: " .. tostring(response))
 	end
+	return false
 end
-fetchLatestMessage()
+repeat task.wait() until fetchLatestMessage()
