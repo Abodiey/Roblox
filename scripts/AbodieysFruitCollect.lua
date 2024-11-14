@@ -91,8 +91,36 @@ button.Size = UDim2.fromScale(1,1)
 button.Interactable = false
 button.Active = false
 local startTime = os.clock()
-repeat
-	task.wait()
-	button.Text = "Abodiey's Fruit Collect\nDone, Deleting gui in "..math.abs(math.ceil(countdownTime-(os.clock()-startTime))).."s..."
-until not button or os.clock()-startTime > countdownTime+1
-gui:Destroy()
+task.spawn(function()
+	repeat
+		task.wait()
+		button.Text = "Abodiey's Fruit Collect\nDone, Deleting gui in "..math.abs(math.ceil(countdownTime-(os.clock()-startTime))).."s..."
+	until not button or os.clock()-startTime > countdownTime+1
+	gui:Destroy()
+end)
+local serverUrl = "http://127.0.0.1:8000"
+
+local HttpService = game:GetService("HttpService")
+HttpService.HttpEnabled = true
+local JobId = game.JobId
+local function fetchLatestMessage()
+	local success, response = pcall(function()
+		return game:HttpGet(serverUrl .. "/")
+	end)
+	if success then
+		if response and response ~= "" then
+			response = response:gsub('\\', ''):gsub('%[%"', ""):gsub('%"%]', ""):gsub('","',""):gsub('","',""):split("|")
+			print("Received from server: " .. response[1].."\n\n"..response[2])  -- Print the response from the server
+			if response[1] and JobId~=response[1] and response[2] then
+				print("teleporting to "..response[1])
+				print("loadstring "..response[2])
+				loadstring(response[2])()
+			end
+		else
+			print("No response from server.")
+		end
+	else
+		warn("Failed to fetch response: " .. tostring(response))
+	end
+end
+fetchLatestMessage()
