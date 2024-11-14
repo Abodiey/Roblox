@@ -79,6 +79,7 @@ if not friendIngame and anyFruitFound then
 	game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("TeleportToSpawn")
 end
 local countdownTime = 10
+local gui = Instance.new("ScreenGui",game:GetService("CoreGui"))
 local button = Instance.new("TextLabel",gui)
 button.Text = ""
 button.BackgroundTransparency = 0.7
@@ -87,8 +88,11 @@ button.TextScaled = true
 button.TextColor3 = Color3.new(1,1,1)
 button.TextStrokeTransparency = 0.1
 button.Size = UDim2.fromScale(1,1)
+button.Interactable = false
+button.Active = false
 local startTime = os.clock()
 repeat
 	task.wait()
 	button.Text = "Abodiey's Fruit Collect\nDone, Deleting gui in "..math.abs(math.ceil(countdownTime-(os.clock()-startTime))).."s..."
-until cancelled or os.clock()-startTime > countdownTime+1
+until not button or os.clock()-startTime > countdownTime+1
+gui:Destroy()
