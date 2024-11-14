@@ -2,7 +2,7 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 if game.PlaceId ~= 2753915549 and game.PlaceId ~= 4442272183 and game.PlaceId ~= 7449423635 then return end
 local anyFruitFound = false
 for i,v in pairs(game:GetService("Workspace"):GetChildren()) do
-	if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit").MeshId then
+	if v and v:FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit") and v:FindFirstChild("Fruit"):FindFirstChild("Fruit").MeshId thens
 		anyFruitFound = true
 		break	
 	end
