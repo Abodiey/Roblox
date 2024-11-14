@@ -7,7 +7,7 @@ game:GetService("GuiService").ErrorMessageChanged:Connect(function()
 	local success,okbutton = pcall(function()
 		return game:GetService("CoreGui").RobloxPromptGui.promptOverlay.ErrorPrompt.MessageArea.ErrorFrame.ButtonArea.OkButton.ButtonText
 	end)
-	if success and okbutton then game:GetService("GuiService"):ClearError() return end
+	if okbutton then game:GetService("GuiService"):ClearError() return end
 	if #game.Players:GetPlayers() <= 1 then
 		game.Players.LocalPlayer:Kick("\nRejoining...")
 		task.wait(1)
