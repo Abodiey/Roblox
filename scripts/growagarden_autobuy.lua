@@ -56,7 +56,7 @@ GuiService.ErrorMessageChanged:Connect(function()
 	local AutoReconnect = GetConfigValue("Auto-Reconnect")
 	if not AutoReconnect then return end
 
-	--queue_on_teleport("this script")
+	queue_on_teleport("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/growagarden_autobuy.lua")
 
 	--// Join a different server if the player is solo
 	if IsSingle then
