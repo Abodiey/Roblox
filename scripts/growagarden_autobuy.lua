@@ -224,7 +224,7 @@ while GetConfigValue("Enabled") do
 		}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 		task.wait(1)
-		local prompt = Workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt, true")
+		local prompt = Workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 		fireproximityprompt(prompt)
 		task.wait(1)
 		local args = {
