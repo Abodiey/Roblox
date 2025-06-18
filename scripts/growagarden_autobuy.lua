@@ -133,13 +133,19 @@ task.spawn(function()
 while GetConfigValue("Enabled") do
 	local AutoCraftAntiBeeEgg = GetConfigValue("Auto-Craft-Anti-Bee-Egg")
 	if AutoCraftAntiBeeEgg then
-		local args = {
-			"Claim",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("EventCraftingWorkBench"),
-			"GearEventWorkbench",
-			1
-		}
-		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+		local EventCraftingWorkBench = Workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench
+		local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
+		if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Skip" then return end
+		if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
+			local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+			task.wait(1)
+		end
+		if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Submit Item" or string.match(EventCraftingPrompt.ActionText, "^".."Start Crafting") then
+			local args = {"Cancel",EventCraftingWorkBench,"GearEventWorkbench"}
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+			task.wait(1)
+		end
 		local BeeEgg
 			for _,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
 				if v and v.Name and string.match(v.Name, "^".."Bee Egg") then
@@ -155,43 +161,44 @@ while GetConfigValue("Enabled") do
 				end
 			end
 		end
-		if not BeeEgg then task.wait(10) return end
-		game.Players.LocalPlayer.Character.Humanoid:EquipTool(BeeEgg)
-		local args = {
-			"Cancel",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("EventCraftingWorkBench"),
-			"GearEventWorkbench"
-		}
+		if not BeeEgg or not EventCraftingPrompt or EventCraftingPrompt.ActionText ~= "Select Recipe" then return end
+		local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Anti Bee Egg"}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 		task.wait(1)
+		local itemUUID = BeeEgg:GetAttribute("c")
 		local args = {
-			"SetRecipe",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("EventCraftingWorkBench"),
+			"InputItem",
+			EventCraftingWorkBench,
 			"GearEventWorkbench",
-			"Anti Bee Egg"
+			1,
+			{
+				ItemType = "Bee Egg",
+				ItemData = {
+					UUID = itemUUID
+				}
+			}
 		}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 		task.wait(1)
-		local prompt = Workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
-		fireproximityprompt(prompt)
-		task.wait(1)
-		local args = {
-			"Craft",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("EventCraftingWorkBench"),
-			"GearEventWorkbench"
-		}
+		local args = {"Craft",EventCraftingWorkBench,"GearEventWorkbench"}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 	end
-	task.wait(30)
+	task.wait(10)
 	local AutoCraftCraftersSeedPack = GetConfigValue("Auto-Craft-Crafters-Seed-Pack")
 	if AutoCraftCraftersSeedPack then
-		local args = {
-			"Claim",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("SeedEventCraftingWorkBench"),
-			"SeedEventWorkbench",
-			1
-		}
-		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+		local SeedEventCraftingWorkBench = Workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench
+		local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
+		if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Skip" then return end
+		if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
+			local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+			task.wait(1)
+		end
+		if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Submit Item" or string.match(SeedEventCraftingPrompt.ActionText, "^".."Start Crafting") then
+			local args = {"Cancel",SeedEventCraftingWorkBench,"SeedEventWorkbench"}
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+			task.wait(1)
+		end
 		local FlowerSeedPack 
 		for _,v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
 			if v and v.Name and string.match(v.Name, "^".."Flower Seed Pack") then
@@ -207,33 +214,30 @@ while GetConfigValue("Enabled") do
 				end
 			end
 		end
-		if not FlowerSeedPack then task.wait(10) return end
-		game.Players.LocalPlayer.Character.Humanoid:EquipTool(FlowerSeedPack)
-		local args = {
-			"Cancel",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("SeedEventCraftingWorkBench"),
-			"SeedEventWorkbench"
-		}
+		if not FlowerSeedPack or not SeedEventCraftingPrompt or SeedEventCraftingPrompt.ActionText ~= "Select Recipe" then return end
+		--game.Players.LocalPlayer.Character.Humanoid:EquipTool(FlowerSeedPack)
+		task.wait(1)
+		local args = {"SetRecipe",SeedEventCraftingWorkBench,"SeedEventWorkbench","Crafters Seed Pack"}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 		task.wait(1)
+		local itemUUID = FlowerSeedPack:GetAttribute("c")
 		local args = {
-			"SetRecipe",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("SeedEventCraftingWorkBench"),
+			"InputItem",
+			SeedEventCraftingWorkBench,
 			"SeedEventWorkbench",
-			"Crafters Seed Pack"
+			1,
+			{
+				ItemType = "Seed Pack",
+				ItemData = {
+					UUID = itemUUID
+				}
+			}
 		}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 		task.wait(1)
-		local prompt = Workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
-		fireproximityprompt(prompt)
-		task.wait(1)
-		local args = {
-			"Craft",
-			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("SeedEventCraftingWorkBench"),
-			"SeedEventWorkbench"
-		}
+		local args = {"Craft",SeedEventCraftingWorkBench,"SeedEventWorkbench"}
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 	end
-	task.wait(60)
+	task.wait(10)
 end
 end)
