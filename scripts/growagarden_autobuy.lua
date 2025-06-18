@@ -133,7 +133,7 @@ task.spawn(function()
 while GetConfigValue("Enabled") do
 	local AutoCraftAntiBeeEgg = GetConfigValue("Auto-Craft-Anti-Bee-Egg")
 	if AutoCraftAntiBeeEgg then
-				local args = {
+		local args = {
 			"Claim",
 			workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("NewCrafting"):WaitForChild("EventCraftingWorkBench"),
 			"GearEventWorkbench",
