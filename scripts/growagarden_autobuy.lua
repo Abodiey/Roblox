@@ -110,9 +110,9 @@ end
 
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")
+	local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")["Enabled"]
 	if AutoBuySeeds then
-		local SeedsToBuy = GetConfigValue("Seeds-To-Buy")
+		local SeedsToBuy = GetConfigValue("Auto-Buy-Seeds")["Buy"]
 		for _,Seed in pairs(SeedsToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(Seed)
 			task.wait()
@@ -130,8 +130,7 @@ while GetConfigValue("Enabled") do
 		local GearsToBuy = GetConfigValue("Auto-Buy-Gear")["Buy"]
 		for _,Gear in pairs(GearsToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(Gear)
-			task.wait()
-			task.wait()
+			task.wait() task.wait()
 		end
 	end
 	task.wait()
