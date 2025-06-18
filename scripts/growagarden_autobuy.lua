@@ -68,7 +68,7 @@ GuiService.ErrorMessageChanged:Connect(function()
 	TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
 end)
 
-_G.Enabled = true
+
 _G.Seeds = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"}
 task.spawn(function()
 while GetConfigValue("Enabled") do
@@ -108,7 +108,7 @@ while GetConfigValue("Enabled") do
 			task.wait(1)
 		end
 	end
-	task.wait()
+	task.wait(60)
 end
 end)
 
@@ -118,6 +118,6 @@ while GetConfigValue("Enabled") do
 	if AutoBuyBeeEgg then
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock"):FireServer("Bee Egg")
 	end
-	task.wait()
+	task.wait(60)
 end
 end)
