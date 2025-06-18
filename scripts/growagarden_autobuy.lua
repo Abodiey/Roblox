@@ -9,7 +9,7 @@ _G.Configuration = {
 	["Enabled"] = true,
 	--// User
 	["Anti-AFK"] = true,
-	["Auto-Reconnect"] = true,
+	["Auto-Reconnect"] = false,
 	["Rendering Enabled"] = true,
 	--// Functions
 	["Auto-Buy-Seeds"] = {
@@ -26,8 +26,8 @@ _G.Configuration = {
 		["Enabled"] = true,
 		["Buy"] = {"Bee Egg"}
 	},
-	["Auto-Craft-Anti-Bee-Egg"] = true,
-	["Auto-Craft-Crafters-Seed-Pack"] = true,
+	["Auto-Craft-Anti-Bee-Egg"] = false,
+	["Auto-Craft-Crafters-Seed-Pack"] = false,
 }
 
 
