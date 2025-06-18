@@ -18,7 +18,7 @@ _G.Configuration = {
 	}
 	["Auto-Buy-Gear"] = {
 		["Enabled"] = true,
-		["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler"},
+		["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler"}
 	["Auto-Buy-Eggs"] = {
 		["Enabled"] = true,
 		["Buy"] = {1,2,3}
@@ -26,15 +26,22 @@ _G.Configuration = {
 		["Enabled"] = true,
 		["Buy"] = {"Bee Egg"}
 	},
-	["Auto-Craft-Anti-Bee-Egg"] = false,
-	["Auto-Craft-Crafters-Seed-Pack"] = false,
+	["Auto-Craft"] = {
+		["Enabled"] = true,
+		["Craft"] = {
+			["Anti Bee Egg"] = false,
+			["Crafters Seed Pack"] = false
+		}
+	}
 }
 
 
 --// Services
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local cloneref = cloneref or function(o) return o end
 local VirtualUser = cloneref(game:GetService("VirtualUser"))
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
@@ -81,7 +88,7 @@ GuiService.ErrorMessageChanged:Connect(function()
 	TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
 end)
 
-local function getItem(name, startsWith, equals)
+local function getItem(name: string, startsWith: boolean, equals: boolean)
     local item = false
     local isEquipped = false
     for _, v in pairs(game.Players.LocalPlayer.Character:GetChildren()) do
@@ -110,9 +117,9 @@ end
 
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")["Enabled"]
-	if AutoBuySeeds then
-		local SeedsToBuy = GetConfigValue("Auto-Buy-Seeds")["Buy"]
+	local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")
+	if AutoBuySeeds["Enabled"] then
+		local SeedsToBuy = AutoBuySeeds["Buy"]
 		for _,Seed in pairs(SeedsToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(Seed)
 			task.wait()
@@ -125,10 +132,10 @@ end)
 --List of Gears = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler","Cleaning Spray","Favorite Tool","Harvest Tool","Friendship Pot"}
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoBuyGear = GetConfigValue("Auto-Buy-Gear")["Enabled"]
-	if AutoBuyGear then
-		local GearsToBuy = GetConfigValue("Auto-Buy-Gear")["Buy"]
-		for _,Gear in pairs(GearsToBuy) do
+	local AutoBuyGear = GetConfigValue("Auto-Buy-Gear")
+	if AutoBuyGear["Enabled"] then
+		local GearToBuy = AutoBuyGear["Buy"]
+		for _,Gear in pairs(GearToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(Gear)
 			task.wait() task.wait()
 		end
@@ -139,9 +146,9 @@ end)
 
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoBuyEggs = GetConfigValue("Auto-Buy-Eggs")["Enabled"]
-	if AutoBuyEggs then
-		local EggsToBuy = GetConfigValue("Auto-Buy-Eggs")["Buy"]
+	local AutoBuyEggs = GetConfigValue("Auto-Buy-Eggs")
+	if AutoBuyEggs["Enabled"] then
+		local EggsToBuy = AutoBuyEggs["Buy"]
 		for _,Egg in pairs(EggsToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(Egg)
 			task.wait(1)
@@ -153,9 +160,9 @@ end)
 
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoBuyHoneyShop = GetConfigValue("Auto-Buy-Honey-Shop")["Enabled"]
-	if AutoBuyHoneyShop then
-		local HoneysToBuy = GetConfigValue("Auto-Buy-Honey-Shop")["Buy"]
+	local AutoBuyHoneyShop = GetConfigValue("Auto-Buy-Honey-Shop")
+	if AutoBuyHoneyShop["Enabled"] then
+		local HoneysToBuy = Auto-Buy-Honey-Shop["Buy"]
 		for _,Item in pairs(HoneysToBuy) do
 			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock"):FireServer(Item)
 			task.wait(1)
@@ -167,8 +174,9 @@ end)
 
 task.spawn(function()
 while GetConfigValue("Enabled") do
-	local AutoCraftAntiBeeEgg = GetConfigValue("Auto-Craft-Anti-Bee-Egg")
-	if AutoCraftAntiBeeEgg then
+	local AutoCraft = GetConfigValue("Auto-Craft")
+	local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
+	if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
 		local EventCraftingWorkBench = Workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench
 		local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 		if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Skip" then return end
@@ -210,7 +218,8 @@ while GetConfigValue("Enabled") do
 		game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 	end
 	task.wait(10)
-	local AutoCraftCraftersSeedPack = GetConfigValue("Auto-Craft-Crafters-Seed-Pack")
+	local AutoCraft = GetConfigValue("Auto-Craft")
+	local AutoCraftCraftersSeedPack = AutoCraft["Craft"]["Crafters Seed Pack"]
 	if AutoCraftCraftersSeedPack then
 		local SeedEventCraftingWorkBench = Workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench
 		local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
