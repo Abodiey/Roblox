@@ -17,7 +17,7 @@ _G.Configuration = {
 	["Auto-Buy-Eggs"] = true,
 	["Auto-Buy-Bee-Egg"] = true,
 	["Auto-Craft-Anti-Bee-Egg"] = true,
-	["Auto-Craft-Crafters-Seed-Pack"] = true,
+	["Auto-Craft-Crafters-Seed-Pack"] = false,
 	--// Options
 	["Seeds-To-Buy"] = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"},
 	["Gears-To-Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler"},
