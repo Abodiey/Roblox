@@ -31,8 +31,8 @@ _G.Configuration = {
 	["Auto-Craft"] = {
 		["Enabled"] = true,
 		["Craft"] = {
-			["Anti Bee Egg"] = false,
-			["Crafters Seed Pack"] = false
+			["Anti Bee Egg"] = true,
+			["Crafters Seed Pack"] = true
 		}
 	}
 }
