@@ -34,7 +34,13 @@ _G.Configuration = {
 			["Anti Bee Egg"] = true,
 			["Crafters Seed Pack"] = true
 		}
-	}
+	},
+	["Auto-Honey-Machine"] = {
+		["Enabled"] = true,
+		["Convert"] = {
+			["Coconut"] = true
+		}
+	},
 }
 
 
@@ -172,6 +178,28 @@ task.spawn(function()
 			end
 		end
 		task.wait(60)
+	end
+end)
+
+task.spawn(function()
+	while GetConfigValue("Enabled") do
+		local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
+		if AutoHoneyMachine["Enabled"] then
+			local fruit
+			for i,v in pairs(LocalPlayer.Backpack:GetChildren()) do
+				if v and v.Name:find("Pollinated") and v.Name:find("Coconut") and AutoHoneyMachine["Enabled"] then
+					fruit = v
+					break
+				end
+				if i%1000 == 0 then task.wait() end
+			end
+			if not fruit then return end
+			LocalPlayer.Character.Humanoid:EquipTool(fruit)
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+			task.wait(1/4)
+			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+		end
+		task.wait(30)
 	end
 end)
 
