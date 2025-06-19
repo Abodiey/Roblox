@@ -37,9 +37,7 @@ _G.Configuration = {
 	},
 	["Auto-Honey-Machine"] = {
 		["Enabled"] = true,
-		["Convert"] = {
-			["Coconut"] = true
-		}
+		["Convert"] = {"Coconut"}
 	},
 }
 
@@ -185,21 +183,36 @@ task.spawn(function()
 	while GetConfigValue("Enabled") do
 		local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
 		if AutoHoneyMachine["Enabled"] then
-			local fruit
-			for i,v in pairs(LocalPlayer.Backpack:GetChildren()) do
-				if v and v.Name:find("Pollinated") and v.Name:find("Coconut") and AutoHoneyMachine["Enabled"] then
-					fruit = v
-					break
+			while not Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do task.wait() end
+			if Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
+				while Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
+					local fruit
+					for i,v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+						if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) then--and AutoHoneyMachine["Enabled"] then
+							for ii,vv in pairs(AutoHoneyMachine["Convert"]) do
+								if v.Name:find(vv) then
+									fruit = v
+									break
+								end
+								if fruit then break end
+							end
+							if i%1000 == 0 then task.wait() end
+						end
+						if fruit then
+							game.Players.LocalPlayer.Character.Humanoid:EquipTool(fruit)
+							game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+							task.wait(1)
+							break
+						end
+					end
+					task.wait()
 				end
-				if i%1000 == 0 then task.wait() end
+			elseif Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+				task.wait(1)
 			end
-			if not fruit then return end
-			LocalPlayer.Character.Humanoid:EquipTool(fruit)
-			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
-			task.wait(1/4)
-			game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
 		end
-		task.wait(30)
+		task.wait()
 	end
 end)
 
