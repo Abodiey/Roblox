@@ -279,7 +279,7 @@ task.spawn(function()
 					task.wait(1)
 				end
 				
-				local Cacao = getItem("Cacao [", "contains")
+				local Cacao = getItem("Cacao %[", "contains")
 				local cleaningSpray = getItem("Cleaning Spray", "startswith")
 				if cleaningSpray and Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
