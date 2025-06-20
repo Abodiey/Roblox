@@ -32,7 +32,8 @@ _G.Configuration = {
 		["Enabled"] = true,
 		["Craft"] = {
 			["Anti Bee Egg"] = true,
-			["Crafters Seed Pack"] = true
+			["Crafters Seed Pack"] = true,
+			["Mutation Spray Choc"] = true
 		}
 	},
 	["Auto-Honey-Machine"] = {
@@ -277,17 +278,32 @@ task.spawn(function()
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
 				end
-
+				
 				local Cacao
 				local i = 0
 				repeat i+=1
-					Cacao = Cacao or getItem("Cacao ["..i, "contains")
+					Cacao = Cacao or getItem("Cacao ["..i, "contains") task.wait()
 				until i>=9 or Cacao
-				if Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
+				local cleaningSpray = getItem("Cleaning Spray", "startswith")
+				if cleaningSpray and Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
-
+					local itemUUID = cleaningSpray:GetAttribute("c")
+					local args = {
+						"InputItem",
+						EventCraftingWorkBench,
+						"GearEventWorkbench",
+						1,
+						{
+							ItemType = "SprayBottle",
+							ItemData = {
+								UUID = itemUUID
+							}
+						}
+					}
+					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+					task.wait(1)
 					local itemUUID = Cacao:GetAttribute("c")
 					local args = {
 						"InputItem",
