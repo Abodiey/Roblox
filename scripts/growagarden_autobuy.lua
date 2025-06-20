@@ -1,6 +1,6 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/growagarden_autobuy.lua"))()
 if game.PlaceId ~= 126884695634066 then return end
-task.wait(60)
+task.wait(180)
 type table = {
 	[any]: any
 }
@@ -15,7 +15,7 @@ _G.Configuration = {
 	--// Functions
 	["Auto-Buy-Seeds"] = {
 		["Enabled"] = true,
-		["Buy"] = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"}
+		["Buy"] = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Watermelon","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"}
 	},
 	["Auto-Buy-Gear"] = {
 		["Enabled"] = true,
