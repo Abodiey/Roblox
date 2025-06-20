@@ -129,7 +129,7 @@ task.spawn(function()
 			local SeedsToBuy = AutoBuySeeds["Buy"]
 			for _,Seed in pairs(SeedsToBuy) do
 				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(Seed)
-				task.wait()
+				task.wait()task.wait()
 			end
 		end
 		task.wait()
@@ -144,7 +144,7 @@ task.spawn(function()
 			local GearToBuy = AutoBuyGear["Buy"]
 			for _,Gear in pairs(GearToBuy) do
 				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(Gear)
-				task.wait() task.wait()
+				task.wait() task.wait() task.wait() task.wait()
 			end
 		end
 		task.wait()
