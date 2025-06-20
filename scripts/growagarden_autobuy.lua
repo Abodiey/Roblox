@@ -217,13 +217,10 @@ task.spawn(function()
 	while GetConfigValue("Enabled") do
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
-		print"autocraft bee egg enabled?"
 		if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
-			print"autocraft bee egg enabled!"
 			local EventCraftingWorkBench = workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench
 			local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 			if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
-				print"1"
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
 					local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
