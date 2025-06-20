@@ -26,7 +26,7 @@ _G.Configuration = {
 	},
 	["Auto-Buy-Honey-Shop"] = {
 		["Enabled"] = true,
-		["Buy"] = {"Bee Egg"}
+		["Buy"] = {"Bee Egg","Flower Seed Pack","Honey Sprinkler"}
 	},
 	["Auto-Craft"] = {
 		["Enabled"] = true,
