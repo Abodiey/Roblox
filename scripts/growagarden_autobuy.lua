@@ -1,6 +1,6 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/growagarden_autobuy.lua"))()
 if game.PlaceId ~= 126884695634066 then return end
-task.wait(120)
+task.wait(60)
 type table = {
 	[any]: any
 }
