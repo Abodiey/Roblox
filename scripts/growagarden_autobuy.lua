@@ -188,7 +188,7 @@ task.spawn(function()
 				while Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
 					local fruit
 					for i,v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
-						if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) then--and AutoHoneyMachine["Enabled"] then
+						if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) and AutoHoneyMachine["Enabled"] then
 							for ii,vv in pairs(AutoHoneyMachine["Convert"]) do
 								if v.Name:find(vv) then
 									fruit = v
