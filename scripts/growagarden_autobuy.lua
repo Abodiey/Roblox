@@ -1,6 +1,5 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/growagarden_autobuy.lua"))()
 if game.PlaceId ~= 126884695634066 then return end
-task.wait(120)
 type table = {
 	[any]: any
 }
@@ -169,11 +168,11 @@ task.spawn(function()
 		if AutoBuyHoneyShop["Enabled"] then
 			local HoneysToBuy = AutoBuyHoneyShop["Buy"]
 			for _,Item in pairs(HoneysToBuy) do
-				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock"):FireServer(Item)
+				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock"):FireServer(tostring(Item))
 				task.wait(1)
 			end
 		end
-		task.wait(60)
+		task.wait(10)
 	end
 end)
 
