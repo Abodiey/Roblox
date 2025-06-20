@@ -96,8 +96,9 @@ GuiService.ErrorMessageChanged:Connect(function()
 
 	TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
 end)
-local function getItem(name: string, searchMethod) --equals, startswith, contains
-	local searchMethod = searchMethod:lower()
+local function getItem(name: string, searchMethod: string) --equals, startswith, contains
+	local searchMethod = searchMethod or ""
+	searchMethod = searchMethod:lower()
 	local item
 	for _, v in pairs(LocalPlayer.Character:GetChildren()) do
 		if v and v.Name then
@@ -278,11 +279,7 @@ task.spawn(function()
 					task.wait(1)
 				end
 				
-				local Cacao
-				local i = 0
-				repeat i+=1
-					Cacao = Cacao or getItem("Cacao ["..i, "contains") task.wait()
-				until i>=9 or Cacao
+				local Cacao = getItem("Cacao [", "contains")
 				local cleaningSpray = getItem("Cleaning Spray", "startswith")
 				if cleaningSpray and Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
