@@ -107,17 +107,15 @@ local function getItem(name: string, searchMethod) --equals, startswith, contain
 			end
 		end
 	end
-	if not item then
-		for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
-			if v and v.Name then
-				if (equals and v.Name == name) or (startsWith and string.match(v.Name, "^" .. name)) then
-					item = v
-					break
-				end
+	if item then return item end
+	for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
+		if v and v.Name then
+			if (searchMethod == "equals" and v.Name == name) or (searchMethod == "startswith" and string.match(v.Name, "^" .. name)) or (searchMethod == "contains" and v.Name:find(name)) then
+				item = v
+				break
 			end
 		end
 	end
-
 	return item
 end
 
@@ -239,9 +237,7 @@ task.spawn(function()
 				end
 
 				local BeeEgg = getItem("Bee Egg", "startswith")
-				print"2"
 				if BeeEgg and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
-					print"3"
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Anti Bee Egg"}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
@@ -295,6 +291,7 @@ task.spawn(function()
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
+					
 					local itemUUID = cleaningSpray:GetAttribute("c")
 					local args = {
 						"InputItem",
