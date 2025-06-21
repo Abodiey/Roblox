@@ -24,12 +24,12 @@ _G.Configuration = {
 			{"Legendary Egg","startswith",Color3.new(1,0,0)},
 			
 			{"Sugar Apple","startswith",Color3.new(0,1,0)},
-			{"Ember Lily","startswith",Color3.new(1, 1/2, 0)},
-			{"Beanstalk","startswith",Color3.new(0,1,0)},
-			{"Grape","startswith",Color3.new(1/2, 0, 1)},
+			{"Feijoa","startswith",Color3.new(1, 1/2, 0)},
+			{"Loquat","startswith",Color3.new(0,1,0)},
+			{"Prickly Pear","startswith",Color3.new(1/2, 0, 1)},
 			
 			{"Master Sprinkler","startswith",Color3.new(0,1,0)},
-			{"Lightning Rod","startswith",Color3.new(0.75, 0.75, 0.75)},
+			{"Tanning Mirror","startswith",Color3.new(0,1,0)},
 			
 			{"Bee Egg","startswith",Color3.new(1,0.5,0)},
 			{"Honey Sprinkler","startswith",Color3.new(1, 0.5, 0)},
@@ -37,22 +37,22 @@ _G.Configuration = {
 	},
 	["Auto-Buy-Seeds"] = {
 		["Enabled"] = true,
-		["Buy"] = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Watermelon","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"}
+		["Buy"] = {"Carrot","Strawberry","Blueberry","Tomato","Cauliflower","Watermelon","Green Apple","Avocado","Banana","Pineapple","Kiwi","Bell Pepper","Prickly Pear","Loquat","Feijoa","Sugar Apple"}
 	},
 	["Auto-Buy-Gear"] = {
 		["Enabled"] = true,
-		["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler"}
+		["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Tanning Mirror","Master Sprinkler"}
 	},
 	["Auto-Buy-Eggs"] = {
 		["Enabled"] = true,
 		["Buy"] = {1,2,3}
 	},
 	["Auto-Buy-Honey-Shop"] = {
-		["Enabled"] = true,
+		["Enabled"] = false,
 		["Buy"] = {"Bee Egg","Flower Seed Pack","Honey Sprinkler"}
 	},
 	["Auto-Craft"] = {
-		["Enabled"] = true,
+		["Enabled"] = false,
 		["Craft"] = {
 			["Anti Bee Egg"] = true,
 			["Crafters Seed Pack"] = true,
@@ -60,7 +60,7 @@ _G.Configuration = {
 		}
 	},
 	["Auto-Honey-Machine"] = {
-		["Enabled"] = true,
+		["Enabled"] = false,
 		["Convert"] = {"Coconut"}
 	},
 }
