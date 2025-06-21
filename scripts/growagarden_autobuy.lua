@@ -19,8 +19,21 @@ _G.Configuration = {
 		["Enabled"] = false, --override in autoexecute
 		["Webhook"] = "",
 		["Alert"] = {
-			{"Bee Egg","startswith",Color3.new(1,1,0)},
-			{"Carrot","startswith",Color3.new(1,0.5,0)}
+			{"Bug Egg","startswith",Color3.new(0,1,0)},
+			{"Mythical Egg","startswith",Color3.new(1, 1, 0)},
+			{"Legendary Egg","startswith",Color3.new(1,0,0)},
+			
+			{"Sugar Apple","startswith",Color3.new(0,1,0)},
+			{"Ember Lily","startswith",Color3.new(1, 1/2, 0)},
+			{"Beanstalk","startswith",Color3.new(0,1,0)},
+			{"Mushroom","startswith",Color3.new(1,0,0)},
+			{"Grape","startswith",Color3.new(1/2, 0, 1)},
+			
+			{"Master Sprinkler","startswith",Color3.new(0,1,0)},
+			{"Lightning Rod","startswith",Color3.new(0.75, 0.75, 0.75)},
+			
+			{"Bee Egg","startswith",Color3.new(1,0.5,0)},
+			{"Honey Sprinkler","startswith",Color3.new(1, 0.5, 0)},
 		}
 	},
 	["Auto-Buy-Seeds"] = {
@@ -216,7 +229,7 @@ task.spawn(function()
 						if newAmount > previousAmount then
 							WebhookSend(color, {
 								{
-									name = "@everyone "..name,
+									name = name,
 									value = "@everyone "..name,
 									inline = true
 								}
@@ -242,7 +255,7 @@ task.spawn(function()
 								if newAmount > previousAmount then
 									WebhookSend(color, {
 										{
-											name = "@everyone "..name,
+											name = name,
 											value = "@everyone "..name,
 											inline = true
 										}
