@@ -25,14 +25,14 @@ _G.Configuration = {
 			
 			{"Sugar Apple","startswith",Color3.new(0,1,0)},
 			{"Feijoa","startswith",Color3.new(1, 1/2, 0)},
-			{"Loquat","startswith",Color3.new(0,1,0)},
-			{"Prickly Pear","startswith",Color3.new(1/2, 0, 1)},
+			{"Loquat","startswith",Color3.new(1, 1/2, 0)},
+			{"Prickly Pear","startswith",Color3.new(1/2, 0, 0)},
 			
 			{"Master Sprinkler","startswith",Color3.new(0,1,0)},
 			{"Tanning Mirror","startswith",Color3.new(0,1,0)},
 			
-			{"Bee Egg","startswith",Color3.new(1,0.5,0)},
-			{"Honey Sprinkler","startswith",Color3.new(1, 0.5, 0)},
+			{"Paradise Egg","startswith",Color3.new(1,1 ,0)},
+			{"Summer Egg","startswith",Color3.new(1, 0.5, 0)},
 		}
 	},
 	["Auto-Buy-Seeds"] = {
