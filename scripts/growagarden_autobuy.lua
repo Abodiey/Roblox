@@ -408,7 +408,7 @@ task.spawn(function()
 				end
 			end
 		end
-		task.wait(5)
+		task.wait(3)
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftChocSpray = AutoCraft["Craft"]["Mutation Spray Choc"]
 		if AutoCraft["Enabled"] and AutoCraftChocSpray then
@@ -469,10 +469,10 @@ task.spawn(function()
 				end
 			end
 		end
-		task.wait(5)
+		task.wait(3)
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftCraftersSeedPack = AutoCraft["Craft"]["Crafters Seed Pack"]
-		if AutoCraftCraftersSeedPack then
+		if AutoCraft["Enabled"] and AutoCraftCraftersSeedPack then
 			local SeedEventCraftingWorkBench = workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench
 			local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 			if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText ~= "Skip" then
