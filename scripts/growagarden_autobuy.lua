@@ -19,7 +19,8 @@ _G.Configuration = {
 		["Enabled"] = false, --override in autoexecute
 		["Webhook"] = "",
 		["Alert"] = {
-			{"Bee Egg","startswith",Color3.new(1,1,0)}
+			{"Bee Egg","startswith",Color3.new(1,1,0)},
+			{"Carrot","startswith",Color3.new(1,0.5,0)}
 		}
 	},
 	["Auto-Buy-Seeds"] = {
