@@ -32,7 +32,8 @@ _G.Configuration = {
 			{"Tanning Mirror","startswith",Color3.new(0,1,0)},
 			
 			{"Paradise Egg","startswith",Color3.new(1,1 ,0)},
-			{"Summer Egg","startswith",Color3.new(1, 0.5, 0)},
+			{"Rare Summer Egg","startswith",Color3.new(0.1, 1/4, 1)},
+			{"Common Summer Egg","startswith",Color3.new(1, 1, 0)},
 		}
 	},
 	["Auto-Buy-Seeds"] = {
