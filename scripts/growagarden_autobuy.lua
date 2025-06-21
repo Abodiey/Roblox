@@ -329,9 +329,9 @@ task.spawn(function()
 	while GetConfigValue("Enabled") do
 		local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
 		if AutoHoneyMachine["Enabled"] then
-			while not Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do task.wait() end
-			if Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
-				while Workspace.HoneyEvent.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
+			while not Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do task.wait() end
+			if Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
+				while Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
 					local fruit
 					for i,v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
 						if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) and AutoHoneyMachine["Enabled"] then
@@ -353,7 +353,7 @@ task.spawn(function()
 					end
 					task.wait()
 				end
-			elseif Workspace.HoneyEvent.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
+			elseif Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
 				game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
 				task.wait(1)
 			end
@@ -367,7 +367,7 @@ task.spawn(function()
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
 		if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
-			local EventCraftingWorkBench = workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench
+			local EventCraftingWorkBench = workspace.NewCrafting.EventCraftingWorkBench
 			local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 			if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
@@ -412,7 +412,7 @@ task.spawn(function()
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftChocSpray = AutoCraft["Craft"]["Mutation Spray Choc"]
 		if AutoCraft["Enabled"] and AutoCraftChocSpray then
-			local EventCraftingWorkBench = workspace.Interaction.UpdateItems.NewCrafting.EventCraftingWorkBench
+			local EventCraftingWorkBench = Workspace.NewCrafting.EventCraftingWorkBench
 			local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 			if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
@@ -473,7 +473,7 @@ task.spawn(function()
 		local AutoCraft = GetConfigValue("Auto-Craft")
 		local AutoCraftCraftersSeedPack = AutoCraft["Craft"]["Crafters Seed Pack"]
 		if AutoCraft["Enabled"] and AutoCraftCraftersSeedPack then
-			local SeedEventCraftingWorkBench = workspace.Interaction.UpdateItems.NewCrafting.SeedEventCraftingWorkBench
+			local SeedEventCraftingWorkBench = workspace.NewCrafting.SeedEventCraftingWorkBench
 			local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 			if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText ~= "Skip" then
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
