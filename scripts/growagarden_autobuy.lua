@@ -26,7 +26,6 @@ _G.Configuration = {
 			{"Sugar Apple","startswith",Color3.new(0,1,0)},
 			{"Ember Lily","startswith",Color3.new(1, 1/2, 0)},
 			{"Beanstalk","startswith",Color3.new(0,1,0)},
-			{"Mushroom","startswith",Color3.new(1,0,0)},
 			{"Grape","startswith",Color3.new(1/2, 0, 1)},
 			
 			{"Master Sprinkler","startswith",Color3.new(0,1,0)},
