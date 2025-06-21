@@ -1,9 +1,12 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/growagarden_autobuy.lua"))()
-if game.PlaceId ~= 126884695634066 then return end
+--[[
+_G.Configuration["Discord"]["Webhook"] = "linkhere"
+_G.Configuration["Discord"]["Enabled"] = true
+]]
+if game.PlaceId ~= tonumber(63442347817033*2) then return end
 type table = {
 	[any]: any
 }
-
 _G.Configuration = {
 	--// Reporting
 	["Enabled"] = true,
@@ -12,6 +15,13 @@ _G.Configuration = {
 	["Auto-Reconnect"] = false,
 	["Rendering Enabled"] = true,
 	--// Functions
+	["Discord"] = {
+		["Enabled"] = false, --override in autoexecute
+		["Webhook"] = "",
+		["Alert"] = {
+			{"Bee Egg","startswith",Color3.new(1,1,0)}
+		}
+	},
 	["Auto-Buy-Seeds"] = {
 		["Enabled"] = true,
 		["Buy"] = {"Carrot","Strawberry","Blueberry","Orange Tulip","Tomato","Corn","Daffodil","Watermelon","Pumpkin","Apple","Bamboo","Coconut","Cactus","Dragon Fruit","Mango","Grape","Mushroom","Pepper","Cacao","Beanstalk","Ember Lily","Sugar Apple"}
@@ -59,6 +69,61 @@ local function GetConfigValue(Key: string)
 	return _G.Configuration[Key]
 end
 
+local function ConvertColor3(Color: Color3): number
+	local Hex = Color:ToHex()
+	return tonumber(Hex, 16)
+end
+
+local function GetDataPacket(Data, Target: string)
+	for _, Packet in Data do
+		local Name = Packet[1]
+		local Content = Packet[2]
+
+		if Name == Target then
+			return Content
+		end
+	end
+
+	return 
+end
+
+local function WebhookSend(Color: Color3, Fields: table)
+	local Enabled = GetConfigValue("Discord")["Enabled"]
+	local Webhook = GetConfigValue("Discord")["Webhook"]
+
+	--// Check if reports are enabled
+	if not Enabled then return end
+
+	local Color = ConvertColor3(Color)
+
+	--// Webhook data
+	local TimeStamp = DateTime.now():ToIsoDate()
+	local Body = {
+		embeds = {
+			{
+				color = Color,
+				fields = Fields,
+				footer = {
+					text = "Created by depso" -- Please keep
+				},
+				timestamp = TimeStamp
+			}
+		}
+	}
+
+	local RequestData = {
+		Url = Webhook,
+		Method = "POST",
+		Headers = {
+			["Content-Type"] = "application/json"
+		},
+		Body = HttpService:JSONEncode(Body)
+	}
+
+	--// Send POST request to the webhook
+	task.spawn(request, RequestData)
+end
+
 --// Set rendering enabled
 local Rendering = GetConfigValue("Rendering Enabled")
 RunService:Set3dRenderingEnabled(Rendering)
@@ -95,30 +160,101 @@ GuiService.ErrorMessageChanged:Connect(function()
 
 	TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
 end)
-local function getItem(name: string, searchMethod: string) --equals, startswith, contains
-	local searchMethod = searchMethod or ""
-	searchMethod = searchMethod:lower()
-	local item
-	for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-		if v and v.Name then
-			if (searchMethod == "equals" and v.Name == name) or (searchMethod == "startswith" and string.match(v.Name, "^" .. name)) or (searchMethod == "contains" and v.Name:find(name)) then
-				item = v
-				break
-			end
+
+local function searchMethod(itemName: string, searchMethodName: string, name: string)
+	local searchMethodName = searchMethodName or ""
+	searchMethodName = searchMethodName:lower()
+	if itemName then
+		if (searchMethodName == "equals" and itemName == name) or (searchMethodName == "startswith" and string.match(itemName, "^" .. name)) or (searchMethodName == "contains" and itemName:find(name)) then
+			return true
 		end
 	end
+	return false
+end
+
+local function getItem(name: string, searchMethodName: string) --equals, startswith, contains
+	local searchMethodName = searchMethodName or ""
+	searchMethodName = searchMethodName:lower()
+	local item
+	for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+		if v and v.Name and searchMethod(v.Name, searchMethodName, name) then
+			item = v
+			break
+		end
+	end
+
 	if item then return item end
 	for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
-		if v and v.Name then
-			if (searchMethod == "equals" and v.Name == name) or (searchMethod == "startswith" and string.match(v.Name, "^" .. name)) or (searchMethod == "contains" and v.Name:find(name)) then
-				item = v
-				break
-			end
+		if v and v.Name and searchMethod(v.Name, searchMethodName, name) then
+			item = v
+			break
 		end
 	end
 	return item
 end
 
+task.spawn(function()
+	if GetConfigValue("Enabled") then
+		local Discord = GetConfigValue("Discord")
+		while not Discord["Enabled"] do
+			task.wait()
+		end
+		local alertList = Discord["Alert"]
+		local backpack = LocalPlayer.Backpack
+		for _,v in pairs(alertList) do
+			local name = v[1]
+			local method = v[2]
+			local color = v[3]
+			local item = getItem(name, method)
+			if item and item.Name and not item:GetAttribute("Watching") then
+				task.spawn(function()
+					item:SetAttribute("Watching", true)
+					local previousAmount = tonumber(item.Name:match("%d+"))
+					item:GetPropertyChangedSignal("Name"):Connect(function()
+						local newAmount = tonumber(item.Name:match("%d+"))
+						if newAmount > previousAmount then
+							WebhookSend(color, {
+								{
+									name = "@everyone "..name,
+									value = "@everyone "..name,
+									inline = true
+								}
+							})
+						end
+						previousAmount = newAmount
+					end)
+				end)
+			end
+		end
+		backpack.ChildAdded:Connect(function(item: Instance) 
+			if item and item.Name and not item:GetAttribute("Watching") then
+				for _,v in pairs(alertList) do
+					local name = v[1]
+					local method = v[2]
+					local color = v[3]
+					if searchMethod(item.Name, method, name) then
+						task.spawn(function()
+							item:SetAttribute("Watching", true)
+							local previousAmount = tonumber(item.Name:match("%d+"))
+							item:GetPropertyChangedSignal("Name"):Connect(function()
+								local newAmount = tonumber(item.Name:match("%d+"))
+								if newAmount > previousAmount then
+									WebhookSend(color, {
+										{
+											name = "@everyone "..name,
+											value = "@everyone "..name,
+											inline = true
+										}
+									})
+								end
+							end)
+						end)
+					end
+				end
+			end
+		end)
+	end
+end)
 task.spawn(function()
 	while GetConfigValue("Enabled") do
 		local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")
@@ -277,14 +413,14 @@ task.spawn(function()
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
 				end
-				
+
 				local Cacao = getItem("Cacao %[", "contains")
 				local cleaningSpray = getItem("Cleaning Spray", "startswith")
 				if cleaningSpray and Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 					local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
-					
+
 					local itemUUID = cleaningSpray:GetAttribute("c")
 					local args = {
 						"InputItem",
@@ -342,7 +478,7 @@ task.spawn(function()
 					local args = {"SetRecipe",SeedEventCraftingWorkBench,"SeedEventWorkbench","Crafters Seed Pack"}
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 					task.wait(1)
-						
+
 					local itemUUID = FlowerSeedPack:GetAttribute("c")
 					local args = {
 						"InputItem",
