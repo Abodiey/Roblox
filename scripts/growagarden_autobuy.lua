@@ -350,8 +350,9 @@ task.spawn(function()
 		while GetConfigValue("Enabled") do
 			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
+			if AutoCraft["Enabled"] then end
 			if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
-				local EventCraftingWorkBench = workspace.NewCrafting.EventCraftingWorkBench
+				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
@@ -396,7 +397,7 @@ task.spawn(function()
 			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftChocSpray = AutoCraft["Craft"]["Mutation Spray Choc"]
 			if AutoCraft["Enabled"] and AutoCraftChocSpray then
-				local EventCraftingWorkBench = Workspace.NewCrafting.EventCraftingWorkBench
+				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
@@ -457,8 +458,8 @@ task.spawn(function()
 			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftCraftersSeedPack = AutoCraft["Craft"]["Crafters Seed Pack"]
 			if AutoCraft["Enabled"] and AutoCraftCraftersSeedPack then
-				local SeedEventCraftingWorkBench = workspace.NewCrafting.SeedEventCraftingWorkBench
-				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
+				local SeedEventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
+				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true)
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText ~= "Skip" then
 					if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
 						local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
