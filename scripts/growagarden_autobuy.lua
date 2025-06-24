@@ -358,11 +358,11 @@ task.spawn(function()
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 				end
 				local SeedEventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
-				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true
-				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
-					local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
-				end
+				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true)
+					if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
+						local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+					end
 			end
 			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
 			if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
@@ -418,7 +418,7 @@ task.spawn(function()
 						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 						task.wait(1)
 					end
-								
+
 					local Cacao = getItem("Cacao %[", "contains")
 					local cleaningSpray = getItem("Cleaning Spray", "startswith")
 					if cleaningSpray and Cacao and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
