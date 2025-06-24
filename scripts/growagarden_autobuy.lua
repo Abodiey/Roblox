@@ -53,8 +53,9 @@ task.spawn(function()
 			["Enabled"] = true,
 			["Craft"] = {
 				["Anti Bee Egg"] = true,
+				["Mutation Spray Choc"] = true,
+				["Reclaimer"] = true,
 				["Crafters Seed Pack"] = true,
-				["Mutation Spray Choc"] = true
 			}
 		},
 		["Auto-Honey-Machine"] = {
@@ -349,7 +350,6 @@ task.spawn(function()
 	task.spawn(function()
 		while GetConfigValue("Enabled") do
 			local AutoCraft = GetConfigValue("Auto-Craft")
-			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
 			if AutoCraft["Enabled"] then 
 				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
@@ -364,6 +364,7 @@ task.spawn(function()
 					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
 				end
 			end
+			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
 			if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
 				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
@@ -453,6 +454,66 @@ task.spawn(function()
 							2,
 							{
 								ItemType = "Holdable",
+								ItemData = {
+									UUID = itemUUID
+								}
+							}
+						}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						task.wait(1)
+						local args = {"Craft",EventCraftingWorkBench,"GearEventWorkbench"}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+					end
+				end
+			end
+			task.wait(3)
+			local AutoCraft = GetConfigValue("Auto-Craft")
+			local AutoCraftReclaimer = AutoCraft["Craft"]["Reclaimer"]
+			if AutoCraft["Enabled"] and AutoCraftReclaimer then
+				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
+				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
+				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
+					if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
+						local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						task.wait(1)
+					end
+
+					local commonEgg = getItem("Common Egg", "startswith")
+					local harvestTool = getItem("Harvest Tool", "startswith")
+					if commonEgg and harvestTool and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
+						if (EventCraftingPrompt.ActionText == "Submit Item" or string.match(EventCraftingPrompt.ActionText, "^".."Start Crafting")) then
+							local args = {"Cancel",EventCraftingWorkBench,"GearEventWorkbench"}
+							game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+							task.wait(1)
+						end
+						local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Reclaimer"}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						task.wait(1)
+
+						local itemUUID = commonEgg:GetAttribute("c")
+						local args = {
+							"InputItem",
+							EventCraftingWorkBench,
+							"GearEventWorkbench",
+							1,
+							{
+								ItemType = "PetEgg",
+								ItemData = {
+									UUID = itemUUID
+								}
+							}
+						}
+						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						task.wait(1)
+						local itemUUID = harvestTool:GetAttribute("c")
+						local args = {
+							"InputItem",
+							EventCraftingWorkBench,
+							"GearEventWorkbench",
+							2,
+							{
+								ItemType = "Harvest Tool",
 								ItemData = {
 									UUID = itemUUID
 								}
