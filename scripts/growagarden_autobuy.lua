@@ -49,12 +49,8 @@ task.spawn(function()
 			["Enabled"] = true,
 			["Buy"] = {1,2,3}
 		},
-		["Auto-Buy-Honey-Shop"] = {
-			["Enabled"] = false,
-			["Buy"] = {"Bee Egg","Flower Seed Pack","Honey Sprinkler"}
-		},
 		["Auto-Craft"] = {
-			["Enabled"] = false,
+			["Enabled"] = true,
 			["Craft"] = {
 				["Anti Bee Egg"] = true,
 				["Crafters Seed Pack"] = true,
@@ -310,20 +306,6 @@ task.spawn(function()
 				end
 			end
 			task.wait(60)
-		end
-	end)
-
-	task.spawn(function()
-		while GetConfigValue("Enabled") do
-			local AutoBuyHoneyShop = GetConfigValue("Auto-Buy-Honey-Shop")
-			if AutoBuyHoneyShop["Enabled"] then
-				local HoneysToBuy = AutoBuyHoneyShop["Buy"]
-				for _,Item in pairs(HoneysToBuy) do
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock"):FireServer(tostring(Item))
-					task.wait(1)
-				end
-			end
-			task.wait(10)
 		end
 	end)
 
