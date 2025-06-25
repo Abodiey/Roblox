@@ -218,7 +218,7 @@ task.spawn(function()
 				local method = v[2]
 				local color = v[3]
 				local item = getItem(name, method)
-				if item and item.Name and not item:GetAttribute("Watching") then
+				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
 					task.spawn(function()
 						item:SetAttribute("Watching", true)
 						local previousAmount = tonumber(item.Name:match("%d+"))
@@ -239,7 +239,7 @@ task.spawn(function()
 				end
 			end
 			backpack.ChildAdded:Connect(function(item: Instance) 
-				if item and item.Name and not item:GetAttribute("Watching") then
+				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
 					for _,v in pairs(alertList) do
 						local name = v[1]
 						local method = v[2]
