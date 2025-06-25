@@ -1,4 +1,5 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/autosummerevent.lua"))()
+if game.PlaceId ~= tonumber(63442347817033*2) then return end
 local SummerFruits = {"Sugar Apple","Feijoa","Loquat","Prickly Pear","Bell Pepper","Kiwi","Pineapple","Banana","Avocado","Green Apple","Watermelon","Cauliflower","Tomato","Strawberry","Carrot"}
 local runService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
