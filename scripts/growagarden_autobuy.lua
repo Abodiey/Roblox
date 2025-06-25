@@ -46,8 +46,7 @@ task.spawn(function()
 			["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Tanning Mirror","Master Sprinkler"}
 		},
 		["Auto-Buy-Eggs"] = {
-			["Enabled"] = true,
-			["Buy"] = {1,2,3}
+			["Enabled"] = true
 		},
 		["Auto-Craft"] = {
 			["Enabled"] = true,
@@ -174,22 +173,17 @@ task.spawn(function()
 	end)
 
 	local function searchMethod(itemName: string, searchMethodName: string, name: string)
-		local searchMethodName = searchMethodName or ""
-		searchMethodName = searchMethodName:lower()
-		if itemName then
-			if (searchMethodName == "equals" and itemName == name) or (searchMethodName == "startswith" and string.match(itemName, "^" .. name)) or (searchMethodName == "contains" and itemName:find(name)) then
-				return true
-			end
+		if itemName and (searchMethodName == "equals" and itemName == name) or (searchMethodName == "startswith" and string.match(itemName, "^" .. name)) or (searchMethodName == "contains" and itemName:find(name)) then
+			return true
+		else
+			return false
 		end
-		return false
 	end
 
 	local function getItem(name: string, searchMethodName: string) --equals, startswith, contains
-		local searchMethodName = searchMethodName or ""
-		searchMethodName = searchMethodName:lower()
 		local item
 		for _, v in pairs(LocalPlayer.Character:GetChildren()) do
-			if v and v.Name and searchMethod(v.Name, searchMethodName, name) then
+			if v and searchMethod(v.Name, searchMethodName, name) then
 				item = v
 				break
 			end
@@ -197,7 +191,7 @@ task.spawn(function()
 
 		if item then return item end
 		for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
-			if v and v.Name and searchMethod(v.Name, searchMethodName, name) then
+			if v and searchMethod(v.Name, searchMethodName, name) then
 				item = v
 				break
 			end
@@ -219,22 +213,20 @@ task.spawn(function()
 				local color = v[3]
 				local item = getItem(name, method)
 				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
-					task.spawn(function()
-						item:SetAttribute("Watching", true)
-						local previousAmount = tonumber(item.Name:match("%d+"))
-						item:GetPropertyChangedSignal("Name"):Connect(function()
-							local newAmount = tonumber(item.Name:match("%d+"))
-							if newAmount > previousAmount then
-								WebhookSend(color, {
-									{
-										name = name,
-										value = "@everyone "..name,
-										inline = true
-									}
-								})
-							end
-							previousAmount = newAmount
-						end)
+					item:SetAttribute("Watching", true)
+					local previousAmount = tonumber(string.match(item.Name, "%d+"))
+					item:GetPropertyChangedSignal("Name"):Connect(function()
+						local newAmount = tonumber(string.match(item.Name, "%d+"))
+						if newAmount > previousAmount then
+							WebhookSend(color, {
+								{
+									name = name,
+									value = "@everyone "..name,
+									inline = true
+								}
+							})
+						end
+						previousAmount = newAmount
 					end)
 				end
 			end
@@ -245,21 +237,20 @@ task.spawn(function()
 						local method = v[2]
 						local color = v[3]
 						if searchMethod(item.Name, method, name) then
-							task.spawn(function()
-								item:SetAttribute("Watching", true)
-								local previousAmount = tonumber(item.Name:match("%d+"))
-								item:GetPropertyChangedSignal("Name"):Connect(function()
-									local newAmount = tonumber(item.Name:match("%d+"))
-									if newAmount > previousAmount then
-										WebhookSend(color, {
-											{
-												name = name,
-												value = "@everyone "..name,
-												inline = true
-											}
-										})
-									end
-								end)
+							item:SetAttribute("Watching", true)
+							local previousAmount = tonumber(string.match(item.Name, "%d+"))
+							item:GetPropertyChangedSignal("Name"):Connect(function()
+								local newAmount = tonumber(string.match(item.Name, "%d+"))
+								if newAmount > previousAmount then
+									WebhookSend(color, {
+										{
+											name = name,
+											value = "@everyone "..name,
+											inline = true
+										}
+									})
+								end
+								previousAmount = newAmount
 							end)
 						end
 					end
@@ -267,28 +258,30 @@ task.spawn(function()
 			end)
 		end
 	end)
+		
 	task.spawn(function()
+		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock")
 		while GetConfigValue("Enabled") do
 			local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")
 			if AutoBuySeeds["Enabled"] then
 				local SeedsToBuy = AutoBuySeeds["Buy"]
 				for _,Seed in pairs(SeedsToBuy) do
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(Seed)
-					task.wait()task.wait()
+					event:FireServer(Seed)
+					task.wait() task.wait()
 				end
 			end
 			task.wait()
 		end
 	end)
 
-	--List of Gears = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Lightning Rod","Master Sprinkler","Cleaning Spray","Favorite Tool","Harvest Tool","Friendship Pot"}
 	task.spawn(function()
+		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock")
 		while GetConfigValue("Enabled") do
 			local AutoBuyGear = GetConfigValue("Auto-Buy-Gear")
 			if AutoBuyGear["Enabled"] then
 				local GearToBuy = AutoBuyGear["Buy"]
 				for _,Gear in pairs(GearToBuy) do
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(Gear)
+					event:FireServer(Gear)
 					task.wait() task.wait() task.wait() task.wait()
 				end
 			end
@@ -297,12 +290,13 @@ task.spawn(function()
 	end)
 
 	task.spawn(function()
+		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg")
 		while GetConfigValue("Enabled") do
 			local AutoBuyEggs = GetConfigValue("Auto-Buy-Eggs")
 			if AutoBuyEggs["Enabled"] then
-				local EggsToBuy = AutoBuyEggs["Buy"]
+				local EggsToBuy = {1,2,3}
 				for _,Egg in pairs(EggsToBuy) do
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(Egg)
+					event:FireServer(Egg)
 					task.wait(1)
 				end
 			end
@@ -311,6 +305,7 @@ task.spawn(function()
 	end)
 
 	task.spawn(function()
+		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE")
 		while GetConfigValue("Enabled") do
 			local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
 			if AutoHoneyMachine["Enabled"] then
@@ -331,7 +326,7 @@ task.spawn(function()
 							end
 							if fruit then
 								game.Players.LocalPlayer.Character.Humanoid:EquipTool(fruit)
-								game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+								event:FireServer("MachineInteract")
 								task.wait(1)
 								break
 							end
@@ -339,7 +334,7 @@ task.spawn(function()
 						task.wait()
 					end
 				elseif Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE"):FireServer("MachineInteract")
+					event:FireServer("MachineInteract")
 					task.wait(1)
 				end
 			end
@@ -348,6 +343,7 @@ task.spawn(function()
 	end)
 
 	task.spawn(function()
+		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 		while GetConfigValue("Enabled") do
 			local AutoCraft = GetConfigValue("Auto-Craft")
 			if AutoCraft["Enabled"] then 
@@ -355,13 +351,13 @@ task.spawn(function()
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
 					local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+					event:FireServer(unpack(args))
 				end
 				local SeedEventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
 				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true)
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
 					local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
-					game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+					event:FireServer(unpack(args))
 				end
 			end
 			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
@@ -371,19 +367,19 @@ task.spawn(function()
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
 						local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 
 					local BeeEgg = getItem("Bee Egg", "startswith")
 					if BeeEgg and EventCraftingPrompt and (EventCraftingPrompt.ActionText == "Submit Item" or string.match(EventCraftingPrompt.ActionText, "^".."Start Crafting")) then
 						local args = {"Cancel",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 					if BeeEgg and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 						local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Anti Bee Egg"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 
 						local itemUUID = BeeEgg:GetAttribute("c")
@@ -399,10 +395,10 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local args = {"Craft",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 					end
 				end
 			end
@@ -415,7 +411,7 @@ task.spawn(function()
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
 						local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 
@@ -423,12 +419,12 @@ task.spawn(function()
 					local cleaningSpray = getItem("Cleaning Spray", "startswith")
 					if Cacao and cleaningSpray and EventCraftingPrompt and (EventCraftingPrompt.ActionText == "Submit Item" or string.match(EventCraftingPrompt.ActionText, "^".."Start Crafting")) then
 						local args = {"Cancel",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 					if Cacao and cleaningSpray and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 						local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Mutation Spray Choc"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 
 						local itemUUID = cleaningSpray:GetAttribute("c")
@@ -444,7 +440,7 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local itemUUID = Cacao:GetAttribute("c")
 						local args = {
@@ -459,10 +455,10 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local args = {"Craft",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 					end
 				end
 			end
@@ -475,7 +471,7 @@ task.spawn(function()
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
 						local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 
@@ -483,12 +479,12 @@ task.spawn(function()
 					local harvestTool = getItem("Harvest Tool", "startswith")
 					if commonEgg and harvestTool and EventCraftingPrompt and (EventCraftingPrompt.ActionText == "Submit Item" or string.match(EventCraftingPrompt.ActionText, "^".."Start Crafting")) then
 						local args = {"Cancel",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 					if commonEgg and harvestTool and EventCraftingPrompt and EventCraftingPrompt.ActionText == "Select Recipe" then
 						local args = {"SetRecipe",EventCraftingWorkBench,"GearEventWorkbench","Reclaimer"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 
 						local itemUUID = commonEgg:GetAttribute("c")
@@ -504,7 +500,7 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local itemUUID = harvestTool:GetAttribute("c")
 						local args = {
@@ -519,10 +515,10 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local args = {"Craft",EventCraftingWorkBench,"GearEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 					end
 				end
 			end
@@ -535,7 +531,7 @@ task.spawn(function()
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText ~= "Skip" then
 					if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
 						local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 					end
 
@@ -543,11 +539,11 @@ task.spawn(function()
 					if FlowerSeedPack and SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Select Recipe" then
 						if (SeedEventCraftingPrompt.ActionText == "Submit Item" or string.match(SeedEventCraftingPrompt.ActionText, "^".."Start Crafting")) then
 							local args = {"Cancel",SeedEventCraftingWorkBench,"SeedEventWorkbench"}
-							game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+							event:FireServer(unpack(args))
 							task.wait(1)
 						end
 						local args = {"SetRecipe",SeedEventCraftingWorkBench,"SeedEventWorkbench","Crafters Seed Pack"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 
 						local itemUUID = FlowerSeedPack:GetAttribute("c")
@@ -563,10 +559,10 @@ task.spawn(function()
 								}
 							}
 						}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 						task.wait(1)
 						local args = {"Craft",SeedEventCraftingWorkBench,"SeedEventWorkbench"}
-						game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService"):FireServer(unpack(args))
+						event:FireServer(unpack(args))
 					end
 				end
 			end
