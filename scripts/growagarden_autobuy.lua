@@ -228,6 +228,7 @@ task.spawn(function()
 						end
 						previousAmount = newAmount
 					end)
+					break
 				end
 			end
 			backpack.ChildAdded:Connect(function(item: Instance) 
@@ -252,6 +253,7 @@ task.spawn(function()
 								end
 								previousAmount = newAmount
 							end)
+							break
 						end
 					end
 				end
