@@ -21,7 +21,7 @@ for _, plot in pairs(workspace:WaitForChild("Farm"):GetChildren()) do
 end
 
 local isSummerHarvest = false
-local summerHarvestLabel = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("SummerHarvestEvent"):WaitForChild("Sign"):FindFirstChild("BillboardGui", true):WaitForChild("TextLabel")
+local summerHarvestLabel = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("Sign"):FindFirstChild("BillboardGui", true):WaitForChild("TextLabel")
 local function refreshSummerHarvest()
 	if summerHarvestLabel.Text == "Next Summer Harvest:" then
 		isSummerHarvest = false
@@ -63,7 +63,7 @@ task.spawn(function()
 	guiObject.Text = getTime().."\nRewards Collected: None yet..."
 	guiObject.TextScaled = true
 	]]--
-	local label = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
+	local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
 	local oldRewards = tonumber(label.Text:match("%d+"))
 	local newRewards
 	while _G.AutoLog do
