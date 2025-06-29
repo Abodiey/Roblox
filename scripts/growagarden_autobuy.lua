@@ -20,21 +20,23 @@ task.spawn(function()
 			["Enabled"] = false, --override in autoexecute
 			["Webhook"] = "",
 			["Alert"] = {
-				{"Bug Egg","startswith",Color3.new(0,1,0)},
-				{"Mythical Egg","startswith",Color3.new(1, 1, 0)},
-				{"Legendary Egg","startswith",Color3.new(1,0,0)},
+				{"Bug Egg", "startswith", Color3.new(0, 1, 0)},
+				{"Mythical Egg", "startswith", Color3.new(1, 1, 0)},
+				{"Legendary Egg", "startswith", Color3.new(1, 0, 0)},
 
-				{"Sugar Apple","startswith",Color3.new(0,1,0)},
-				{"Feijoa","startswith",Color3.new(1, 1/2, 0)},
-				{"Loquat","startswith",Color3.new(1, 1/2, 0)},
-				{"Prickly Pear","startswith",Color3.new(1/2, 0, 0)},
+				{"Sugar Apple", "startswith", Color3.new(0, 1, 0)},
+				{"Pitcher Plant", "startswith", Color3.new(1/4, 1, 0)},
+				{"Feijoa", "startswith", Color3.new(1, 1/2, 0)},
+				{"Loquat", "startswith", Color3.new(1, 1/2, 0)},
+				{"Prickly Pear", "startswith", Color3.new(1/2, 0, 0)},
 
-				{"Master Sprinkler","startswith",Color3.new(0,1,0)},
-				{"Tanning Mirror","startswith",Color3.new(0,1,0)},
+				{"Master Sprinkler", "startswith", Color3.new(0, 1, 0)},
+				{"Tanning Mirror", "startswith", Color3.new(0, 1, 0)},
 
-				{"Paradise Egg","startswith",Color3.new(1,1 ,0)},
-				{"Rare Summer Egg","startswith",Color3.new(0.1, 1/4, 1)},
-				{"Common Summer Egg","startswith",Color3.new(1, 1, 0)},
+				{"Paradise Egg", "startswith", Color3.new(1, 1, 0)},
+				{"Rare Summer Egg", "startswith", Color3.new(1/10, 1/4, 1)},
+				{"Common Summer Egg", "startswith", Color3.new(1, 1, 0)},
+				{"Bee Egg", "startswith", Color3.new(1, 1, 0)},
 			}
 		},
 		["Auto-Buy-Seeds"] = {
