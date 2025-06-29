@@ -55,14 +55,18 @@ task.spawn(function()
 		local h, m = math.floor(t%86400/3600), math.floor(t%3600/60)
 		return string.format("%d:%02d %s", h>12 and h-12 or h==0 and 12 or h, m, h<12 and "AM" or "PM")
 	end
-	--[[
-	local gui = Instance.new("ScreenGui", playergui")
+	local gui = Instance.new("ScreenGui", game:GetService("CoreGui") or PlayerGui)
+	gui.IgnoreGuiInset = true
 	local guiObject = Instance.new("TextLabel", gui)
 	guiObject.AnchorPoint = Vector2.new(1, 0)
 	guiObject.Position = UDim2.new(1, 0, 0, 0)
-	guiObject.Text = getTime().."\nRewards Collected: None yet..."
 	guiObject.TextScaled = true
-	]]--
+	guiObject.Text = getTime().."\nRewards Collected: None yet..."
+	guiObject.Size = UDim2.fromScale(1/5, 1/20)
+	guiObject.BackgroundColor3 = Color3.new(0, 0, 0)
+	guiObject.BackgroundTransparency = 3/4
+	guiObject.TextColor3 = Color3.new(1, 1, 1)
+	guiObject.TextStrokeTransparency = 3/4
 	local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
 	local oldRewards = tonumber(label.Text:match("%d+"))
 	local newRewards
@@ -70,10 +74,9 @@ task.spawn(function()
 		label:GetPropertyChangedSignal("Text"):Wait()
 		local newRewards = tonumber(label.Text:match("%d+"))
 		if newRewards < oldRewards then 
-			local text = ("Rewards Collected: "..oldRewards)
-			--guiObject.Text = getTime()..text
+			local text = "Rewards Collected: "..oldRewards
+			guiObject.Text = getTime().."\n"..text
 			print(text)
-			toclipboard(text)
 			oldRewards = newRewards
 		elseif newRewards > oldRewards then
 			oldRewards = newRewards
