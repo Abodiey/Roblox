@@ -62,7 +62,7 @@ task.spawn(function()
 	guiObject.Position = UDim2.new(1, 0, 0, 0)
 	guiObject.TextScaled = true
 	guiObject.Text = getTime().."\nRewards Collected: None yet..."
-	guiObject.Size = UDim2.fromScale(1/5, 1/20)
+	guiObject.Size = UDim2.fromScale(0.4, 1/10)
 	guiObject.BackgroundColor3 = Color3.new(0, 0, 0)
 	guiObject.BackgroundTransparency = 3/4
 	guiObject.TextColor3 = Color3.new(1, 1, 1)
