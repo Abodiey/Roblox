@@ -39,14 +39,17 @@ task.spawn(function()
 		},
 		["Auto-Buy-Seeds"] = {
 			["Enabled"] = true,
-			["Buy"] = {"Carrot","Strawberry","Blueberry","Tomato","Cauliflower","Watermelon","Green Apple","Avocado","Banana","Pineapple","Kiwi","Bell Pepper","Prickly Pear","Loquat","Feijoa","Sugar Apple"}
 		},
 		["Auto-Buy-Gear"] = {
 			["Enabled"] = true,
-			["Buy"] = {"Watering Can","Trowel","Recall Wrench","Basic Sprinkler","Advanced Sprinkler","Godly Sprinkler","Tanning Mirror","Master Sprinkler"}
+			["Exclude"] = {"Friendship Pot"},
 		},
 		["Auto-Buy-Eggs"] = {
 			["Enabled"] = true
+		},
+		["Auto-Buy-Event-Shop"] = {
+			["Enabled"] = true,
+			["Exclude"] = {"Delphinium", "Lily of the Valley", "Mutation Spray Burnt", "Oasis Crate"},
 		},
 		["Auto-Craft"] = {
 			["Enabled"] = true,
@@ -54,7 +57,7 @@ task.spawn(function()
 				["Anti Bee Egg"] = true,
 				["Mutation Spray Choc"] = true,
 				["Reclaimer"] = true,
-				["Crafters Seed Pack"] = true,
+				["Crafters Seed Pack"] = false,
 			}
 		},
 		["Auto-Honey-Machine"] = {
@@ -198,7 +201,7 @@ task.spawn(function()
 		end
 		return item
 	end
-
+	print("initalizing..")
 	task.spawn(function()
 		if GetConfigValue("Enabled") then
 			local Discord = GetConfigValue("Discord")
@@ -260,50 +263,174 @@ task.spawn(function()
 			end)
 		end
 	end)
-		
 	task.spawn(function()
-		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock")
-		while GetConfigValue("Enabled") do
-			local AutoBuySeeds = GetConfigValue("Auto-Buy-Seeds")
-			if AutoBuySeeds["Enabled"] then
-				local SeedsToBuy = AutoBuySeeds["Buy"]
-				for _,Seed in pairs(SeedsToBuy) do
-					event:FireServer(Seed)
-					task.wait() task.wait()
-				end
-			end
-			task.wait()
-		end
-	end)
 
-	task.spawn(function()
-		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock")
-		while GetConfigValue("Enabled") do
-			local AutoBuyGear = GetConfigValue("Auto-Buy-Gear")
-			if AutoBuyGear["Enabled"] then
-				local GearToBuy = AutoBuyGear["Buy"]
-				for _,Gear in pairs(GearToBuy) do
-					event:FireServer(Gear)
-					task.wait() task.wait() task.wait() task.wait()
-				end
-			end
-			task.wait()
-		end
-	end)
+		local seedEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock")
+		local gearEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock")
+		local eventShopEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock")
+		local eggEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg")
 
-	task.spawn(function()
-		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg")
-		while GetConfigValue("Enabled") do
-			local AutoBuyEggs = GetConfigValue("Auto-Buy-Eggs")
-			if AutoBuyEggs["Enabled"] then
-				local EggsToBuy = {1,2,3}
-				for _,Egg in pairs(EggsToBuy) do
-					event:FireServer(Egg)
-					task.wait(1)
+		local function initSeedShop()
+			if not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
+			local seedShop = game:GetService("Players").LocalPlayer.PlayerGui.Seed_Shop
+			local frames = seedShop.Frame.ScrollingFrame
+
+			local items = {}
+
+			for _, item in ipairs(frames:GetChildren()) do
+				local mainFrame = item:FindFirstChild("Main_Frame")
+				if not mainFrame then continue end
+				local stockText = mainFrame.Stock_Text 
+
+				local stockNumber = tonumber(stockText.Text:match("%d+"))
+				if not stockNumber then continue end
+
+				for count = 1, stockNumber do
+					seedEvent:FireServer(item.Name)
+					task.wait()
 				end
 			end
-			task.wait(60)
 		end
+		local function initGearShop()
+			if not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
+			local gearShop = game:GetService("Players").LocalPlayer.PlayerGui.Gear_Shop
+			local frames = gearShop.Frame.ScrollingFrame
+
+			local items = {}
+			local exclude = GetConfigValue("Auto-Buy-Gear")["Exclude"]
+			for _, item in ipairs(frames:GetChildren()) do
+				if exclude and table.find(exclude, item.Name) then continue end
+				local mainFrame = item:FindFirstChild("Main_Frame")
+				if not mainFrame then continue end
+				local stockText = mainFrame.Stock_Text 
+
+				local stockNumber = tonumber(stockText.Text:match("%d+"))
+				if not stockNumber then continue end
+
+				for count = 1, stockNumber do
+					gearEvent:FireServer(item.Name)
+					task.wait()
+				end
+			end
+		end
+		local function initEventShop()
+			if not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
+			local eventShop = game:GetService("Players").LocalPlayer.PlayerGui.EventShop_UI
+			local frames = eventShop.Frame.ScrollingFrame
+
+			local items = {}
+			local exclude = GetConfigValue("Auto-Buy-Event-Shop")["Exclude"]
+			for _, item in ipairs(frames:GetChildren()) do
+				if exclude and table.find(exclude, item.Name) then continue end
+				local mainFrame = item:FindFirstChild("Main_Frame")
+				if not mainFrame then continue end
+				local stockText = mainFrame.Stock_Text 
+
+				local stockNumber = tonumber(stockText.Text:match("%d+"))
+				if not stockNumber then continue end
+
+				for count = 1, stockNumber do
+					eventShopEvent:FireServer(item.Name)
+					task.wait()
+				end
+			end
+		end
+		local function initEggShop()
+			if not GetConfigValue("Auto-Buy-Eggs")["Enabled"] then return end
+			for count = 1, 3 do
+				eggEvent:FireServer(count)
+				task.wait()
+			end
+		end
+		local function processSeedStockUpdate(stockTable)
+			if not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
+			for seedName, info in pairs(stockTable) do
+				if seedName and info and info.Stock then
+					for count = 1, info.Stock do
+						seedEvent:FireServer(seedName)
+						task.wait()
+					end
+				end
+
+			end
+		end
+		local function processGearStockUpdate(stockTable)
+			if not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
+			local exclude = GetConfigValue("Auto-Buy-Gear")["Exclude"]
+			for gearName, info in pairs(stockTable) do
+				if gearName and info and info.Stock and (not exclude or not table.find(exclude, gearName)) then
+					for count = 1, info.Stock do
+						gearEvent:FireServer(gearName)
+						task.wait()
+					end
+				end
+
+			end
+		end
+		local function processEventStockUpdate(stockTable)
+			if not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
+			local exclude = GetConfigValue("Auto-Buy-Event-Shop")["Exclude"]
+			for seedName, info in pairs(stockTable) do
+				if seedName and info and info.Stock and (not exclude or not table.find(exclude, seedName)) then
+					for count = 1, info.Stock do
+						eventShopEvent:FireServer(seedName)
+						task.wait()
+					end
+				end
+
+			end
+		end
+
+		initEventShop()
+		initEggShop()
+		initGearShop()
+		initSeedShop()
+		local function onDataStreamEvent(eventType, object, tbl)
+
+			--[[
+			Here's an example of the data we get:
+			{
+				"type": "UpdateData",
+				"source": "DataStreamEvent",
+				"table": [
+				["ROOT/SeedStock/Stocks", {
+					"Carrot": {"MaxStock": 20, "Stock": 20},
+					"Strawberry": {"MaxStock": 5, "Stock": 5},
+					"Apple": {"MaxStock": 1, "Stock": 1},
+					"Tomato": {"MaxStock": 1, "Stock": 1},
+					"Blueberry": {"MaxStock": 5, "Stock": 5}
+				}],
+				["ROOT/SeedStock/Seed", 5829582]
+				],
+				"timestamp": 1748874601,
+				"object": "yourusername_DataServiceProfile"
+			}
+			]]
+
+			if eventType == "UpdateData" and object:find(game.Players.LocalPlayer.Name) and type(tbl) == "table" then
+
+				for _, pair in ipairs(tbl) do
+
+					if type(pair) == "table" and #pair >= 2 then
+
+						local path = pair[1]
+						local data = pair[2]
+						if type(data) == "table" then
+							if path == "ROOT/SeedStock/Stocks" then
+								processSeedStockUpdate(data)
+							elseif path == "ROOT/GearStock/Stocks" then
+								processGearStockUpdate(data)
+							elseif path == "ROOT/EventShopStock/Stocks" then
+								processEventStockUpdate(data)
+								initEggShop()
+							end
+						end
+					end
+				end
+			end
+		end
+
+		game:GetService("ReplicatedStorage").GameEvents.DataStream.OnClientEvent:Connect(onDataStreamEvent)
 	end)
 
 	task.spawn(function()
@@ -346,25 +473,29 @@ task.spawn(function()
 
 	task.spawn(function()
 		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+		local EventCraftingWorkBench = workspace:WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
+		local SeedEventCraftingWorkBench = workspace:WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
 		while GetConfigValue("Enabled") do
 			local AutoCraft = GetConfigValue("Auto-Craft")
 			if AutoCraft["Enabled"] then 
-				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText == "Claim" then
 					local args = {"Claim",EventCraftingWorkBench,"GearEventWorkbench",1}
 					event:FireServer(unpack(args))
+					task.wait()
 				end
-				local SeedEventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
 				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true)
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
 					local args = {"Claim",SeedEventCraftingWorkBench,"SeedEventWorkbench",1}
 					event:FireServer(unpack(args))
+					task.wait()
 				end
+			else
+				task.wait(1)
+				return
 			end
 			local AutoCraftAntiBeeEgg = AutoCraft["Craft"]["Anti Bee Egg"]
-			if AutoCraft["Enabled"] and AutoCraftAntiBeeEgg then
-				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
+			if AutoCraftAntiBeeEgg then
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
@@ -405,10 +536,8 @@ task.spawn(function()
 				end
 			end
 			task.wait(3)
-			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftChocSpray = AutoCraft["Craft"]["Mutation Spray Choc"]
-			if AutoCraft["Enabled"] and AutoCraftChocSpray then
-				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
+			if AutoCraftChocSpray then
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
@@ -465,10 +594,8 @@ task.spawn(function()
 				end
 			end
 			task.wait(3)
-			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftReclaimer = AutoCraft["Craft"]["Reclaimer"]
-			if AutoCraft["Enabled"] and AutoCraftReclaimer then
-				local EventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
+			if AutoCraftReclaimer then
 				local EventCraftingPrompt = EventCraftingWorkBench:FindFirstChild("CraftingProximityPrompt", true)
 				if EventCraftingPrompt and EventCraftingPrompt.ActionText ~= "Skip" then
 					if EventCraftingPrompt.ActionText == "Claim" then
@@ -525,10 +652,8 @@ task.spawn(function()
 				end
 			end
 			task.wait(3)
-			local AutoCraft = GetConfigValue("Auto-Craft")
 			local AutoCraftCraftersSeedPack = AutoCraft["Craft"]["Crafters Seed Pack"]
-			if AutoCraft["Enabled"] and AutoCraftCraftersSeedPack then
-				local SeedEventCraftingWorkBench = workspace:WaitForChild("Interaction"):WaitForChild("UpdateItems"):WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
+			if AutoCraftCraftersSeedPack then
 				local SeedEventCraftingPrompt = SeedEventCraftingWorkBench:WaitForChild("Model"):FindFirstChild("CraftingProximityPrompt", true)
 				if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText ~= "Skip" then
 					if SeedEventCraftingPrompt and SeedEventCraftingPrompt.ActionText == "Claim" then
