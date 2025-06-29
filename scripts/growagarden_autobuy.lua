@@ -425,6 +425,7 @@ task.spawn(function()
 							elseif path == "ROOT/EventShopStock/Stocks" then
 								processEventStockUpdate(data)
 								initEggShop()
+								task.spawn(function() task.wait(10) initEggShop() initEventShop() end)
 							end
 						end
 					end
