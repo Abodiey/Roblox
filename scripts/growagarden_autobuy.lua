@@ -72,6 +72,7 @@ task.spawn(function()
 	--// Services
 
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	local GameEvents = ReplicatedStorage:WaitForChild("GameEvents")
 	local Players = game:GetService("Players")
 	local HttpService = game:GetService("HttpService")
 	local cloneref = cloneref or function(o) return o end
@@ -80,7 +81,10 @@ task.spawn(function()
 	local GuiService = game:GetService("GuiService")
 	local TeleportService = game:GetService("TeleportService")
 	local LocalPlayer = Players.LocalPlayer
-
+	local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+	local Backpack = LocalPlayer:WaitForChild("Backpack")
+	local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	
 	local function GetConfigValue(Key: string)
 		return _G.Configuration[Key]
 	end
@@ -187,7 +191,7 @@ task.spawn(function()
 
 	local function getItem(name: string, searchMethodName: string) --equals, startswith, contains
 		local item
-		for _, v in pairs(LocalPlayer.Character:GetChildren()) do
+		for _, v in pairs(Character:GetChildren()) do
 			if v and searchMethod(v.Name, searchMethodName, name) then
 				item = v
 				break
@@ -195,7 +199,7 @@ task.spawn(function()
 		end
 
 		if item then return item end
-		for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do
+		for _, v in pairs(Backpack:GetChildren()) do
 			if v and searchMethod(v.Name, searchMethodName, name) then
 				item = v
 				break
@@ -205,13 +209,25 @@ task.spawn(function()
 	end
 	print("initalizing..")
 	task.spawn(function()
+		for _,tool in pairs(Backpack:GetChildren()) do
+			if tool.Name:match("^Recall Wrench") then
+				for _, connection in pairs(getconnections(tool.Activated)) do
+					connection:Disable()
+				end
+				tool.Activated:Connect(function()
+					Character.HumanoidRootPart.CFrame = CFrame.new(-285.418182, 2.99999976, -13.9779129, 0.0035337382, -7.99718975e-08, 0.999993742, 1.41268164e-10, 1, 7.99718975e-08, -0.999993742, -1.41332487e-10, 0.0035337382) + Vector3.new(0,1,0)
+					tool.Parent = Backpack
+				end)
+			end
+		end
+	end)
+	task.spawn(function()
 		if GetConfigValue("Enabled") then
 			local Discord = GetConfigValue("Discord")
 			while not Discord["Enabled"] do
 				task.wait()
 			end
 			local alertList = Discord["Alert"]
-			local backpack = LocalPlayer.Backpack
 			for _,v in pairs(alertList) do
 				local name = v[1]
 				local method = v[2]
@@ -236,7 +252,7 @@ task.spawn(function()
 					break
 				end
 			end
-			backpack.ChildAdded:Connect(function(item: Instance) 
+			Backpack.ChildAdded:Connect(function(item: Instance) 
 				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
 					for _,v in pairs(alertList) do
 						local name = v[1]
@@ -267,14 +283,14 @@ task.spawn(function()
 	end)
 	task.spawn(function()
 
-		local seedEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuySeedStock")
-		local gearEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyGearStock")
-		local eventShopEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyEventShopStock")
-		local eggEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("BuyPetEgg")
+		local seedEvent = GameEvents:WaitForChild("BuySeedStock")
+		local gearEvent = GameEvents:WaitForChild("BuyGearStock")
+		local eventShopEvent = GameEvents:WaitForChild("BuyEventShopStock")
+		local eggEvent = GameEvents:WaitForChild("BuyPetEgg")
 
 		local function initSeedShop()
 			if not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
-			local seedShop = game:GetService("Players").LocalPlayer.PlayerGui.Seed_Shop
+			local seedShop = PlayerGui.Seed_Shop
 			local frames = seedShop.Frame.ScrollingFrame
 
 			local items = {}
@@ -295,7 +311,7 @@ task.spawn(function()
 		end
 		local function initGearShop()
 			if not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
-			local gearShop = game:GetService("Players").LocalPlayer.PlayerGui.Gear_Shop
+			local gearShop = PlayerGui.Gear_Shop
 			local frames = gearShop.Frame.ScrollingFrame
 
 			local items = {}
@@ -317,7 +333,7 @@ task.spawn(function()
 		end
 		local function initEventShop()
 			if not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
-			local eventShop = game:GetService("Players").LocalPlayer.PlayerGui.EventShop_UI
+			local eventShop = PlayerGui.EventShop_UI
 			local frames = eventShop.Frame.ScrollingFrame
 
 			local items = {}
@@ -409,7 +425,7 @@ task.spawn(function()
 			}
 			]]
 
-			if eventType == "UpdateData" and object:find(game.Players.LocalPlayer.Name) and type(tbl) == "table" then
+			if eventType == "UpdateData" and object:find(LocalPlayer.Name) and type(tbl) == "table" then
 
 				for _, pair in ipairs(tbl) do
 
@@ -433,11 +449,11 @@ task.spawn(function()
 			end
 		end
 
-		game:GetService("ReplicatedStorage").GameEvents.DataStream.OnClientEvent:Connect(onDataStreamEvent)
+		GameEvents:WaitForChild("DataStream").OnClientEvent:Connect(onDataStreamEvent)
 	end)
 
 	task.spawn(function()
-		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("HoneyMachineService_RE")
+		local event = GameEvents:WaitForChild("HoneyMachineService_RE")
 		while GetConfigValue("Enabled") do
 			local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
 			if AutoHoneyMachine["Enabled"] then
@@ -445,7 +461,7 @@ task.spawn(function()
 				if Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
 					while Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
 						local fruit
-						for i,v in pairs(game.Players.LocalPlayer.Backpack:GetChildren()) do
+						for i,v in pairs(Backpack:GetChildren()) do
 							if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) and AutoHoneyMachine["Enabled"] then
 								for ii,vv in pairs(AutoHoneyMachine["Convert"]) do
 									if v.Name:find(vv) then
@@ -457,7 +473,7 @@ task.spawn(function()
 								if i%1000 == 0 then task.wait() end
 							end
 							if fruit then
-								game.Players.LocalPlayer.Character.Humanoid:EquipTool(fruit)
+								Character.Humanoid:EquipTool(fruit)
 								event:FireServer("MachineInteract")
 								task.wait(1)
 								break
@@ -475,7 +491,7 @@ task.spawn(function()
 	end)
 
 	task.spawn(function()
-		local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+		local event = GameEvents:WaitForChild("CraftingGlobalObjectService")
 		local EventCraftingWorkBench = workspace:WaitForChild("CraftingTables"):WaitForChild("EventCraftingWorkBench")
 		local SeedEventCraftingWorkBench = workspace:WaitForChild("CraftingTables"):WaitForChild("SeedEventCraftingWorkBench")
 		while GetConfigValue("Enabled") do
