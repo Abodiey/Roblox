@@ -74,13 +74,10 @@ task.spawn(function()
 		label:GetPropertyChangedSignal("Text"):Wait()
 		local newRewards = tonumber(label.Text:match("%d+"))
 		if newRewards < oldRewards then 
-			local text = "Rewards Collected: "..oldRewards
-			guiObject.Text = getTime().."\n"..text
-			print(text)
-			oldRewards = newRewards
-		elseif newRewards > oldRewards then
-			oldRewards = newRewards
+			local text = tostring(getTime().."\nRewards Collected: "..oldRewards)
+			guiObject.Text = text
 		end
+		oldRewards = newRewards
 	end
 end)
 task.spawn(function()
