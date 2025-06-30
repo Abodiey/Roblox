@@ -59,7 +59,7 @@ task.spawn(function()
 				["Anti Bee Egg"] = true,
 				["Mutation Spray Choc"] = true,
 				["Reclaimer"] = true,
-				["Crafters Seed Pack"] = false,
+				["Crafters Seed Pack"] = true,
 			}
 		},
 		["Auto-Honey-Machine"] = {
