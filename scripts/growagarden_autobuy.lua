@@ -41,6 +41,7 @@ task.spawn(function()
 		},
 		["Auto-Buy-Seeds"] = {
 			["Enabled"] = true,
+			["Exclude"] = {},
 		},
 		["Auto-Buy-Gear"] = {
 			["Enabled"] = true,
@@ -52,6 +53,10 @@ task.spawn(function()
 		["Auto-Buy-Event-Shop"] = {
 			["Enabled"] = true,
 			["Exclude"] = {"Delphinium", "Lily of the Valley", "Mutation Spray Burnt", "Oasis Crate"},
+		},
+		["Auto-Buy-Sky-Shop"] = {
+			["Enabled"] = true,
+			["Exclude"] = {},
 		},
 		["Auto-Craft"] = {
 			["Enabled"] = true,
@@ -287,15 +292,16 @@ task.spawn(function()
 		local gearEvent = GameEvents:WaitForChild("BuyGearStock")
 		local eventShopEvent = GameEvents:WaitForChild("BuyEventShopStock")
 		local eggEvent = GameEvents:WaitForChild("BuyPetEgg")
-
+		local skyEvent = GameEvents:WaitForChild("BuyTravelingMerchantShopStock")
+				
 		local function initSeedShop()
-			if not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
+			if not seedEvent or not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
 			local seedShop = PlayerGui.Seed_Shop
 			local frames = seedShop.Frame.ScrollingFrame
 
-			local items = {}
-
+			local exclude = GetConfigValue("Auto-Buy-Gear")["Exclude"]
 			for _, item in ipairs(frames:GetChildren()) do
+				if exclude and table.find(exclude, item.Name) then continue end
 				local mainFrame = item:FindFirstChild("Main_Frame")
 				if not mainFrame then continue end
 				local stockText = mainFrame.Stock_Text 
@@ -310,11 +316,10 @@ task.spawn(function()
 			end
 		end
 		local function initGearShop()
-			if not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
+			if not gearEvent or not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
 			local gearShop = PlayerGui.Gear_Shop
 			local frames = gearShop.Frame.ScrollingFrame
 
-			local items = {}
 			local exclude = GetConfigValue("Auto-Buy-Gear")["Exclude"]
 			for _, item in ipairs(frames:GetChildren()) do
 				if exclude and table.find(exclude, item.Name) then continue end
@@ -332,11 +337,10 @@ task.spawn(function()
 			end
 		end
 		local function initEventShop()
-			if not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
+			if not eventShopEvent or not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
 			local eventShop = PlayerGui.EventShop_UI
 			local frames = eventShop.Frame.ScrollingFrame
 
-			local items = {}
 			local exclude = GetConfigValue("Auto-Buy-Event-Shop")["Exclude"]
 			for _, item in ipairs(frames:GetChildren()) do
 				if exclude and table.find(exclude, item.Name) then continue end
@@ -353,17 +357,40 @@ task.spawn(function()
 				end
 			end
 		end
+		local function initSkyShop()
+			if not skyEvent or not GetConfigValue("Auto-Buy-Sky-Shop")["Enabled"] or not workspace:FindFirstChild("SkyTravelingMerchant") then return end
+			local skyShop = PlayerGui.TravelingMerchantShop_UI
+			local frames = skyShop.Frame.ScrollingFrame
+
+			local exclude = GetConfigValue("Auto-Buy-Sky-Shop")["Exclude"]
+			for _, item in ipairs(frames:GetChildren()) do
+				if exclude and table.find(exclude, item.Name) then continue end
+				local mainFrame = item:FindFirstChild("Main_Frame")
+				if not mainFrame then continue end
+				local stockText = mainFrame.Stock_Text 
+
+				local stockNumber = tonumber(stockText.Text:match("%d+"))
+				if not stockNumber then continue end
+
+				for count = 1, stockNumber do
+					skyEvent:FireServer(item.Name)
+					task.wait()
+				end
+			end
+		end
 		local function initEggShop()
-			if not GetConfigValue("Auto-Buy-Eggs")["Enabled"] then return end
+			if not eggEvent or not GetConfigValue("Auto-Buy-Eggs")["Enabled"] then return end
 			for count = 1, 3 do
 				eggEvent:FireServer(count)
 				task.wait()
 			end
 		end
+				
 		local function processSeedStockUpdate(stockTable)
-			if not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
+			if not seedEvent or not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
+			local exclude = GetConfigValue("Auto-Buy-Seeds")["Exclude"]
 			for seedName, info in pairs(stockTable) do
-				if seedName and info and info.Stock then
+				if seedName and info and info.Stock and (not exclude or not table.find(exclude, seedName)) then
 					for count = 1, info.Stock do
 						seedEvent:FireServer(seedName)
 						task.wait()
@@ -373,7 +400,7 @@ task.spawn(function()
 			end
 		end
 		local function processGearStockUpdate(stockTable)
-			if not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
+			if not gearEvent or not GetConfigValue("Auto-Buy-Gear")["Enabled"] then return end
 			local exclude = GetConfigValue("Auto-Buy-Gear")["Exclude"]
 			for gearName, info in pairs(stockTable) do
 				if gearName and info and info.Stock and (not exclude or not table.find(exclude, gearName)) then
@@ -386,7 +413,7 @@ task.spawn(function()
 			end
 		end
 		local function processEventStockUpdate(stockTable)
-			if not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
+			if not eventShopEvent or not GetConfigValue("Auto-Buy-Event-Shop")["Enabled"] then return end
 			local exclude = GetConfigValue("Auto-Buy-Event-Shop")["Exclude"]
 			for seedName, info in pairs(stockTable) do
 				if seedName and info and info.Stock and (not exclude or not table.find(exclude, seedName)) then
@@ -400,6 +427,7 @@ task.spawn(function()
 		end
 
 		initEventShop()
+		initSkyShop()
 		initEggShop()
 		initGearShop()
 		initSeedShop()
@@ -436,6 +464,7 @@ task.spawn(function()
 						if type(data) == "table" then
 							if path == "ROOT/SeedStock/Stocks" then
 								processSeedStockUpdate(data)
+								initSkyShop()
 							elseif path == "ROOT/GearStock/Stocks" then
 								processGearStockUpdate(data)
 							elseif path == "ROOT/EventShopStock/Stocks" then
