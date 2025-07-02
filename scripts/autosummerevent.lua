@@ -47,9 +47,9 @@ task.spawn(function()
 				local savedbackpack = #backpack:GetChildren()
 				local count = 0
 				while (savedbackpack - #backpack:GetChildren()) <= 10 do
-						event:FireServer("SubmitAllPlants")
-						count+=1
-						if not count%2==0 then runService.Stepped:Wait() end
+					event:FireServer("SubmitAllPlants")
+					count+=1
+					if not count%2==0 then runService.Stepped:Wait() end
 				end
 			end
 		end
@@ -90,15 +90,15 @@ task.spawn(function()
 	end
 end)
 local function CheckTableEquality(t1,t2)
-    for i,v in next, t1 do if t2[i]~=v then return false end end
-    for i,v in next, t2 do if t1[i]~=v then return false end end
-    return true
+	for i,v in next, t1 do if t2[i]~=v then return false end end
+	for i,v in next, t2 do if t1[i]~=v then return false end end
+	return true
 end
 
 task.spawn(function()
 	if _G.AutoHarvest then return end
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-	event:FireServer("SubmitAllPlants"
+	event:FireServer("SubmitAllPlants")
 	local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
 	local buffer = buffer.fromstring("\001\001\000\001")
 	local TemplateSummerTreesList = {["Sugar Apple"] = {},["Feijoa"] = {},["Loquat"] = {},["Pricky Pear"] = {},["Bell Pepper"] = {},["Kiwi"] = {},["Pineapple"] = {},["Banana"] = {},["Avocado"] = {},["Green Apple"] = {},["Tomato"] = {}}
