@@ -37,13 +37,12 @@ task.spawn(function()
 	_G.AutoSubmit = true
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 	local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
-	local maxbackpacktext = "Max backpack space! Go sell!"
 	while _G.AutoSubmit do
 		while not isSummerHarvest do task.wait() end
 		local v = notificationGui.ChildAdded:Wait()
 		local textlabel = v:FindFirstChild("TextLabel")
 		if textlabel then
-			if textLabel.Text == maxbackpacktext then
+			if textLabel.Text == "Max backpack space! Go sell!" then
 				local savedbackpack = #backpack:GetChildren()
 				local count = 0
 				while (savedbackpack - #backpack:GetChildren()) <= 10 do
