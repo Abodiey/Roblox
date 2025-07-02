@@ -43,7 +43,7 @@ task.spawn(function()
 		local v = notificationGui.ChildAdded:Wait()
 		local textlabel = v:FindFirstChild("TextLabel")
 		if textlabel then
-			if textLabel.Text == "Max backpack space! Go sell!" then
+			if textlabel.Text == "Max backpack space! Go sell!" then
 				event:FireServer("SubmitAllPlants")	
 				for c = 1, 10 do runService.Stepped:Wait() end
 			end
