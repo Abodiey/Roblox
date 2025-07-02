@@ -3,6 +3,7 @@ if game.PlaceId ~= tonumber(63442347817033*2) then return end
 local SummerFruits = {"Sugar Apple","Feijoa","Loquat","Prickly Pear","Bell Pepper","Kiwi","Pineapple","Banana","Avocado","Green Apple","Watermelon","Cauliflower","Tomato","Strawberry","Carrot"}
 local runService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
+while not player do task.wait() end
 local backpack = player:WaitForChild("Backpack")
 local playergui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
