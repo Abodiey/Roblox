@@ -1,5 +1,6 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/autosummerevent.lua"))()
 if game.PlaceId ~= tonumber(63442347817033*2) then return end
+print"loading1"
 local SummerFruits = {"Sugar Apple","Feijoa","Loquat","Prickly Pear","Bell Pepper","Kiwi","Pineapple","Banana","Avocado","Green Apple","Watermelon","Cauliflower","Tomato","Strawberry","Carrot"}
 local runService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
@@ -92,7 +93,7 @@ end
 task.spawn(function()
 	if _G.AutoHarvest then return end
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-	if isSummerHarvest then event:FireServer("SubmitAllPlants")
+	if isSummerHarvest then event:FireServer("SubmitAllPlants") end
 	local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
 	local buffer = buffer.fromstring("\001\001\000\001")
 	local TemplateSummerTreesList = {["Sugar Apple"] = {},["Feijoa"] = {},["Loquat"] = {},["Pricky Pear"] = {},["Bell Pepper"] = {},["Kiwi"] = {},["Pineapple"] = {},["Banana"] = {},["Avocado"] = {},["Green Apple"] = {},["Tomato"] = {}}
@@ -124,4 +125,4 @@ task.spawn(function()
 		task.wait(1/2)
 	end
 end)
-print"autoloaded"
+print"loaded1"
