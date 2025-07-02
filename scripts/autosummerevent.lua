@@ -31,20 +31,25 @@ local function refreshSummerHarvest()
 end
 refreshSummerHarvest()
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
-local backpackFull = false
 task.spawn(function()
 	if _G.AutoSubmit then return end
 	_G.AutoSubmit = true
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 	local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
+	local maxbackpacktext = "Max backpack space! Go sell!"
 	while _G.AutoSubmit do
 		while not isSummerHarvest do task.wait() end
 		local v = notificationGui.ChildAdded:Wait()
 		local textlabel = v:FindFirstChild("TextLabel")
 		if textlabel then
-			if textLabel.Text == "Max backpack space! Go sell!" then
-				event:FireServer("SubmitAllPlants")
-				for count = 1, 5 do runService.Stepped:Wait() end
+			if textLabel.Text == maxbackpacktext then
+				local savedbackpack = #backpack:GetChildren()
+				local count = 0
+				while (savedbackpack - #backpack:GetChildren()) <= 10 do
+						event:FireServer("SubmitAllPlants")
+						count+=1
+						if not count%2==0 then runService.Stepped:Wait() end
+				end
 			end
 		end
 		runService.Stepped:Wait()
@@ -58,7 +63,7 @@ task.spawn(function()
 		local h, m = math.floor(t%86400/3600), math.floor(t%3600/60)
 		return string.format("%d:%02d %s", h>12 and h-12 or h==0 and 12 or h, m, h<12 and "AM" or "PM")
 	end
-	local gui = Instance.new("ScreenGui", game:GetService("CoreGui") or PlayerGui)
+	local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 	gui.IgnoreGuiInset = true
 	local guiObject = Instance.new("TextLabel", gui)
 	guiObject.AnchorPoint = Vector2.new(1, 0)
@@ -91,6 +96,10 @@ end
 
 task.spawn(function()
 	if _G.AutoHarvest then return end
+	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
+	event:FireServer("SubmitAllPlants"
+	local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
+	local buffer = buffer.fromstring("\001\001\000\001")
 	local TemplateSummerTreesList = {["Sugar Apple"] = {},["Feijoa"] = {},["Loquat"] = {},["Pricky Pear"] = {},["Bell Pepper"] = {},["Kiwi"] = {},["Pineapple"] = {},["Banana"] = {},["Avocado"] = {},["Green Apple"] = {},["Tomato"] = {}}
 	local SummerTreesList = TemplateSummerTreesList
 	for _,v in pairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
@@ -100,9 +109,6 @@ task.spawn(function()
 	end
 	if not CheckTableEquality(TemplateSummerTreesList, SummerTreesList) then return end
 	_G.AutoHarvest = true
-	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-	local ByteNetReliable = game:GetService("ReplicatedStorage").ByteNetReliable
-	local buffer = buffer.fromstring("\001\001\000\001")
 	while _G.AutoHarvest do
 		while not isSummerHarvest do task.wait() end
 		event:FireServer("SubmitAllPlants")
