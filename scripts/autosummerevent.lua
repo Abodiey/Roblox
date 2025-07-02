@@ -43,13 +43,8 @@ task.spawn(function()
 		local textlabel = v:FindFirstChild("TextLabel")
 		if textlabel then
 			if textLabel.Text == "Max backpack space! Go sell!" then
-				local savedbackpack = #backpack:GetChildren()
-				local count = 0
-				while (savedbackpack - #backpack:GetChildren()) <= 10 do
-					event:FireServer("SubmitAllPlants")
-					count+=1
-					if not count%2==0 then runService.Stepped:Wait() end
-				end
+				event:FireServer("SubmitAllPlants")	
+				for c = 1, 10 do runService.Stepped:Wait() end
 			end
 		end
 		runService.Stepped:Wait()
@@ -97,7 +92,7 @@ end
 task.spawn(function()
 	if _G.AutoHarvest then return end
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-	event:FireServer("SubmitAllPlants")
+	if isSummerHarvest then event:FireServer("SubmitAllPlants")
 	local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
 	local buffer = buffer.fromstring("\001\001\000\001")
 	local TemplateSummerTreesList = {["Sugar Apple"] = {},["Feijoa"] = {},["Loquat"] = {},["Pricky Pear"] = {},["Bell Pepper"] = {},["Kiwi"] = {},["Pineapple"] = {},["Banana"] = {},["Avocado"] = {},["Green Apple"] = {},["Tomato"] = {}}
@@ -111,7 +106,6 @@ task.spawn(function()
 	_G.AutoHarvest = true
 	while _G.AutoHarvest do
 		while not isSummerHarvest do task.wait() end
-		event:FireServer("SubmitAllPlants")
 		for _,Tree in pairs(SummerTreesList) do
 			if not isSummerHarvest then break end
 			for _,Fruits in pairs(Tree) do
