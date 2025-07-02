@@ -101,9 +101,10 @@ task.spawn(function()
 	if not CheckTableEquality(TemplateSummerTreesList, SummerTreesList) then return end
 	_G.AutoHarvest = true
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
+	local ByteNetReliable = game:GetService("ReplicatedStorage").ByteNetReliable
+	local buffer = buffer.fromstring("\001\001\000\001")
 	while _G.AutoHarvest do
 		while not isSummerHarvest do task.wait() end
-		local count = 0
 		event:FireServer("SubmitAllPlants")
 		for _,Tree in pairs(SummerTreesList) do
 			if not isSummerHarvest then break end
@@ -111,20 +112,16 @@ task.spawn(function()
 				if not isSummerHarvest then break end
 				for _, v in pairs(Fruits:GetChildren()) do --returns v.Fruits's children, a Fruit
 					if not isSummerHarvest then break end
-					local ByteNetReliable = game:GetService("ReplicatedStorage").ByteNetReliable
 					ByteNetReliable:FireServer(
-						buffer.fromstring("\001\001\000\001"),
+						buffer,
 						{ v }
 					)
 					runService.Heartbeat:Wait()
-					count+=1
-					if count >= 50 and isSummerHarvest then event:FireServer("SubmitAllPlants") count = 0 end
-					--end
 				end
 			end
 		end
 		event:FireServer("SubmitAllPlants")
-		task.wait(1)
+		task.wait(1/2)
 	end
 end)
 print"autoloaded"
