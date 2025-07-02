@@ -41,7 +41,7 @@ task.spawn(function()
 	while _G.AutoSubmit do
 		while not isSummerHarvest do task.wait() end
 		local v = notificationGui.ChildAdded:Wait()
-		local textlabel = v:FindFirstChild("TextLabel")
+		local textlabel = v:FindFirstChildOfClass("TextLabel")
 		if textlabel then
 			if textlabel.Text == "Max backpack space! Go sell!" then
 				event:FireServer("SubmitAllPlants")	
