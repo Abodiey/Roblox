@@ -133,6 +133,8 @@ local buffer          = buffer.fromstring("\001\001\000\001")
 -- Given: buildFruitQueue(plantsPhysical) → returns {Fruit…}
 
 local function processFruitQueue(queue)
+	submitevent:FireServer("SubmitAllPlants")
+	
 	for _, fruit in ipairs(queue) do
 		-- send one fruit per frame
 		ByteNetReliable:FireServer(buffer, { fruit })
@@ -141,7 +143,7 @@ local function processFruitQueue(queue)
 
 	-- once done, submit all plants
 	submitevent:FireServer("SubmitAllPlants")
-	return true
+	return
 end
 
 -- Example usage in your harvest cycle:
