@@ -213,24 +213,23 @@ task.spawn(function()
 		return item
 	end
 	print("initalizing..")
-	task.spawn(function()
-		for _,tool in pairs(Backpack:GetChildren()) do
-			if tool.Name:match("^Recall Wrench") then
-				for _, connection in pairs(getconnections(tool.Activated)) do
-					connection:Disable()
-				end
-				tool.Activated:Connect(function()
-					Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(-285.418182, 2.99999976, -13.9779129, 0.0035337382, -7.99718975e-08, 0.999993742, 1.41268164e-10, 1, 7.99718975e-08, -0.999993742, -1.41332487e-10, 0.0035337382) + Vector3.new(0,1,0)
-					if tool.Parent ~= Backpack then tool.Parent = Backpack end
-				end)
+	for _,tool in pairs(Backpack:GetChildren()) do
+		if tool.Name:match("^Recall Wrench") then
+			for _, connection in pairs(getconnections(tool.Activated)) do
+				connection:Disable()
 			end
+			tool.Activated:Connect(function()
+				Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(-285.418182, 2.99999976, -13.9779129, 0.0035337382, -7.99718975e-08, 0.999993742, 1.41268164e-10, 1, 7.99718975e-08, -0.999993742, -1.41332487e-10, 0.0035337382) + Vector3.new(0,1,0)
+				if tool.Parent ~= Backpack then tool.Parent = Backpack end
+			end)
+			break
 		end
-	end)
+	end
 	task.spawn(function()
 		if GetConfigValue("Enabled") then
 			local Discord = GetConfigValue("Discord")
 			while not Discord["Enabled"] do
-				task.wait()
+				task.wait(1)
 			end
 			local watchers = {}
 
@@ -258,7 +257,7 @@ task.spawn(function()
 					end
 				end)
 			end
-			
+
 			local alertList = Discord["Alert"]
 			for _,v in pairs(alertList) do
 				local name = v[1]
@@ -468,7 +467,8 @@ task.spawn(function()
 							elseif path == "ROOT/EventShopStock/Stocks" then
 								processEventStockUpdate(data)
 								initEggShop()
-								task.spawn(function() task.wait(601) initEventShop() end)
+								task.wait(601) 
+								initEventShop()
 							end
 						end
 					end
@@ -484,9 +484,9 @@ task.spawn(function()
 		while GetConfigValue("Enabled") do
 			local AutoHoneyMachine = GetConfigValue("Auto-Honey-Machine")
 			if AutoHoneyMachine["Enabled"] then
-				while not Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do task.wait() end
-				if Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
-					while Workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
+				while not workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do task.wait() end
+				if workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" then --honey machine empty, give a fruit to onett
+					while workspace.HoneyCombpressor.Onett:FindFirstChild"HoneyCombpressorPrompt" and not workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" do
 						local fruit
 						for i,v in pairs(Backpack:GetChildren()) do
 							if v and v.Name:find("Pollinated") and (not v:GetAttribute("d") or v:GetAttribute("d") ~= true) and AutoHoneyMachine["Enabled"] then
@@ -508,7 +508,7 @@ task.spawn(function()
 						end
 						task.wait()
 					end
-				elseif Workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
+				elseif workspace.HoneyCombpressor.Spout.Jar:FindFirstChild"HoneyCombpressorPrompt" then --honey machine done, click collect
 					event:FireServer("MachineInteract")
 					task.wait(1)
 				end
