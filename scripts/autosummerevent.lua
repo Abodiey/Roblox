@@ -38,18 +38,13 @@ task.spawn(function()
 	_G.AutoSubmit = true
 	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 	local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
-	while _G.AutoSubmit do
-		while not isSummerHarvest do task.wait() end
-		local v = notificationGui.ChildAdded:Wait()
-		local textlabel = v:FindFirstChildOfClass("TextLabel")
-		if textlabel then
-			if textlabel.Text == "Max backpack space! Go sell!" then
-				event:FireServer("SubmitAllPlants")	
-				for c = 1, 10 do runService.Stepped:Wait() end
-			end
+	notificationGui.ChildAdded:Connect(function(v)
+		if not isSummerHarvest then return end
+		local lbl = v:FindFirstChildOfClass("TextLabel")
+		if lbl and lbl.Text == "Max backpack space! Go sell!" then
+			event:FireServer("SubmitAllPlants")
 		end
-		runService.Stepped:Wait()
-	end
+	end)
 end)
 task.spawn(function()
 	if _G.AutoLog then return end
@@ -74,15 +69,15 @@ task.spawn(function()
 	local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
 	local oldRewards = tonumber(label.Text:match("%d+"))
 	local newRewards
-	while _G.AutoLog do
-		label:GetPropertyChangedSignal("Text"):Wait()
+	label:GetPropertyChangedSignal("Text"):Connect(function()
+		if not _G.AutoLog then return end
 		local newRewards = tonumber(label.Text:match("%d+"))
 		if newRewards < oldRewards then 
 			local text = tostring(getTime().."\nRewards Collected: "..oldRewards)
 			guiObject.Text = text
 		end
 		oldRewards = newRewards
-	end
+	end)
 end)
 local function CheckTableEquality(t1,t2)
 	for i,v in next, t1 do if t2[i]~=v then return false end end
