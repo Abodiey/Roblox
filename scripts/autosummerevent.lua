@@ -1,10 +1,9 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/autosummerevent.lua"))()
 if game.PlaceId ~= tonumber(63442347817033*2) then return end
-print"loading1"
+print("loading1")
 local SummerFruits = {"Sugar Apple","Feijoa","Loquat","Prickly Pear","Bell Pepper","Kiwi","Pineapple","Banana","Avocado","Green Apple","Watermelon","Cauliflower","Tomato","Strawberry","Carrot"}
-local runService = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
-while not player do task.wait() end
 local backpack = player:WaitForChild("Backpack")
 local playergui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
@@ -22,32 +21,30 @@ for _, plot in pairs(workspace:WaitForChild("Farm"):GetChildren()) do
 	end
 end
 
-local isSummerHarvest = false
+local isSummerHarvest
 local summerHarvestLabel = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("Sign"):FindFirstChild("BillboardGui", true):WaitForChild("TextLabel")
 local function refreshSummerHarvest()
-	if summerHarvestLabel.Text == "Next Summer Harvest:" then
-		isSummerHarvest = false
-	else
-		isSummerHarvest = true
-	end
+	isSummerHarvest = summerHarvestLabel.Text ~= "Next Summer Harvest:"
 end
 refreshSummerHarvest()
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
-task.spawn(function()
-	if _G.AutoSubmit then return end
+local submitevent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
+if not _G.AutoSubmit then
 	_G.AutoSubmit = true
-	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 	local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
 	notificationGui.ChildAdded:Connect(function(v)
 		if not isSummerHarvest then return end
 		local lbl = v:FindFirstChildOfClass("TextLabel")
 		if lbl and lbl.Text == "Max backpack space! Go sell!" then
-			event:FireServer("SubmitAllPlants")
+			if isSummerHarvest then
+				submitevent:FireServer("SubmitAllPlants")
+			end
 		end
 	end)
-end)
-task.spawn(function()
-	if _G.AutoLog then return end
+end
+
+
+if not _G.AutoLog then
 	_G.AutoLog = true
 	local function getTime()
 		local t = DateTime.now().UnixTimestamp + 10800 -- +3 hours in seconds
@@ -70,7 +67,6 @@ task.spawn(function()
 	local oldRewards = tonumber(label.Text:match("%d+"))
 	local newRewards
 	label:GetPropertyChangedSignal("Text"):Connect(function()
-		if not _G.AutoLog then return end
 		local newRewards = tonumber(label.Text:match("%d+"))
 		if newRewards < oldRewards then 
 			local text = tostring(getTime().."\nRewards Collected: "..oldRewards)
@@ -78,46 +74,91 @@ task.spawn(function()
 		end
 		oldRewards = newRewards
 	end)
-end)
-local function CheckTableEquality(t1,t2)
-	for i,v in next, t1 do if t2[i]~=v then return false end end
-	for i,v in next, t2 do if t1[i]~=v then return false end end
-	return true
 end
 
-task.spawn(function()
-	if _G.AutoHarvest then return end
-	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-	if isSummerHarvest then event:FireServer("SubmitAllPlants") end
-	local ByteNetReliable = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
-	local buffer = buffer.fromstring("\001\001\000\001")
-	local TemplateSummerTreesList = {["Sugar Apple"] = {},["Feijoa"] = {},["Loquat"] = {},["Pricky Pear"] = {},["Bell Pepper"] = {},["Kiwi"] = {},["Pineapple"] = {},["Banana"] = {},["Avocado"] = {},["Green Apple"] = {},["Tomato"] = {}}
-	local SummerTreesList = TemplateSummerTreesList
-	for _,v in pairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
-		if v and SummerTreesList[v.Name] and v:FindFirstChild("Fruits") then
-			table.insert(SummerTreesList[v.Name], v.Fruits)
-		end
-	end
-	if not CheckTableEquality(TemplateSummerTreesList, SummerTreesList) then return end
+--local function CheckTableEquality(t1,t2)
+--	for i,v in next, t1 do if t2[i]~=v then return false end end
+--	for i,v in next, t2 do if t1[i]~=v then return false end end
+--	return true
+--end
+
+if not _G.AutoHarvest then
 	_G.AutoHarvest = true
-	while _G.AutoHarvest do
-		while not isSummerHarvest do task.wait() end
-		for _,Tree in pairs(SummerTreesList) do
-			if not isSummerHarvest then break end
-			for _,Fruits in pairs(Tree) do
-				if not isSummerHarvest then break end
-				for _, v in pairs(Fruits:GetChildren()) do --returns v.Fruits's children, a Fruit
-					if not isSummerHarvest then break end
-					ByteNetReliable:FireServer(
-						buffer,
-						{ v }
-					)
-					runService.Heartbeat:Wait()
+	local SummerFruits = {
+		"Sugar Apple","Pitcher Plant","Feijoa","Loquat","Prickly Pear","Bell Pepper",
+		"Kiwi","Pineapple","Banana","Avocado","Green Apple",
+		"Watermelon","Cauliflower","Tomato","Strawberry","Carrot"
+	}
+	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
+
+	-- Build a name→list-of-fruits map in O(#trees + #fruits)
+	local function buildBuckets(plantsPhysical)
+		local buckets = {}
+		-- initialize empty lists for each fruit type
+		for _, name in ipairs(SummerFruits) do
+			buckets[name] = {}
+		end
+
+		-- single pass through trees
+		for _, tree in ipairs(plantsPhysical:GetChildren()) do
+			local fruitsFolder = tree:FindFirstChild("Fruits")
+			if fruitsFolder and buckets[tree.Name] then
+				for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+					table.insert(buckets[tree.Name], fruit)
 				end
 			end
 		end
-		event:FireServer("SubmitAllPlants")
-		task.wait(1/2)
+
+		return buckets
 	end
-end)
+
+	-- Flatten buckets into ordered queue in O(#fruitTypes + totalFruits)
+	local function buildFruitQueue(plantsPhysical)
+		local buckets   = buildBuckets(plantsPhysical)
+		local queue     = {}
+
+		for _, name in ipairs(SummerFruits) do
+			for _, fruit in ipairs(buckets[name]) do
+				table.insert(queue, fruit)
+			end
+		end
+
+		return queue
+	end
+
+	local ByteNetReliable = game:GetService("ReplicatedStorage")
+		:WaitForChild("ByteNetReliable")
+	local buffer          = buffer.fromstring("\001\001\000\001")
+
+	-- Given: buildFruitQueue(plantsPhysical) → returns {Fruit…}
+
+	local function processFruitQueue(queue)
+		for _, fruit in ipairs(queue) do
+			-- send one fruit per frame
+			ByteNetReliable:FireServer(buffer, { fruit })
+			RunService.Heartbeat:Wait()
+		end
+
+		-- once done, submit all plants
+		submitevent:FireServer("SubmitAllPlants")
+	end
+
+	-- Example usage in your harvest cycle:
+	local function startHarvestCycle()
+		local plantsPhys = important:WaitForChild("Plants_Physical")
+		local queue      = buildFruitQueue(plantsPhys)
+		processFruitQueue(queue)
+	end
+
+	-- Check if harvest event already started:
+	if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
+		startHarvestCycle()
+	end
+	-- Trigger on the harvest‐available event:
+	summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
+		if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
+			startHarvestCycle()
+		end
+	end)
+end
 print"loaded1"
