@@ -66,6 +66,11 @@ guiObject.BackgroundTransparency = 3/4
 guiObject.TextColor3 = Color3.new(1, 1, 1)
 guiObject.TextStrokeTransparency = 3/4
 local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
+local previousConnections = getconnections(label:GetPropertyChangedSignal("Text"))
+
+for _, connection in pairs(previousConnections) do
+	if connection then connection:Disconnect() end
+end
 local oldRewards = tonumber(label.Text:match("%d+"))
 local newRewards
 label:GetPropertyChangedSignal("Text"):Connect(function()
