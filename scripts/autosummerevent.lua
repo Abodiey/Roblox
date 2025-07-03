@@ -1,7 +1,6 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/autosummerevent.lua"))()
 if game.PlaceId ~= tonumber(63442347817033*2) then return end
 print("loading1")
-local SummerFruits = {"Sugar Apple","Feijoa","Loquat","Prickly Pear","Bell Pepper","Kiwi","Pineapple","Banana","Avocado","Green Apple","Watermelon","Cauliflower","Tomato","Strawberry","Carrot"}
 local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
@@ -21,7 +20,7 @@ for _, plot in pairs(workspace:WaitForChild("Farm"):GetChildren()) do
 	end
 end
 
-local isSummerHarvest
+local isSummerHarvest = false
 local summerHarvestLabel = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("Sign"):FindFirstChild("BillboardGui", true):WaitForChild("TextLabel")
 local function refreshSummerHarvest()
 	isSummerHarvest = summerHarvestLabel.Text ~= "Next Summer Harvest:"
@@ -91,7 +90,6 @@ local SummerFruits = {
 	"Kiwi","Pineapple","Banana","Avocado","Green Apple",
 	"Watermelon","Cauliflower","Tomato","Strawberry","Carrot"
 }
-local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 
 -- Build a name→list-of-fruits map in O(#trees + #fruits)
 local function buildBuckets(plantsPhysical)
@@ -153,7 +151,8 @@ local function startHarvestCycle()
 end
 
 -- Check if harvest event already started:
-if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
+refreshSummerHarvest()
+if isSummerHarvest then
 	startHarvestCycle()
 end
 -- Trigger on the harvest‐available event:
