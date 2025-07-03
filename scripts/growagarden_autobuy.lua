@@ -89,7 +89,7 @@ task.spawn(function()
 	local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 	local Backpack = LocalPlayer:WaitForChild("Backpack")
 	local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-	
+
 	local function GetConfigValue(Key: string)
 		return _G.Configuration[Key]
 	end
@@ -150,8 +150,8 @@ task.spawn(function()
 	end
 
 	--// Set rendering enabled
-	local Rendering = GetConfigValue("Rendering Enabled")
-	RunService:Set3dRenderingEnabled(Rendering)
+	--local Rendering = GetConfigValue("Rendering Enabled")
+	--RunService:Set3dRenderingEnabled(Rendering)
 
 
 	--// Anti idle
@@ -220,8 +220,8 @@ task.spawn(function()
 					connection:Disable()
 				end
 				tool.Activated:Connect(function()
-					Character.HumanoidRootPart.CFrame = CFrame.new(-285.418182, 2.99999976, -13.9779129, 0.0035337382, -7.99718975e-08, 0.999993742, 1.41268164e-10, 1, 7.99718975e-08, -0.999993742, -1.41332487e-10, 0.0035337382) + Vector3.new(0,1,0)
-					tool.Parent = Backpack
+					Character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(-285.418182, 2.99999976, -13.9779129, 0.0035337382, -7.99718975e-08, 0.999993742, 1.41268164e-10, 1, 7.99718975e-08, -0.999993742, -1.41332487e-10, 0.0035337382) + Vector3.new(0,1,0)
+					if tool.Parent ~= Backpack then tool.Parent = Backpack end
 				end)
 			end
 		end
@@ -232,53 +232,51 @@ task.spawn(function()
 			while not Discord["Enabled"] do
 				task.wait()
 			end
+			local watchers = {}
+
+			local function watchItem(item, color)
+				if watchers[item] then return end
+				local conn
+				local previous = tonumber(item.Name:match("%d+"))
+				conn = item:GetPropertyChangedSignal("Name"):Connect(function()
+					local curr = tonumber(item.Name:match("%d+"))
+					if curr > previous then
+						WebhookSend(color, {{ name = item.Name, value = "@everyone "..item.Name, inline = true }})
+						-- Optionally disconnect if you only need one alert:
+						-- conn:Disconnect()
+						-- watchers[item] = nil
+					end
+					previous = curr
+				end)
+				watchers[item] = conn
+
+				-- Clean up when the item dies
+				item.Destroying:Connect(function()
+					if watchers[item] then
+						watchers[item]:Disconnect()
+						watchers[item] = nil
+					end
+				end)
+			end
+			
 			local alertList = Discord["Alert"]
 			for _,v in pairs(alertList) do
 				local name = v[1]
 				local method = v[2]
 				local color = v[3]
 				local item = getItem(name, method)
-				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
-					item:SetAttribute("Watching", true)
-					local previousAmount = tonumber(string.match(item.Name, "%d+"))
-					item:GetPropertyChangedSignal("Name"):Connect(function()
-						local newAmount = tonumber(string.match(item.Name, "%d+"))
-						if newAmount > previousAmount then
-							WebhookSend(color, {
-								{
-									name = name,
-									value = "@everyone "..name,
-									inline = true
-								}
-							})
-						end
-						previousAmount = newAmount
-					end)
-					break
+				if item and not string.match(item.Name, "kg%]$") and not watchers[item] then
+					watchItem(item, color)
 				end
 			end
 			Backpack.ChildAdded:Connect(function(item: Instance) 
-				if item and not string.match(item.Name, "kg%]$") and not item:GetAttribute("Watching") then
+				if item and not string.match(item.Name, "kg%]$") and not watchers[item] then
 					for _,v in pairs(alertList) do
 						local name = v[1]
 						local method = v[2]
 						local color = v[3]
 						if searchMethod(item.Name, method, name) then
-							item:SetAttribute("Watching", true)
-							local previousAmount = tonumber(string.match(item.Name, "%d+"))
-							item:GetPropertyChangedSignal("Name"):Connect(function()
-								local newAmount = tonumber(string.match(item.Name, "%d+"))
-								if newAmount > previousAmount then
-									WebhookSend(color, {
-										{
-											name = name,
-											value = "@everyone "..name,
-											inline = true
-										}
-									})
-								end
-								previousAmount = newAmount
-							end)
+							watchItem(item, color)
 							break
 						end
 					end
@@ -293,7 +291,7 @@ task.spawn(function()
 		local eventShopEvent = GameEvents:WaitForChild("BuyEventShopStock")
 		local eggEvent = GameEvents:WaitForChild("BuyPetEgg")
 		local skyEvent = GameEvents:WaitForChild("BuyTravelingMerchantShopStock")
-				
+
 		local function initSeedShop()
 			if not seedEvent or not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
 			local seedShop = PlayerGui.Seed_Shop
@@ -385,7 +383,7 @@ task.spawn(function()
 				task.wait()
 			end
 		end
-				
+
 		local function processSeedStockUpdate(stockTable)
 			if not seedEvent or not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
 			local exclude = GetConfigValue("Auto-Buy-Seeds")["Exclude"]
