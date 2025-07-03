@@ -28,53 +28,51 @@ local function refreshSummerHarvest()
 end
 refreshSummerHarvest()
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
+
 local submitevent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-if not _G.AutoSubmit then
-	_G.AutoSubmit = true
-	local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
-	notificationGui.ChildAdded:Connect(function(v)
-		if not isSummerHarvest then return end
-		local lbl = v:FindFirstChildOfClass("TextLabel")
-		if lbl and lbl.Text == "Max backpack space! Go sell!" then
-			if isSummerHarvest then
-				submitevent:FireServer("SubmitAllPlants")
-			end
+_G.AutoSubmit = true
+local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
+notificationGui.ChildAdded:Connect(function(v)
+	if not isSummerHarvest then return end
+	local lbl = v:FindFirstChildOfClass("TextLabel")
+	if lbl and lbl.Text == "Max backpack space! Go sell!" then
+		if isSummerHarvest then
+			submitevent:FireServer("SubmitAllPlants")
 		end
-	end)
-end
-
-
-if not _G.AutoLog then
-	_G.AutoLog = true
-	local function getTime()
-		local t = DateTime.now().UnixTimestamp + 10800 -- +3 hours in seconds
-		local h, m = math.floor(t%86400/3600), math.floor(t%3600/60)
-		return string.format("%d:%02d %s", h>12 and h-12 or h==0 and 12 or h, m, h<12 and "AM" or "PM")
 	end
-	local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-	gui.IgnoreGuiInset = true
-	local guiObject = Instance.new("TextLabel", gui)
-	guiObject.AnchorPoint = Vector2.new(1, 0)
-	guiObject.Position = UDim2.new(1, 0, 0, 0)
-	guiObject.TextScaled = true
-	guiObject.Text = getTime().."\nRewards Collected: None yet..."
-	guiObject.Size = UDim2.fromScale(0.4, 1/10)
-	guiObject.BackgroundColor3 = Color3.new(0, 0, 0)
-	guiObject.BackgroundTransparency = 3/4
-	guiObject.TextColor3 = Color3.new(1, 1, 1)
-	guiObject.TextStrokeTransparency = 3/4
-	local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
-	local oldRewards = tonumber(label.Text:match("%d+"))
-	local newRewards
-	label:GetPropertyChangedSignal("Text"):Connect(function()
-		local newRewards = tonumber(label.Text:match("%d+"))
-		if newRewards < oldRewards then 
-			local text = tostring(getTime().."\nRewards Collected: "..oldRewards)
-			guiObject.Text = text
-		end
-		oldRewards = newRewards
-	end)
+end)
+
+
+_G.AutoLog = true
+local function getTime()
+	local t = DateTime.now().UnixTimestamp + 10800 -- +3 hours in seconds
+	local h, m = math.floor(t%86400/3600), math.floor(t%3600/60)
+	return string.format("%d:%02d %s", h>12 and h-12 or h==0 and 12 or h, m, h<12 and "AM" or "PM")
 end
+local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+gui.IgnoreGuiInset = true
+local guiObject = Instance.new("TextLabel", gui)
+guiObject.AnchorPoint = Vector2.new(1, 0)
+guiObject.Position = UDim2.new(1, 0, 0, 0)
+guiObject.TextScaled = true
+guiObject.Text = getTime().."\nRewards Collected: None yet..."
+guiObject.Size = UDim2.fromScale(0.4, 1/10)
+guiObject.BackgroundColor3 = Color3.new(0, 0, 0)
+guiObject.BackgroundTransparency = 3/4
+guiObject.TextColor3 = Color3.new(1, 1, 1)
+guiObject.TextStrokeTransparency = 3/4
+local label = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("RewardSign"):FindFirstChild("SurfaceGui", true):WaitForChild("PointTextLabel")
+local oldRewards = tonumber(label.Text:match("%d+"))
+local newRewards
+label:GetPropertyChangedSignal("Text"):Connect(function()
+	local newRewards = tonumber(label.Text:match("%d+"))
+	if newRewards < oldRewards then 
+		local text = tostring(getTime().."\nRewards Collected: "..oldRewards)
+		guiObject.Text = text
+	end
+	oldRewards = newRewards
+end)
+
 
 --local function CheckTableEquality(t1,t2)
 --	for i,v in next, t1 do if t2[i]~=v then return false end end
@@ -82,83 +80,82 @@ end
 --	return true
 --end
 
-if not _G.AutoHarvest then
-	_G.AutoHarvest = true
-	local SummerFruits = {
-		"Sugar Apple","Pitcher Plant","Feijoa","Loquat","Prickly Pear","Bell Pepper",
-		"Kiwi","Pineapple","Banana","Avocado","Green Apple",
-		"Watermelon","Cauliflower","Tomato","Strawberry","Carrot"
-	}
-	local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
+_G.AutoHarvest = true
+local SummerFruits = {
+	"Sugar Apple","Pitcher Plant","Feijoa","Loquat","Prickly Pear","Bell Pepper",
+	"Kiwi","Pineapple","Banana","Avocado","Green Apple",
+	"Watermelon","Cauliflower","Tomato","Strawberry","Carrot"
+}
+local event = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 
-	-- Build a name→list-of-fruits map in O(#trees + #fruits)
-	local function buildBuckets(plantsPhysical)
-		local buckets = {}
-		-- initialize empty lists for each fruit type
-		for _, name in ipairs(SummerFruits) do
-			buckets[name] = {}
-		end
+-- Build a name→list-of-fruits map in O(#trees + #fruits)
+local function buildBuckets(plantsPhysical)
+	local buckets = {}
+	-- initialize empty lists for each fruit type
+	for _, name in ipairs(SummerFruits) do
+		buckets[name] = {}
+	end
 
-		-- single pass through trees
-		for _, tree in ipairs(plantsPhysical:GetChildren()) do
-			local fruitsFolder = tree:FindFirstChild("Fruits")
-			if fruitsFolder and buckets[tree.Name] then
-				for _, fruit in ipairs(fruitsFolder:GetChildren()) do
-					table.insert(buckets[tree.Name], fruit)
-				end
+	-- single pass through trees
+	for _, tree in ipairs(plantsPhysical:GetChildren()) do
+		local fruitsFolder = tree:FindFirstChild("Fruits")
+		if fruitsFolder and buckets[tree.Name] then
+			for _, fruit in ipairs(fruitsFolder:GetChildren()) do
+				table.insert(buckets[tree.Name], fruit)
 			end
 		end
-
-		return buckets
 	end
 
-	-- Flatten buckets into ordered queue in O(#fruitTypes + totalFruits)
-	local function buildFruitQueue(plantsPhysical)
-		local buckets   = buildBuckets(plantsPhysical)
-		local queue     = {}
+	return buckets
+end
 
-		for _, name in ipairs(SummerFruits) do
-			for _, fruit in ipairs(buckets[name]) do
-				table.insert(queue, fruit)
-			end
+-- Flatten buckets into ordered queue in O(#fruitTypes + totalFruits)
+local function buildFruitQueue(plantsPhysical)
+	local buckets   = buildBuckets(plantsPhysical)
+	local queue     = {}
+
+	for _, name in ipairs(SummerFruits) do
+		for _, fruit in ipairs(buckets[name]) do
+			table.insert(queue, fruit)
 		end
-
-		return queue
 	end
 
-	local ByteNetReliable = game:GetService("ReplicatedStorage")
-		:WaitForChild("ByteNetReliable")
-	local buffer          = buffer.fromstring("\001\001\000\001")
+	return queue
+end
 
-	-- Given: buildFruitQueue(plantsPhysical) → returns {Fruit…}
+local ByteNetReliable = game:GetService("ReplicatedStorage")
+	:WaitForChild("ByteNetReliable")
+local buffer          = buffer.fromstring("\001\001\000\001")
 
-	local function processFruitQueue(queue)
-		for _, fruit in ipairs(queue) do
-			-- send one fruit per frame
-			ByteNetReliable:FireServer(buffer, { fruit })
-			RunService.Heartbeat:Wait()
-		end
+-- Given: buildFruitQueue(plantsPhysical) → returns {Fruit…}
 
-		-- once done, submit all plants
-		submitevent:FireServer("SubmitAllPlants")
+local function processFruitQueue(queue)
+	for _, fruit in ipairs(queue) do
+		-- send one fruit per frame
+		ByteNetReliable:FireServer(buffer, { fruit })
+		RunService.Heartbeat:Wait()
 	end
 
-	-- Example usage in your harvest cycle:
-	local function startHarvestCycle()
-		local plantsPhys = important:WaitForChild("Plants_Physical")
-		local queue      = buildFruitQueue(plantsPhys)
-		processFruitQueue(queue)
-	end
+	-- once done, submit all plants
+	submitevent:FireServer("SubmitAllPlants")
+end
 
-	-- Check if harvest event already started:
+-- Example usage in your harvest cycle:
+local function startHarvestCycle()
+	local plantsPhys = important:WaitForChild("Plants_Physical")
+	local queue      = buildFruitQueue(plantsPhys)
+	processFruitQueue(queue)
+end
+
+-- Check if harvest event already started:
+if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
+	startHarvestCycle()
+end
+-- Trigger on the harvest‐available event:
+summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
 		startHarvestCycle()
 	end
-	-- Trigger on the harvest‐available event:
-	summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
-		if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
-			startHarvestCycle()
-		end
-	end)
-end
+end)
+
 print"loaded1"
