@@ -468,7 +468,7 @@ task.spawn(function()
 							elseif path == "ROOT/EventShopStock/Stocks" then
 								processEventStockUpdate(data)
 								initEggShop()
-								task.spawn(function() task.wait(600) initEventShop() end)
+								task.spawn(function() task.wait(601) initEventShop() end)
 							end
 						end
 					end
@@ -512,8 +512,10 @@ task.spawn(function()
 					event:FireServer("MachineInteract")
 					task.wait(1)
 				end
+				task.wait()
+			else
+				task.wait(1)
 			end
-			task.wait()
 		end
 	end)
 
