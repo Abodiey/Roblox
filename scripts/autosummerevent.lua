@@ -30,9 +30,9 @@ refreshSummerHarvest()
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
 
 local submitevent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
-_G.AutoSubmit = true
 local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
 local debounce = false
+_G.AutoSubmit = true
 notificationGui.ChildAdded:Connect(function(v)
 	if debounce then return end
 	local lbl = v:FindFirstChildOfClass("TextLabel")
@@ -47,12 +47,13 @@ notificationGui.ChildAdded:Connect(function(v)
 end)
 
 
-_G.AutoLog = true
 local function getTime()
 	local t = DateTime.now().UnixTimestamp + 10800 -- +3 hours in seconds
 	local h, m = math.floor(t%86400/3600), math.floor(t%3600/60)
 	return string.format("%d:%02d %s", h>12 and h-12 or h==0 and 12 or h, m, h<12 and "AM" or "PM")
 end
+
+_G.AutoLog = true
 local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 gui.IgnoreGuiInset = true
 local guiObject = Instance.new("TextLabel", gui)
