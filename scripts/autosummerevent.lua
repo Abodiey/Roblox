@@ -162,7 +162,7 @@ end
 -- Trigger on the harvest‐available event:
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
-		refreshSummerHarvest()
+		if not isSummerHarvest then refreshSummerHarvest() end
 		startHarvestCycle()
 	end
 end)
