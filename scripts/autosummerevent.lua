@@ -25,6 +25,11 @@ local summerHarvestLabel = workspace:WaitForChild("SummerHarvestEvent"):WaitForC
 local function refreshSummerHarvest()
 	isSummerHarvest = summerHarvestLabel.Text ~= "Next Summer Harvest:"
 end
+local previousConnections = getconnections(summerHarvestLabel:GetPropertyChangedSignal("Text"))
+
+for _, connection in pairs(previousConnections) do
+	if connection then connection:Disconnect() end
+end
 refreshSummerHarvest()
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
 
