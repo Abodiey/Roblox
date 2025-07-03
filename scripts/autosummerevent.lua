@@ -32,12 +32,16 @@ summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest
 local submitevent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 _G.AutoSubmit = true
 local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
+local debounce = false
 notificationGui.ChildAdded:Connect(function(v)
-	if not isSummerHarvest then return end
+	if debounce then return end
 	local lbl = v:FindFirstChildOfClass("TextLabel")
 	if lbl and lbl.Text == "Max backpack space! Go sell!" then
 		if isSummerHarvest then
+			debounce = true
 			submitevent:FireServer("SubmitAllPlants")
+			for c = 1, 5 do RunService.Stepped:Wait() end
+			debounce = false
 		end
 	end
 end)
