@@ -141,13 +141,17 @@ local function processFruitQueue(queue)
 
 	-- once done, submit all plants
 	submitevent:FireServer("SubmitAllPlants")
+	return true
 end
 
 -- Example usage in your harvest cycle:
 local function startHarvestCycle()
-	local plantsPhys = important:WaitForChild("Plants_Physical")
-	local queue      = buildFruitQueue(plantsPhys)
-	processFruitQueue(queue)
+	while isSummerHarvest do
+		local plantsPhys = important:WaitForChild("Plants_Physical")
+		local queue      = buildFruitQueue(plantsPhys)
+		processFruitQueue(queue)
+		RunService.Heartbeat:Wait()
+	end
 end
 
 -- Check if harvest event already started:
@@ -158,6 +162,7 @@ end
 -- Trigger on the harvest‐available event:
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
+		refreshSummerHarvest()
 		startHarvestCycle()
 	end
 end)
