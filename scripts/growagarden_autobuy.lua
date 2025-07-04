@@ -54,7 +54,7 @@ task.spawn(function()
 			["Enabled"] = true,
 			["Exclude"] = {"Delphinium", "Lily of the Valley", "Mutation Spray Burnt", "Oasis Crate"},
 		},
-		["Auto-Buy-Sky-Shop"] = {
+		["Auto-Buy-Traveling-Merchant-Shop"] = {
 			["Enabled"] = true,
 			["Exclude"] = {},
 		},
@@ -289,7 +289,7 @@ task.spawn(function()
 		local gearEvent = GameEvents:WaitForChild("BuyGearStock")
 		local eventShopEvent = GameEvents:WaitForChild("BuyEventShopStock")
 		local eggEvent = GameEvents:WaitForChild("BuyPetEgg")
-		local skyEvent = GameEvents:WaitForChild("BuyTravelingMerchantShopStock")
+		local travelingMerchantShopEvent = GameEvents:WaitForChild("BuyTravelingMerchantShopStock")
 
 		local function initSeedShop()
 			if not seedEvent or not GetConfigValue("Auto-Buy-Seeds")["Enabled"] then return end
@@ -354,12 +354,14 @@ task.spawn(function()
 				end
 			end
 		end
-		local function initSkyShop()
-			if not skyEvent or not GetConfigValue("Auto-Buy-Sky-Shop")["Enabled"] or not workspace:FindFirstChild("SkyTravelingMerchant") then return end
-			local skyShop = PlayerGui.TravelingMerchantShop_UI
-			local frames = skyShop.Frame.ScrollingFrame
-
-			local exclude = GetConfigValue("Auto-Buy-Sky-Shop")["Exclude"]
+		local function initTravelingMerchantShop()
+			if not travelingMerchantShopEvent or not GetConfigValue("Auto-Buy-Traveling-Merchant-Shop")["Enabled"] or (not workspace:FindFirstChild("SkyTravelingMerchant") and not workspace:FindFirstChild("American Traveling Merchant")) then return end
+			local frames
+			pcall(function()
+				frames = PlayerGui.TravelingMerchantShop_UI.Frame.ScrollingFrame
+			end)
+			if not frames then return end
+			local exclude = GetConfigValue("Auto-Buy-Traveling-Merchant-Shop")["Exclude"]
 			for _, item in ipairs(frames:GetChildren()) do
 				if exclude and table.find(exclude, item.Name) then continue end
 				local mainFrame = item:FindFirstChild("Main_Frame")
@@ -370,7 +372,7 @@ task.spawn(function()
 				if not stockNumber then continue end
 
 				for count = 1, stockNumber do
-					skyEvent:FireServer(item.Name)
+					travelingMerchantShopEvent:FireServer(item.Name)
 					task.wait()
 				end
 			end
@@ -424,7 +426,7 @@ task.spawn(function()
 		end
 
 		initEventShop()
-		initSkyShop()
+		initTravelingMerchantShop()
 		initEggShop()
 		initGearShop()
 		initSeedShop()
@@ -461,7 +463,7 @@ task.spawn(function()
 						if type(data) == "table" then
 							if path == "ROOT/SeedStock/Stocks" then
 								processSeedStockUpdate(data)
-								initSkyShop()
+								initTravelingMerchantShop()
 							elseif path == "ROOT/GearStock/Stocks" then
 								processGearStockUpdate(data)
 							elseif path == "ROOT/EventShopStock/Stocks" then
