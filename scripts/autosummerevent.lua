@@ -148,7 +148,7 @@ local function processFruitQueue(queue)
 	end
 
 	-- once done, submit all plants
-	if #backpack:GetChildren()>50 then submitevent:FireServer("SubmitAllPlants") end
+	submitevent:FireServer("SubmitAllPlants")
 	return true
 end
 
@@ -158,8 +158,13 @@ local function startHarvestCycle()
 	harvesting = true
 	while harvesting do
 		local plantsPhys = important:WaitForChild("Plants_Physical")
-		local queue      = buildFruitQueue(plantsPhys)
-		local processed  = processFruitQueue(queue)
+		local queue = buildFruitQueue(plantsPhys)
+		if queue then
+			local processed = processFruitQueue(queue)
+			repeat task.wait() until processed
+		else
+			task.wait()
+		end
 	end
 end
 local function endHarvestCycle()
