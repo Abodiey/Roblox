@@ -1,8 +1,8 @@
 --loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/autosummerevent.lua"))()
 if game.PlaceId ~= tonumber(63442347817033*2) then return end
 print("loading1")
-local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
 local backpack = player:WaitForChild("Backpack")
 local playergui = player:WaitForChild("PlayerGui")
 local character = player.Character or player.CharacterAdded:Wait()
@@ -20,18 +20,11 @@ for _, plot in pairs(workspace:WaitForChild("Farm"):GetChildren()) do
 	end
 end
 
-local isSummerHarvest = false
+local isSummerHarvest
 local summerHarvestLabel = workspace:WaitForChild("SummerHarvestEvent"):WaitForChild("Sign"):FindFirstChild("BillboardGui", true):WaitForChild("TextLabel")
 local function refreshSummerHarvest()
 	isSummerHarvest = summerHarvestLabel.Text ~= "Next Summer Harvest:"
 end
-local previousConnections = getconnections(summerHarvestLabel:GetPropertyChangedSignal("Text"))
-
-for _, connection in pairs(previousConnections) do
-	if connection then connection:Disconnect() end
-end
-refreshSummerHarvest()
-summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(refreshSummerHarvest)
 
 local submitevent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("SummerHarvestRemoteEvent")
 local notificationGui = playergui:WaitForChild("Top_Notification"):WaitForChild("Frame")
@@ -44,7 +37,7 @@ notificationGui.ChildAdded:Connect(function(v)
 		if isSummerHarvest then
 			debounce = true
 			submitevent:FireServer("SubmitAllPlants")
-			for c = 1, 5 do RunService.Stepped:Wait() end
+			for c = 1, 10 do RunService.Stepped:Wait() end
 			debounce = false
 		end
 	end
@@ -143,39 +136,51 @@ local buffer          = buffer.fromstring("\001\001\000\001")
 -- Given: buildFruitQueue(plantsPhysical) → returns {Fruit…}
 
 local function processFruitQueue(queue)
+	--submit all current plants
 	submitevent:FireServer("SubmitAllPlants")
 	
 	for _, fruit in ipairs(queue) do
+		-- check if harvesting ended
+		if not harvesting then break end
 		-- send one fruit per frame
 		ByteNetReliable:FireServer(buffer, { fruit })
 		RunService.Heartbeat:Wait()
 	end
 
 	-- once done, submit all plants
-	submitevent:FireServer("SubmitAllPlants")
+	if #backpack:GetChildren()>100 then submitevent:FireServer("SubmitAllPlants") end
 	return
 end
 
 -- Example usage in your harvest cycle:
+local harvesting
 local function startHarvestCycle()
-	while isSummerHarvest do
+	harvesting = true
+	while harvesting do
 		local plantsPhys = important:WaitForChild("Plants_Physical")
 		local queue      = buildFruitQueue(plantsPhys)
 		processFruitQueue(queue)
-		RunService.Heartbeat:Wait()
+		--RunService.Heartbeat:Wait()
 	end
+end
+local function endHarvestCycle()
+	harvesting = false
 end
 
 -- Check if harvest event already started:
 refreshSummerHarvest()
 if isSummerHarvest then
 	startHarvestCycle()
+else
+	endHarvestCycle()
 end
 -- Trigger on the harvest‐available event:
 summerHarvestLabel:GetPropertyChangedSignal("Text"):Connect(function()
-	if summerHarvestLabel.Text ~= "Next Summer Harvest:" then
-		if not isSummerHarvest then refreshSummerHarvest() end
+	refreshSummerHarvest()
+	if isSummerHarvest then
 		startHarvestCycle()
+	else
+		endHarvestCycle()
 	end
 end)
 
