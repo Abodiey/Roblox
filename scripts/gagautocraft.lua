@@ -12,6 +12,8 @@ if game.PlaceId ~= 63442347817033 * 2 then
 	return
 end
 
+print("Starting\nStarting\nStarting")
+
 while waitForZenEnd do
 	local time = os.date("*t")
 	if time.min and time.min >= 11 then
@@ -148,3 +150,5 @@ else
 		(not commonEggUUID and "Common Egg " or "") ..
 		(not boneBlossomUUID and "Bone Blossom" or ""))
 end
+
+print("Ending\nEnding\nEnding")
