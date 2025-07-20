@@ -1,4 +1,5 @@
 local maxWeight = 30
+local waitForZenEnd = true
 local kick = false
 local rejoin = true
 local rejointype = 1
@@ -9,6 +10,14 @@ end
 
 if game.PlaceId ~= 63442347817033 * 2 then
 	return
+end
+
+while waitForZenEnd do
+	local time = os.date("*t")
+	if time.min and time.min >= 11 then
+		break
+	end
+	task.wait(1)
 end
 
 local RunService = game:GetService("RunService")
