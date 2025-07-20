@@ -16,7 +16,7 @@ print("Starting\nStarting\nStarting")
 
 while waitForZenEnd do
 	local time = os.date("*t")
-	if time.min and time.min >= 11 then
+	if time.min and (time.min >= 11 or time.min < 59) then
 		break
 	end
 	task.wait(1)
