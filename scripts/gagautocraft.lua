@@ -33,8 +33,38 @@ local backpack = player:WaitForChild("Backpack")
 
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local craftEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
-local dinoEvent = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("UpdateService"):WaitForChild("DinoEvent")
-dinoEvent.Parent = workspace
+
+local dinoEvent = nil
+
+repeat
+    local success1, result1 = pcall(function()
+        local rs = game:GetService("ReplicatedStorage")
+        return rs:FindFirstChild("Modules")
+            and rs.Modules:FindFirstChild("UpdateService")
+            and rs.Modules.UpdateService:FindFirstChild("DinoEvent")
+    end)
+
+    if success1 and result1 then
+        dinoEvent = result1
+        break
+    end
+
+    local success2, result2 = pcall(function()
+        return workspace:FindFirstChild("DinoEvent")
+    end)
+
+    if success2 and result2 then
+        dinoEvent = result2
+        break
+    end
+
+    wait(0.1)
+until dinoEvent
+
+if dinoEvent.Parent ~= workspace then
+    dinoEvent.Parent = workspace
+end
+
 local craftingTable = dinoEvent:WaitForChild("DinoCraftingTable")
 
 while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
