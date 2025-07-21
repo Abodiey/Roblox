@@ -1,4 +1,3 @@
-repeat wait() until nil
 local maxWeight = 30
 local waitForZenEnd = false
 local kick = false
