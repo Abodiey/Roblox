@@ -108,7 +108,7 @@ if not boneBlossomItem then
 							buffer.fromstring("\001\001\000\001"),
 							{ fruit }
 						)
-						task.wait(0.1)
+						task.wait(1)
 					end
 					if boneBlossomItem then break end
 				end
