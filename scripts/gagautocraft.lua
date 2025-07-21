@@ -26,13 +26,15 @@ while waitForZenEnd do
 	task.wait(1)
 end
 
-local craftEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 
 local dinoEvent
 
 repeat
     local success, result = pcall(function()
-        local rs = game:GetService("ReplicatedStorage")
+        local rs = replicatedStorage
         return rs:FindFirstChild("Modules")
             and rs.Modules:FindFirstChild("UpdateService")
             and rs.Modules.UpdateService:FindFirstChild("DinoEvent")
@@ -65,20 +67,17 @@ end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true)
 
-local RunService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 
+for i = 1, 3 do
+	replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
+end
+
 if tptotable then
 	local character = player.Character or player.CharacterAdded:Wait()
 	character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position) + Vector3.new(0, 2, 0)
-end
-
-local function promptwait(text)
-	while prompt and prompt.ActionText ~= text do
-		RunService.RenderStepped:Wait()
-	end
 end
 
 local function craft(...)
@@ -136,7 +135,7 @@ if not boneBlossomItem then
 					for _, fruit in pairs(plant.Fruits:GetChildren()) do
 						local weight = fruit:FindFirstChild("Weight")
 						if weight and weight.Value < maxWeight and not fruit:GetAttribute("Tranquil") and #fruit:GetAttributes() < 10 then
-							game:GetService("ReplicatedStorage"):FindFirstChild("ByteNetReliable"):FireServer(
+							replicatedStorage:FindFirstChild("ByteNetReliable"):FireServer(
 								buffer.fromstring("\001\001\000\001"),
 								{ fruit }
 							)
