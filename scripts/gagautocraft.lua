@@ -30,7 +30,7 @@ local RunService = game:GetService("RunService")
 
 local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
-local character = player.Character or player.CharacterAdded:Wait()
+
 
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local craftEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
@@ -42,9 +42,11 @@ while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 	task.wait()
 end
 
-local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true) 
+local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true)
+
 if tptotable then
-	character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position)
+	local character = player.Character or player.CharacterAdded:Wait()
+	character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position) + Vector3.new(0, 2, 0)
 end
 
 local function promptwait(text)
