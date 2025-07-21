@@ -3,6 +3,7 @@ local waitForZenEnd = false
 local kick = false
 local rejoin = true
 local rejointype = 1
+local tptotable = true
 local Recipe = "Primal Egg" --"Dinosaur Egg"
 local eggType = "Dinosaur"
 
@@ -46,7 +47,9 @@ while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true) 
-character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position)
+if tptotable then
+	character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position)
+end
 
 local function promptwait(text)
 	while prompt and prompt.ActionText ~= text do
@@ -124,9 +127,9 @@ if eggUUID and boneBlossomUUID then
 	craft("SetRecipe", Recipe)
 	--promptwait("Submit Item")
 	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
-	repeat RunService.RenderStepped:Wait() until not eggItem or not eggItem.Parent or eggName ~= eggItem.Name
+	--repeat RunService.RenderStepped:Wait() until not eggItem or not eggItem.Parent or eggName ~= eggItem.Name
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
-	repeat RunService.RenderStepped:Wait() until not boneBlossomItem or not boneBlossomItem.Parent
+	--repeat RunService.RenderStepped:Wait() until not boneBlossomItem or not boneBlossomItem.Parent
 	craft("Craft")
 	while sheckles and (kick or rejoin) do
 		local oldValue = sheckles.Value
