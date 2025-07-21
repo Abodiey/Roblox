@@ -38,13 +38,6 @@ local dinoEvent = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):W
 dinoEvent.Parent = workspace
 local craftingTable = dinoEvent:WaitForChild("DinoCraftingTable")
 
-local function craft(...)
-	local args = type(...) == "table" and ... or {...}
-	table.insert(args, 2, craftingTable)
-	table.insert(args, 3, "DinoEventWorkbench")
-	craftEvent:FireServer(table.unpack(args))
-end
-
 while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 	task.wait()
 end
@@ -58,6 +51,13 @@ local function promptwait(text)
 	while prompt and prompt.ActionText ~= text do
 		RunService.RenderStepped:Wait()
 	end
+end
+
+local function craft(...)
+	local args = type(...) == "table" and ... or {...}
+	table.insert(args, 2, craftingTable)
+	table.insert(args, 3, "DinoEventWorkbench")
+	craftEvent:FireServer(table.unpack(args))
 end
 
 if prompt.ActionText ~= "Select Recipe" then
