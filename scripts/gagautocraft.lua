@@ -103,21 +103,24 @@ if not boneBlossomItem then
 	end
 
 	if important then
-		for _, plant in ipairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
-			if plant.Name:find("Bone Blossom") and plant:FindFirstChild("Fruits") then
-				for _, fruit in pairs(plant.Fruits:GetChildren()) do
-					local weight = fruit:FindFirstChild("Weight")
-					if weight and weight.Value < maxWeight and not fruit:GetAttribute("Tranquil") and #fruit:GetAttributes() < 10 then
-						game:GetService("ReplicatedStorage"):FindFirstChild("ByteNetReliable"):FireServer(
-							buffer.fromstring("\001\001\000\001"),
-							{ fruit }
-						)
-						task.wait(1)
+		while not boneBlossomItem do
+			for _, plant in ipairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
+				if plant.Name:find("Bone Blossom") and plant:FindFirstChild("Fruits") then
+					for _, fruit in pairs(plant.Fruits:GetChildren()) do
+						local weight = fruit:FindFirstChild("Weight")
+						if weight and weight.Value < maxWeight and not fruit:GetAttribute("Tranquil") and #fruit:GetAttributes() < 10 then
+							game:GetService("ReplicatedStorage"):FindFirstChild("ByteNetReliable"):FireServer(
+								buffer.fromstring("\001\001\000\001"),
+								{ fruit }
+							)
+							task.wait(1)
+						end
+						if boneBlossomItem then break end
 					end
-					if boneBlossomItem then break end
 				end
+				if boneBlossomItem then break end
 			end
-			if boneBlossomItem then break end
+			task.wait()
 		end
 	end
 end
