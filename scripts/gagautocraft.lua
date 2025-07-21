@@ -4,7 +4,8 @@ local kick = false
 local rejoin = true
 local rejointype = 1
 local tptotable = true
-local Recipe = "Primal Egg" --"Dinosaur Egg"
+local recipe = "Primal Egg" --"Dinosaur Egg"
+local recipePrice = 5500000
 local eggType = "Dinosaur" --"Common"
 
 if not game or not game.PlaceId then
@@ -25,13 +26,6 @@ while waitForZenEnd do
 	task.wait(1)
 end
 
-local RunService = game:GetService("RunService")
-
-local player = game.Players.LocalPlayer
-local backpack = player:WaitForChild("Backpack")
-
-
-local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local craftEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 
 local dinoEvent
@@ -70,6 +64,11 @@ while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true)
+
+local RunService = game:GetService("RunService")
+local player = game.Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 
 if tptotable then
 	local character = player.Character or player.CharacterAdded:Wait()
@@ -158,7 +157,7 @@ local eggUUID = eggItem and eggItem:GetAttribute("c")
 local boneBlossomUUID = boneBlossomItem and boneBlossomItem:GetAttribute("c")
 
 if eggUUID and boneBlossomUUID then
-	craft("SetRecipe", Recipe)
+	craft("SetRecipe", recipe)
 	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
 	craft("Craft")
@@ -168,7 +167,7 @@ if eggUUID and boneBlossomUUID then
 		local newValue = sheckles.Value
 
 		-- Break the loop if the value drops by 5.5 million or more
-		if newValue ~= oldValue and newValue <= oldValue - 5500000 then
+		if newValue ~= oldValue and newValue <= oldValue - recipePrice then
 			break
 		end
 	end
