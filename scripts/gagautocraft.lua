@@ -3,6 +3,8 @@ local waitForZenEnd = false
 local kick = false
 local rejoin = true
 local rejointype = 1
+local Recipe = "Primal Egg" --"Dinosaur Egg"
+local eggType = "Dinosaur"
 
 if not game or not game.PlaceId then
 	repeat task.wait() until game and game.PlaceId
@@ -44,6 +46,7 @@ while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true) 
+character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position)
 
 local function promptwait(text)
 	while prompt and prompt.ActionText ~= text do
@@ -56,18 +59,18 @@ if prompt.ActionText ~= "Select Recipe" then
 	promptwait("Select Recipe")
 end
 
-local commonEggItem, boneBlossomItem
+local eggItem, boneBlossomItem
 
 for _, item in ipairs(backpack:GetChildren()) do
 	if item:IsA("Tool") then
-		if not commonEggItem and item.Name:find("Common Egg") then
-			commonEggItem = item
+		if not eggItem and item.Name:find(eggType.." Egg") then
+			eggItem = item
 		end
 		if not boneBlossomItem and item.Name:find("Bone Blossom") and item.Name:find("kg") and item:GetAttribute("d") == false and #item:GetAttributes() < 10 then
 			boneBlossomItem = item
 		end
 		-- Break early if both found
-		if commonEggItem and boneBlossomItem then break end
+		if eggItem and boneBlossomItem then break end
 	end
 end
 
@@ -112,16 +115,16 @@ if not boneBlossomItem then
 	end
 end
 
-local commonEggUUID = commonEggItem and commonEggItem:GetAttribute("c")
+local eggUUID = eggItem and eggItem:GetAttribute("c")
 local boneBlossomUUID = boneBlossomItem and boneBlossomItem:GetAttribute("c")
 
-local commonEggName = commonEggItem and commonEggItem.Name
+local eggName = eggItem and eggItem.Name
 
-if commonEggUUID and boneBlossomUUID then
-	craft("SetRecipe","Dinosaur Egg")
-	promptwait("Submit Item")
-	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = commonEggUUID }})
-	repeat RunService.RenderStepped:Wait() until not commonEggItem or not commonEggItem.Parent or commonEggName ~= commonEggItem.Name
+if eggUUID and boneBlossomUUID then
+	craft("SetRecipe", Recipe)
+	--promptwait("Submit Item")
+	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
+	repeat RunService.RenderStepped:Wait() until not eggItem or not eggItem.Parent or eggName ~= eggItem.Name
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
 	repeat RunService.RenderStepped:Wait() until not boneBlossomItem or not boneBlossomItem.Parent
 	craft("Craft")
@@ -147,7 +150,7 @@ if commonEggUUID and boneBlossomUUID then
 	end
 else
 	warn("⚠️ Missing required items: " ..
-		(not commonEggUUID and "Common Egg " or "") ..
+		(not eggUUID and eggType.." Egg" or "") ..
 		(not boneBlossomUUID and "Bone Blossom" or ""))
 end
 
