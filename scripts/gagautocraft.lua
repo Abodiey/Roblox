@@ -1,5 +1,5 @@
 local maxWeight = 30
-local waitForZenEnd = true
+local waitForZenEnd = false
 local kick = false
 local rejoin = true
 local rejointype = 1
