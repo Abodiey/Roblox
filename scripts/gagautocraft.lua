@@ -4,9 +4,9 @@ local kick = false
 local rejoin = true
 local rejointype = 1
 local tptotable = true
-local recipe = "Primal Egg" --"Dinosaur Egg"
+local recipe = "Dinosaur Egg" --"Primal Egg"
 local recipePrice = 5500000
-local eggType = "Dinosaur" --"Common"
+local eggType = "Common" --"Dinosaur"
 
 if not game or not game.PlaceId then
 	repeat task.wait() until game and game.PlaceId
