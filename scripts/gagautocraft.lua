@@ -120,7 +120,8 @@ if not boneBlossomItem then
 				end
 				if boneBlossomItem then break end
 			end
-			task.wait()
+			if boneBlossomItem then break end
+			task.wait(1)
 		end
 	end
 end
