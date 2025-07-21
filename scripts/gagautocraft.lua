@@ -33,7 +33,9 @@ local character = player.Character or player.CharacterAdded:Wait()
 
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local craftEvent = game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
-local craftingTable = workspace:WaitForChild("DinoEvent"):WaitForChild("DinoCraftingTable")
+local dinoEvent = game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("UpdateService"):WaitForChild("DinoEvent")
+dinoEvent.Parent = workspace
+local craftingTable = dinoEvent:WaitForChild("DinoCraftingTable")
 
 local function craft(...)
 	local args = type(...) == "table" and ... or {...}
