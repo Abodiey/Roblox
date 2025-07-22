@@ -75,7 +75,7 @@ local target = findPlayerByPrefix(targetPlayerName)
 if target then
 	print("Found prefix, player is:", target.Name, "\n")
 else
-	local target = getClosestPlayer()
+	target = getClosestPlayer()
 	if target then
 		print("Found closest, player is:", target.Name, "\n")
 	else
@@ -112,7 +112,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size				= UDim2.new(1, -40, 0, 50)
 titleLabel.Position			= UDim2.new(0, 20, 0, 10)
 titleLabel.BackgroundTransparency= 1
-titleLabel.Text				= targetPlayerName .. "'s Backpack"
+titleLabel.Text				= target.Name .. "'s Backpack"
 titleLabel.Font				= Enum.Font.SourceSansBold
 titleLabel.TextSize			= 20
 titleLabel.TextScaled			= true
@@ -443,11 +443,11 @@ end
 -- Build & display
 local function listBackpack()
 	local ply = target
-	if not (ply and ply.Backpack) then
+	if not ply or not ply:FindFirstChild("Backpack") then
 		titleLabel.Text = "Player or Backpack not found"
 		return
 	end
-
+	titleLabel.Text	= ply.Name .. "'s Backpack"
 	-- Clear old
 	for _, c in ipairs(scrollingFrame:GetChildren()) do
 		if c:IsA("TextLabel") then
