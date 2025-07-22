@@ -447,7 +447,7 @@ local function listBackpack()
 		titleLabel.Text = "Player or Backpack not found"
 		return
 	end
-	titleLabel.Text	= ply.Name .. "'s Backpack"
+	titleLabel.Text	= ply.DisplayName .. "'s Backpack"
 	-- Clear old
 	for _, c in ipairs(scrollingFrame:GetChildren()) do
 		if c:IsA("TextLabel") then
