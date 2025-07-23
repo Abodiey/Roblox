@@ -4,16 +4,22 @@ local repo = "Roblox"
 local branch = "main"
 local subfolder = "scripts"
 
+local guiName = "GithubHTMLLoader"
+
 -- Build URLs
 local githubHTMLURL = "https://github.com/" .. author .. "/" .. repo .. "/tree/" .. branch .. "/" .. subfolder
 local rawBaseURL = "https://raw.githubusercontent.com/" .. author .. "/" .. repo .. "/" .. branch .. "/" .. subfolder .. "/"
 
+repeat
+	local gui = game:GetService("CoreGui"):FindFirstChild(guiName)
+	if gui then gui:Destroy() end
+	task.wait()
+until not game:GetService("CoreGui"):FindFirstChild(guiName)
+
 -- GUI Setup
-local Players = game:GetService("Players")
-local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local gui = Instance.new("ScreenGui")
-gui.Name = "GitHubHTMLLoader"
-gui.Parent = playerGui
+gui.Name = guiName
+gui.Parent = game:GetService("CoreGui")
 gui.ResetOnSpawn = false
 
 local frame = Instance.new("Frame")
@@ -24,7 +30,7 @@ frame.BorderSizePixel = 0
 frame.Parent = gui
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Text = author.. "'s scripts"
+titleLabel.Text = author.. "'s Scripts"
 titleLabel.Size = UDim2.new(0, 200, 0, 30)
 titleLabel.Position = UDim2.new(0, 10, 0, 5)
 titleLabel.Font = Enum.Font.SourceSansBold
@@ -97,16 +103,40 @@ loadingButton:Destroy()
 for _, filename in ipairs(fileNames) do
 	local button = newButton("📄 " .. filename)
 	button.MouseButton1Click:Connect(function()
+		gui:Destroy()
 		task.spawn(function()
 			local rawURL = rawBaseURL .. filename:gsub(" ", "%%20")
-			pcall(function()
-				local content = game:HttpGet(rawURL)
-				if content then
-					loadstring(content)()
+			local maxRetries = 50
+			local attempt = 0
+			local content
+
+			repeat
+				local success, response = pcall(function()
+					return game:HttpGet(rawURL)
+				end)
+
+				if success and response then
+					content = response
+				else
+					attempt += 1
+					task.wait(0.5)
 				end
-			end)
+			until content or attempt >= maxRetries
+
+			if content then
+				local success, result = pcall(function()
+					return loadstring(content)()
+				end)
+
+				if success then
+					print("\n✅ Code executed successfully.", "\n")
+				else
+					warn("\n❌ Error while running loaded code:\n" .. tostring(result))
+				end
+			else
+				warn("🚫 No content available to execute after"  .. maxRetries .. " attempts.")
+			end
 		end)
-		gui:Destroy()
 	end)
 end
 
