@@ -55,6 +55,7 @@ end
 local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
+local runService = game:GetService("RunService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 local dinoEvent
@@ -87,7 +88,7 @@ if dinoEvent.Parent ~= workspace then
 end
 
 while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
-	task.wait()
+	runService.RenderStepped:Wait()
 end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true)
@@ -104,15 +105,15 @@ local function craft(...)
 	craftEvent:FireServer(table.unpack(args))
 end
 
-if prompt.ActionText ~= "Select Recipe" then
+while prompt and prompt.ActionText ~= "Select Recipe" do
 	craft("Cancel")
-	promptwait("Select Recipe")
+	runService.RenderStepped:Wait()
 end
 
 task.spawn(function()
 	for i = 1, 3 do
 		replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
-		task.wait()
+		runService.RenderStepped:Wait()
 	end
 end)
 
