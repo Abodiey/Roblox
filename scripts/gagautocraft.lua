@@ -31,17 +31,17 @@ local recipeName
 local eggType
 
 for name, isSelected in pairs(recipes) do
-    if isSelected then
-        recipeName = name
-        break
-    end
+	if isSelected then
+		recipeName = name
+		break
+	end
 end
 
 for name, isSelected in pairs(eggTypes) do
-    if isSelected then
-        eggType = name
-        break
-    end
+	if isSelected then
+		eggType = name
+		break
+	end
 end
 
 while waitForZenEnd do
@@ -52,48 +52,45 @@ while waitForZenEnd do
 	task.wait(1)
 end
 
+local player = game.Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 local dinoEvent
 
 repeat
-    local success, result = pcall(function()
-        local rs = replicatedStorage
-        return rs:FindFirstChild("Modules")
-            and rs.Modules:FindFirstChild("UpdateService")
-            and rs.Modules.UpdateService:FindFirstChild("DinoEvent")
-    end)
+	local success, result = pcall(function()
+		local rs = replicatedStorage
+		return rs:FindFirstChild("Modules")
+			and rs.Modules:FindFirstChild("UpdateService")
+			and rs.Modules.UpdateService:FindFirstChild("DinoEvent")
+	end)
 
-    if success and result then
-        dinoEvent = result
-    else
-        success, result = pcall(function()
-            return workspace:FindFirstChild("DinoEvent")
-        end)
+	if success and result then
+		dinoEvent = result
+	else
+		success, result = pcall(function()
+			return workspace:FindFirstChild("DinoEvent")
+		end)
 
-        if success and result then
-            dinoEvent = result
-        end
-    end
+		if success and result then
+			dinoEvent = result
+		end
+	end
 
-    task.wait(0.1)
+	task.wait(0.1)
 until dinoEvent
-
-if dinoEvent.Parent ~= workspace then
-    dinoEvent.Parent = workspace
-end
-
 local craftingTable = dinoEvent:WaitForChild("DinoCraftingTable")
+if dinoEvent.Parent ~= workspace then
+	dinoEvent.Parent = workspace
+end
 
 while not craftingTable:FindFirstChild("CraftingProximityPrompt", true) do
 	task.wait()
 end
 
 local prompt = craftingTable:FindFirstChild("CraftingProximityPrompt", true)
-
-local player = game.Players.LocalPlayer
-local backpack = player:WaitForChild("Backpack")
-local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 
 if tptotable then
 	local character = player.Character or player.CharacterAdded:Wait()
@@ -112,14 +109,17 @@ if prompt.ActionText ~= "Select Recipe" then
 	promptwait("Select Recipe")
 end
 
-for i = 1, 3 do
-	replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
-end
+task.spawn(function()
+	for i = 1, 3 do
+		replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
+		task.wait()
+	end
+end)
 
 -- Alternate egg type lookup
 local alternateEggType = {
-    Common = "Dinosaur",
-    Dinosaur = "Common",
+	Common = "Dinosaur",
+	Dinosaur = "Common",
 }
 
 -- Try selected and alternate egg types
@@ -127,29 +127,26 @@ local eggTypeOptions = { eggType, alternateEggType[eggType] }
 local eggItem, boneBlossomItem
 
 for _, eggKind in ipairs(eggTypeOptions) do
-    for _, item in ipairs(backpack:GetChildren()) do
-        if item:IsA("Tool") then
-
-            -- Find matching egg item
-            if not eggItem and item.Name:find(eggKind .. " Egg") then
-                eggItem = item
-                eggType = eggKind
-            end
-
-            -- Find valid Bone Blossom item
-            if not boneBlossomItem
-                and item.Name:find("Bone Blossom")
-                and item.Name:find("kg")
-                and item:GetAttribute("d") == false
-                and #item:GetAttributes() < 10
-            then
-                boneBlossomItem = item
-            end
-
-            if eggItem and boneBlossomItem then break end
-        end
-    end
-    if eggItem then break end
+	for _, item in ipairs(backpack:GetChildren()) do
+		if item:IsA("Tool") then
+			-- Find matching egg item
+			if not eggItem and item.Name:find(eggKind .. " Egg") then
+				eggItem = item
+				eggType = eggKind
+			end
+			-- Find valid Bone Blossom item
+			if not boneBlossomItem
+				and item.Name:find("Bone Blossom")
+				and item.Name:find("kg")
+				and item:GetAttribute("d") == false
+				and #item:GetAttributes() < 10
+			then
+				boneBlossomItem = item
+			end
+			if eggItem and boneBlossomItem then break end
+		end
+	end
+	if eggItem then break end
 end
 
 if not boneBlossomItem then
