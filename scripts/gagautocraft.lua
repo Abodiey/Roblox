@@ -1,12 +1,21 @@
-local maxWeight = 30
+-- 🍳 Select your recipe and egg type by setting [true]
+local recipes = {
+	["Dinosaur Egg"] = true, -- > Common
+	["Primal Egg"] = false, --> Dinosaur
+}
+
+local eggTypes = {
+	["Common"] = true, --> Dinosaur
+	["Dinosaur"] = false, --> Primal
+}
+
 local waitForZenEnd = false
 local kick = false
 local rejoin = true
-local rejointype = 1
-local tptotable = true
-local recipe = "Dinosaur Egg" --"Primal Egg"
+local rejoinType = 1
 local recipePrice = 5500000
-local eggType = "Common" --"Dinosaur"
+local maxWeight = 30
+local tptotable = true
 
 if not game or not game.PlaceId then
 	repeat task.wait() until game and game.PlaceId
@@ -18,6 +27,23 @@ end
 
 print("Starting\nStarting\nStarting")
 
+local recipeName
+local eggType
+
+for name, isSelected in pairs(recipes) do
+    if isSelected then
+        recipeName = name
+        break
+    end
+end
+
+for name, isSelected in pairs(eggTypes) do
+    if isSelected then
+        eggType = name
+        break
+    end
+end
+
 while waitForZenEnd do
 	local time = os.date("*t")
 	if time.min and (time.min >= 11 or time.min < 59) then
@@ -27,9 +53,7 @@ while waitForZenEnd do
 end
 
 local replicatedStorage = game:GetService("ReplicatedStorage")
-
 local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
-
 local dinoEvent
 
 repeat
@@ -71,10 +95,6 @@ local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
 local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 
-for i = 1, 3 do
-	replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
-end
-
 if tptotable then
 	local character = player.Character or player.CharacterAdded:Wait()
 	character:WaitForChild("HumanoidRootPart").CFrame = CFrame.new(prompt.Parent.Position) + Vector3.new(0, 2, 0)
@@ -92,19 +112,44 @@ if prompt.ActionText ~= "Select Recipe" then
 	promptwait("Select Recipe")
 end
 
+for i = 1, 3 do
+	replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
+end
+
+-- Alternate egg type lookup
+local alternateEggType = {
+    Common = "Dinosaur",
+    Dinosaur = "Common",
+}
+
+-- Try selected and alternate egg types
+local eggTypeOptions = { eggType, alternateEggType[eggType] }
 local eggItem, boneBlossomItem
 
-for _, item in ipairs(backpack:GetChildren()) do
-	if item:IsA("Tool") then
-		if not eggItem and item.Name:find(eggType.." Egg") then
-			eggItem = item
-		end
-		if not boneBlossomItem and item.Name:find("Bone Blossom") and item.Name:find("kg") and item:GetAttribute("d") == false and #item:GetAttributes() < 10 then
-			boneBlossomItem = item
-		end
-		-- Break early if both found
-		if eggItem and boneBlossomItem then break end
-	end
+for _, eggKind in ipairs(eggTypeOptions) do
+    for _, item in ipairs(backpack:GetChildren()) do
+        if item:IsA("Tool") then
+
+            -- Find matching egg item
+            if not eggItem and item.Name:find(eggKind .. " Egg") then
+                eggItem = item
+                eggType = eggKind
+            end
+
+            -- Find valid Bone Blossom item
+            if not boneBlossomItem
+                and item.Name:find("Bone Blossom")
+                and item.Name:find("kg")
+                and item:GetAttribute("d") == false
+                and #item:GetAttributes() < 10
+            then
+                boneBlossomItem = item
+            end
+
+            if eggItem and boneBlossomItem then break end
+        end
+    end
+    if eggItem then break end
 end
 
 if not boneBlossomItem then
@@ -156,7 +201,7 @@ local eggUUID = eggItem and eggItem:GetAttribute("c")
 local boneBlossomUUID = boneBlossomItem and boneBlossomItem:GetAttribute("c")
 
 if eggUUID and boneBlossomUUID then
-	craft("SetRecipe", recipe)
+	craft("SetRecipe", recipeName)
 	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
 	craft("Craft")
@@ -174,9 +219,9 @@ if eggUUID and boneBlossomUUID then
 		player:Kick("Done!")
 	end
 	if rejoin then
-		if rejointype == 1 then
+		if rejoinType == 1 then
 			game:GetService("TeleportService"):Teleport(game.PlaceId, game.Players.LocalPlayer)
-		elseif rejointype == 2 then
+		elseif rejoinType == 2 then
 			game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
 		end
 	end
