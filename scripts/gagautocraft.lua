@@ -105,6 +105,10 @@ local function craft(...)
 	craftEvent:FireServer(table.unpack(args))
 end
 
+if prompt and prompt.ActionText ~= "Select Recipe" then
+	print("Cancelling old craft")
+end
+
 while prompt and prompt.ActionText ~= "Select Recipe" do
 	craft("Cancel")
 	runService.RenderStepped:Wait()
@@ -126,6 +130,8 @@ local alternateEggType = {
 -- Try selected and alternate egg types
 local eggTypeOptions = { eggType, alternateEggType[eggType] }
 local eggItem, boneBlossomItem
+
+print("Finding backpack items")
 
 for _, eggKind in ipairs(eggTypeOptions) do
 	for _, item in ipairs(backpack:GetChildren()) do
@@ -150,12 +156,20 @@ for _, eggKind in ipairs(eggTypeOptions) do
 	if eggItem then break end
 end
 
+if eggItem then
+	print("Found eggItem:", eggItem.Name)
+end
+if boneBlossomItem then
+	print("Found boneBlossomItem:", boneBlossomItem.Name)
+end
 if not boneBlossomItem then
+	print("No bone blossom!, Harvesting...")
 	local conn
 	conn = backpack.ChildAdded:Connect(function(item)
 		if not boneBlossomItem and item:IsA("Tool") and item.Name:find("Bone Blossom") and item.Name:find("kg") and item:GetAttribute("d") == false and #item:GetAttributes() < 10 then
 			boneBlossomItem = item
-			conn:Disconnect()
+			print("Found Bone Blossom Item!, " .. boneBlossomItem.Name)
+			if conn then conn:Disconnect() end
 		end
 	end)
 
@@ -172,14 +186,15 @@ if not boneBlossomItem then
 	end
 
 	if important then
+		local buffr = buffer.fromstring("\001\001\000\001")
 		while not boneBlossomItem do
 			for _, plant in ipairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
 				if plant.Name:find("Bone Blossom") and plant:FindFirstChild("Fruits") then
 					for _, fruit in pairs(plant.Fruits:GetChildren()) do
 						local weight = fruit:FindFirstChild("Weight")
-						if weight and weight.Value < maxWeight and not fruit:GetAttribute("Tranquil") and #fruit:GetAttributes() < 10 then
+						if weight and weight.Value < maxWeight and #fruit:GetAttributes() < 10 then --and not fruit:GetAttribute("Tranquil")
 							replicatedStorage:FindFirstChild("ByteNetReliable"):FireServer(
-								buffer.fromstring("\001\001\000\001"),
+								buffr,
 								{ fruit }
 							)
 							task.wait(1)
@@ -199,6 +214,7 @@ local eggUUID = eggItem and eggItem:GetAttribute("c")
 local boneBlossomUUID = boneBlossomItem and boneBlossomItem:GetAttribute("c")
 
 if eggUUID and boneBlossomUUID then
+	print("Crafting,", "eggType:", eggType, "Recipe Name:", recipeName)
 	craft("SetRecipe", recipeName)
 	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
