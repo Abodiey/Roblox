@@ -143,10 +143,9 @@ for _, eggKind in ipairs(eggTypeOptions) do
 			end
 			-- Find valid Bone Blossom item
 			if not boneBlossomItem
-				and item.Name:find("Bone Blossom")
+				and (item.Name:find("Bone Blossom") or (item:GetAttribute("f") and item:GetAttribute("f") == "Bone Blossom") )
 				and item.Name:find("kg")
 				and item:GetAttribute("d") == false
-				and #item:GetAttributes() < 10
 			then
 				boneBlossomItem = item
 			end
@@ -166,7 +165,7 @@ if not boneBlossomItem then
 	print("No bone blossom!, Harvesting...")
 	local conn
 	conn = backpack.ChildAdded:Connect(function(item)
-		if not boneBlossomItem and item:IsA("Tool") and item.Name:find("Bone Blossom") and item.Name:find("kg") and item:GetAttribute("d") == false and #item:GetAttributes() < 10 then
+		if not boneBlossomItem and item:IsA("Tool") and (item.Name:find("Bone Blossom") or (item:GetAttribute("f") and item:GetAttribute("f") == "Bone Blossom")) and item.Name:find("kg") and item:GetAttribute("d") == false then
 			boneBlossomItem = item
 			print("Found Bone Blossom Item!, " .. boneBlossomItem.Name)
 			if conn then conn:Disconnect() end
