@@ -1,10 +1,15 @@
+print("1")
 local t = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Intro_SCREEN"):WaitForChild("Frame"):WaitForChild("Side_Frame_1")
-repeat task.wait() until t.TextTransparency == 0
+print("2")
+repeat task.wait() until t.TextTransparency ~= 1
 task.wait(2)
+print("3")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 VirtualInputManager:SendMouseButtonEvent(100, 100, 0, true, game, 0) -- Mouse down
 VirtualInputManager:SendMouseButtonEvent(100, 100, 0, false, game, 0) -- Mouse up
+print("4")
 task.wait(5)
+print("5")
 VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
 task.wait(0.1)
 VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
