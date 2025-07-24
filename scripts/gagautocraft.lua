@@ -189,10 +189,10 @@ if not boneBlossomItem then
 		local buffr = buffer.fromstring("\001\001\000\001")
 		while not boneBlossomItem do
 			for _, plant in ipairs(important:WaitForChild("Plants_Physical"):GetChildren()) do
-				if plant.Name:find("Bone Blossom") and plant:FindFirstChild("Fruits") then
+				if plant.Name:find("Bone Blossom") and plant:FindFirstChild("Fruits") and not plant:GetAttribute("Favorited") then
 					for _, fruit in pairs(plant.Fruits:GetChildren()) do
 						local weight = fruit:FindFirstChild("Weight")
-						if weight and weight.Value < maxWeight and #fruit:GetAttributes() < 10 then --and not fruit:GetAttribute("Tranquil")
+						if not fruit:GetAttribute("Favorited") and weight and weight.Value < maxWeight and #fruit:GetAttributes() < 10 then --and not fruit:GetAttribute("Tranquil")
 							replicatedStorage:FindFirstChild("ByteNetReliable"):FireServer(
 								buffr,
 								{ fruit }
