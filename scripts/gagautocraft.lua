@@ -1,12 +1,12 @@
 -- 🍳 Select your recipe and egg type by setting [true]
 local recipes = {
-	["Dinosaur Egg"] = true, -- > Common
-	["Primal Egg"] = false, --> Dinosaur
+	["Dinosaur Egg"] = false, -- > Common
+	["Primal Egg"] = true, --> Dinosaur
 }
 
 local eggTypes = {
-	["Common"] = true, --> Dinosaur
-	["Dinosaur"] = false, --> Primal
+	["Common"] = false, --> Dinosaur
+	["Dinosaur"] = true, --> Primal
 }
 
 local waitForZenEnd = false
