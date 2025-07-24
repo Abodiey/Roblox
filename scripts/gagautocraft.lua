@@ -1,19 +1,3 @@
-print("1")
-local t = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Intro_SCREEN"):WaitForChild("Frame"):WaitForChild("Side_Frame_1")
-print("2")
-repeat task.wait() until t.TextTransparency ~= 1
-task.wait(2)
-print("3")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-VirtualInputManager:SendMouseButtonEvent(100, 100, 0, true, game, 0) -- Mouse down
-VirtualInputManager:SendMouseButtonEvent(100, 100, 0, false, game, 0) -- Mouse up
-print("4")
-task.wait(5)
-print("5")
-VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
-task.wait(0.1)
-VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
-
 -- 🍳 Select your recipe and egg type by setting [true]
 local recipes = {
 	["Dinosaur Egg"] = true, -- > Common
@@ -75,6 +59,24 @@ local runService = game:GetService("RunService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
 local dinoEvent
+
+task.spawn(function()
+	local t = player:WaitForChild("PlayerGui"):WaitForChild("Intro_SCREEN"):WaitForChild("Frame"):WaitForChild("Side_Frame_1")
+	repeat task.wait() until t.TextTransparency ~= 1
+	local VirtualInputManager = game:GetService("VirtualInputManager")
+	repeat
+		VirtualInputManager:SendMouseButtonEvent(100, 100, 0, true, game, 0) -- Mouse down
+		VirtualInputManager:SendMouseButtonEvent(100, 100, 0, false, game, 0) -- Mouse up
+		task.wait(1)
+		if t.TextTransparency == 1 then
+			break 
+		end
+		VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
+		task.wait(0.1)
+		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
+		task.wait(1)
+	until t.TextTransparency == 1
+end)
 
 repeat
 	local success, result = pcall(function()
