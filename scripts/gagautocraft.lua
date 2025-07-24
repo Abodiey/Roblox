@@ -1,3 +1,14 @@
+local t = game.Players.LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Intro_SCREEN"):WaitForChild("Frame"):WaitForChild("Side_Frame_1")
+repeat task.wait() until t.TextTransparency == 0
+task.wait(2)
+local VirtualInputManager = game:GetService("VirtualInputManager")
+VirtualInputManager:SendMouseButtonEvent(100, 100, 0, true, game, 0) -- Mouse down
+VirtualInputManager:SendMouseButtonEvent(100, 100, 0, false, game, 0) -- Mouse up
+task.wait(5)
+VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, nil)
+task.wait(0.1)
+VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
+
 -- 🍳 Select your recipe and egg type by setting [true]
 local recipes = {
 	["Dinosaur Egg"] = true, -- > Common
