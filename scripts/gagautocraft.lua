@@ -145,6 +145,11 @@ local alternateEggType = {
 	Dinosaur = "Common",
 }
 
+local recipeList = {
+	Common = "Dinosaur Egg"
+	Dinosaur = "Primal Egg"
+}
+
 -- Try selected and alternate egg types
 local eggTypeOptions = { eggType, alternateEggType[eggType] }
 local eggItem, boneBlossomItem
@@ -158,6 +163,7 @@ for _, eggKind in ipairs(eggTypeOptions) do
 			if not eggItem and item.Name:find(eggKind .. " Egg") then
 				eggItem = item
 				eggType = eggKind
+				recipeName = recipeList[eggType]
 			end
 			-- Find valid Bone Blossom item
 			if not boneBlossomItem
