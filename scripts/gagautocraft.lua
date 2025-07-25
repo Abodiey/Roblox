@@ -54,7 +54,6 @@ end
 
 local player = game.Players.LocalPlayer
 local backpack = player:WaitForChild("Backpack")
-local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 local runService = game:GetService("RunService")
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local craftEvent = replicatedStorage:WaitForChild("GameEvents"):WaitForChild("CraftingGlobalObjectService")
@@ -138,6 +137,7 @@ task.spawn(function()
 		runService.RenderStepped:Wait()
 	end
 end)
+
 
 -- Alternate egg type lookup
 local alternateEggType = {
@@ -242,6 +242,7 @@ if eggUUID and boneBlossomUUID then
 	craft("InputItem", 1, {ItemType = "PetEgg", ItemData = { UUID = eggUUID }})
 	craft("InputItem", 2, {ItemType = "Holdable", ItemData = { UUID = boneBlossomUUID }})
 	craft("Craft")
+	local sheckles = player:WaitForChild("leaderstats"):WaitForChild("Sheckles")
 	while sheckles and (kick or rejoin) do
 		local oldValue = sheckles.Value
 		sheckles.Changed:Wait()
