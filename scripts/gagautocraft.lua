@@ -1,12 +1,7 @@
--- 🍳 Select your recipe and egg type by setting [true]
+-- 🍳 Select your recipe by setting [true]
 local recipes = {
-	["Dinosaur Egg"] = false, -- > Common
-	["Primal Egg"] = true, --> Dinosaur
-}
-
-local eggTypes = {
-	["Common"] = false, --> Dinosaur
-	["Dinosaur"] = true, --> Primal
+	["Dinosaur Egg"] = false,  -- yields Common egg
+	["Primal Egg"]  = true,   -- yields Dinosaur egg
 }
 
 local waitForZenEnd = false
@@ -26,23 +21,6 @@ if game.PlaceId ~= 63442347817033 * 2 then
 end
 
 print("Starting\nStarting\nStarting")
-
-local recipeName
-local eggType
-
-for name, isSelected in pairs(recipes) do
-	if isSelected then
-		recipeName = name
-		break
-	end
-end
-
-for name, isSelected in pairs(eggTypes) do
-	if isSelected then
-		eggType = name
-		break
-	end
-end
 
 while waitForZenEnd do
 	local time = os.date("*t")
@@ -75,6 +53,13 @@ task.spawn(function()
 		VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, nil)
 		task.wait(1)
 	until t.TextTransparency == 1
+end)
+
+task.spawn(function()
+	for i = 1, 3 do
+		replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
+		runService.RenderStepped:Wait()
+	end
 end)
 
 repeat
@@ -131,26 +116,40 @@ while prompt and prompt.ActionText ~= "Select Recipe" do
 	runService.RenderStepped:Wait()
 end
 
-task.spawn(function()
-	for i = 1, 3 do
-		replicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer("Common Egg")
-		runService.RenderStepped:Wait()
-	end
-end)
+-- map each recipe to its primary egg type
+local recipeToEgg = {
+	["Dinosaur Egg"] = "Common",
+	["Primal Egg"]  = "Dinosaur",
+}
 
+local recipeName, eggType
+
+-- pick the recipe and initial eggType
+for name, enabled in pairs(recipes) do
+	if enabled then
+		recipeName = name
+		eggType	 = recipeToEgg[name]
+		break
+	end
+end
+
+if not recipeName then
+	error("No recipe selected! Set one recipe to true in the recipes table.")
+end
 
 -- Alternate egg type lookup
 local alternateEggType = {
-	Common = "Dinosaur",
+	Common   = "Dinosaur",
 	Dinosaur = "Common",
 }
 
+-- Map egg type back to recipe name
 local recipeList = {
-	Common = "Dinosaur Egg"
-	Dinosaur = "Primal Egg"
+	Common   = "Dinosaur Egg",
+	Dinosaur = "Primal Egg",
 }
 
--- Try selected and alternate egg types
+-- Try the chosen egg type first, then its alternate
 local eggTypeOptions = { eggType, alternateEggType[eggType] }
 local eggItem, boneBlossomItem
 
@@ -159,37 +158,46 @@ print("Finding backpack items")
 for _, eggKind in ipairs(eggTypeOptions) do
 	for _, item in ipairs(backpack:GetChildren()) do
 		if item:IsA("Tool") then
-			-- Find matching egg item
+			-- match egg
 			if not eggItem and item.Name:find(eggKind .. " Egg") then
-				eggItem = item
-				eggType = eggKind
-				recipeName = recipeList[eggType]
+				eggItem	= item
+				eggType	= eggKind
+				recipeName = recipeList[eggKind]
 			end
-			-- Find valid Bone Blossom item
+
+			-- match Bone Blossom
 			if not boneBlossomItem
-				and (item.Name:find("Bone Blossom") or (item:GetAttribute("f") and item:GetAttribute("f") == "Bone Blossom") )
-				and item.Name:find("kg")
-				and item:GetAttribute("d") == false
+			   and (item.Name:find("Bone Blossom")
+					or (item:GetAttribute("f") == "Bone Blossom" and not item.Name:find(" Seed")))
+			   and item.Name:find("kg")
+			   and item:GetAttribute("d") == false
 			then
 				boneBlossomItem = item
 			end
-			if eggItem and boneBlossomItem then break end
+
+			if eggItem and boneBlossomItem then
+				break
+			end
 		end
 	end
-	if eggItem then break end
+
+	if eggItem then
+		break
+	end
 end
 
 if eggItem then
-	print("Found eggItem:", eggItem.Name)
+	print("Found Egg Item:", eggItem.Name)
 end
 if boneBlossomItem then
-	print("Found boneBlossomItem:", boneBlossomItem.Name)
+	print("Found Bone Blossom Item:", boneBlossomItem.Name)
 end
+
 if not boneBlossomItem then
 	print("No bone blossom!, Harvesting...")
 	local conn
 	conn = backpack.ChildAdded:Connect(function(item)
-		if not boneBlossomItem and item:IsA("Tool") and (item.Name:find("Bone Blossom") or (item:GetAttribute("f") and item:GetAttribute("f") == "Bone Blossom")) and item.Name:find("kg") and item:GetAttribute("d") == false then
+		if not boneBlossomItem and (item.Name:find("Bone Blossom") or (item:GetAttribute("f") == "Bone Blossom" and not item.Name:find(" Seed"))) and item.Name:find("kg") and item:GetAttribute("d") == false then
 			boneBlossomItem = item
 			print("Found Bone Blossom Item!, " .. boneBlossomItem.Name)
 			if conn then conn:Disconnect() end
