@@ -1,3 +1,4 @@
+repeat wait() until nil
 -- 🍳 Select your recipe by setting [true]
 local recipes = {
 	["Dinosaur Egg"] = false,  -- yields Common egg
