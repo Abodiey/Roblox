@@ -223,11 +223,11 @@ local categoryPriority = { Pets = 1, Fruits = 2, Seeds = 3, Other = 4 }
 
 -- Name‐priority list (substring, case‐sensitive)
 local namePriority = {
-	"Panda", "Tanchozuru",
+	"Panda",
 	"Kitsune", "Disco Bee", "Raccoon", "Spinosaurus",
 	"Butterfly", "Fennec Fox", "T-Rex", "Mimic Octopus",
-	"Dragonfly", "Red Fox", "Queen Bee", "Chicken Zombie",
-	"Dilophosaurus", "Kappa", "Blood Owl", "Moon Cat", 
+	"Dragonfly", "French Fry Ferret", "Red Fox", "Queen Bee", "Chicken Zombie",
+	"Dilophosaurus", "Blood Owl", "Moon Cat", 
 }
 
 -- Rarity map & ordering
@@ -239,6 +239,7 @@ local rarityMap = {
 	Prismatic	= {
 		--Obtainable
 		"Kitsune",
+		"Corrupted Kitsune",
 		--Unobtainable
 		"Elephant Ears",
 		--Obtainable
@@ -251,39 +252,43 @@ local rarityMap = {
 	Divine	   = {
 		--Unobtainable
 		"Blood Owl", "Raccoon", "Fennec Fox", "Spinosaurus",
-		"T-Rex", 
+		"T-Rex", "Mizuchi"
 		--Obtainable
-		"Red Fox", "Dragonfly", "Disco Bee", "Queen Bee",
+		"Red Fox", "Dragonfly", "Disco Bee", "Queen Bee", "French Fry Ferret", "Lobster Thermidor"
 	},
 	Mythical	 = {
 		--Unobtainable
 		"Hamster", "Chicken Zombie", "Firefly", "Owl", "Golden Bee",
 		"Echo Frog", "Cooked Owl", "Blood Kiwi", "Night Owl",
 		"Hyacinth Macaw", "Axolotl", "Dilophosaurus", "Ankylosaurus",
-		"Pterodactyl", "Brontosaurus", 
+		"Pterodactyl", "Brontosaurus", "Kappa", "Koi", "Raiju", "Junkbot"
 		--Obtainable
 		"Brown Mouse", "Giant Ant",
-		"Grey Mouse", "Praying Mantis", "Red Giant Ant", "Squirrel",
-		"Bear Bee", "Butterfly", "Pack Bee", "Mimic Octopus", "Kappa",
-		"Koi",
+		"Praying Mantis", "Red Giant Ant", "Squirrel",
+		"Bear Bee", "Butterfly", "Pack Bee", "Mimic Octopus"
 	},
 	Legendary = {
 		--Unobtainable
-		"Cow", "Polar Bear", "Sea Otter", "Silver Monkey", "Panda", "Blood Hedgehog", "Frog", "Mole", "Moon Cat", "Bald Eagle", "Turtle", "Sand Snake", "Meerkat", "Parasaurolophus", "Iguanadon", "Pachycephalosaurus", "Raptor", "Triceratops", "Stegosaurus",
+		"Cow", "Polar Bear", "Sea Otter", "Silver Monkey", "Panda", "Blood Hedgehog", "Frog", 
+		"Mole", "Moon Cat", "Bald Eagle", "Turtle", "Sand Snake", "Meerkat", "Parasaurolophus", 
+		"Iguanadon", "Pachycephalosaurus", "Raptor", "Triceratops", "Stegosaurus", "Football", "Kodama", 
+		"Corrupted Kodama", "Tanuki", "Tanchozuru"
 		--Obtainable
-		"Tarantula Hawk", "Caterpillar", "Snail", "Petal Bee", "Moth", "Scarlet Macaw", "Ostrich", "Peacock", "Capybara", "Tanuki", "Tanchozuru",
+		"Grey Mouse", "Tarantula Hawk", "Caterpillar", "Snail", "Petal Bee", "Moth", "Scarlet Macaw", 
+		"Ostrich", "Peacock", "Capybara", "Gorilla Chef", "Hotdog Daschund",
 	},
 	Rare	  = {
 		--Unobtainable
 		"Kiwi", "Hedgehog", "Monkey", "Orange Tabby", "Pig", "Rooster", "Spotted Deer",
+		"Tsuchinoko", "Nihonzaru",
 		--Obtainable
-		"Flamingo", "Toucan", "Sea Turtle", "Orangutan", "Seal", "Honey Bee", "Wasp", "Nihonzaru",
+		"Flamingo", "Toucan", "Sea Turtle", "Orangutan", "Seal", "Honey Bee", "Wasp",
 	},
 	Uncommon  = {
 		--Unobtainable
-		"Black Bunny", "Cat", "Chicken", "Deer",
+		"Black Bunny", "Cat", "Chicken", "Deer", "Shiba Inu", "Maneki-neko"
 		--Obtainable
-		"Bee", "Shiba Inu",
+		"Bee", "Sunny-Side Chicken", "Bacon Pig"
 	},
 	Common	= {
 		--Obtainable
