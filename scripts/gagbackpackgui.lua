@@ -215,7 +215,7 @@ local isExactMatch = false
 local mutationPriority = {
 	"Ascended", "Tranquil", "IronSkin", "Radiant", "Shocked",
 	"Rainbow", "Golden", "Tiny", "Mega", "Windy",
-	"Frozen", "Inverted", "Shiny"
+	"Frozen", "Inverted", "Shiny",
 }
 
 -- Category priority (Pets → Fruits → Seeds → Other)
@@ -234,45 +234,41 @@ local namePriority = {
 local rarityMap = {
 	Transcendant = {
 		--Unobtainable
-		"Bone Blossom"
+		"Bone Blossom",
 	},
 	Prismatic	= {
 		--Obtainable
-		"Kitsune",
-		"Corrupted Kitsune",
+		"Kitsune", "Corrupted Kitsune",
 		--Unobtainable
-		"Elephant Ears",
+		"Elephant Ears", "Tranquil Bloom",
 		--Obtainable
-		"Giant Pinecone",
-		"Burning Bud",
-		"Sugar Apple",
-		"Ember Lily",
-		"Beanstalk",
+		"Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", "Giant Pinecone", "Elder Strawberry",
 	},
 	Divine	   = {
 		--Unobtainable
-		"Blood Owl", "Raccoon", "Fennec Fox", "Spinosaurus",
-		"T-Rex", "Mizuchi"
+		"Blood Owl", "Raccoon", "Fennec Fox", "Spinosaurus", "T-Rex", "Mizuchi",
 		--Obtainable
-		"Red Fox", "Dragonfly", "Disco Bee", "Queen Bee", "French Fry Ferret", "Lobster Thermidor"
+		"Red Fox", "Dragonfly", "Disco Bee", "Queen Bee", "French Fry Ferret", "Lobster Thermidor",
+		--Unobtainable
+		"Candy Blossom", "Venus Fly Trap", "Cursed Fruit", "Soul Fruit",
+		--Obtainable
+		"Sunflower", 
 	},
 	Mythical	 = {
 		--Unobtainable
-		"Hamster", "Chicken Zombie", "Firefly", "Owl", "Golden Bee",
-		"Echo Frog", "Cooked Owl", "Blood Kiwi", "Night Owl",
-		"Hyacinth Macaw", "Axolotl", "Dilophosaurus", "Ankylosaurus",
-		"Pterodactyl", "Brontosaurus", "Kappa", "Koi", "Raiju", "Junkbot"
+		"Hamster", "Chicken Zombie", "Firefly", "Owl", "Golden Bee", "Echo Frog", "Cooked Owl", 
+		"Blood Kiwi", "Night Owl", "Hyacinth Macaw", "Axolotl", "Dilophosaurus", "Ankylosaurus", "Pterodactyl",
+		"Brontosaurus", "Kappa", "Koi", "Raiju", "Junkbot",
 		--Obtainable
-		"Brown Mouse", "Giant Ant",
-		"Praying Mantis", "Red Giant Ant", "Squirrel",
-		"Bear Bee", "Butterfly", "Pack Bee", "Mimic Octopus"
+		"Brown Mouse", "Giant Ant", "Praying Mantis", "Red Giant Ant", "Squirrel", "Bear Bee", "Butterfly", 
+		"Pack Bee", "Mimic Octopus",
 	},
 	Legendary = {
 		--Unobtainable
 		"Cow", "Polar Bear", "Sea Otter", "Silver Monkey", "Panda", "Blood Hedgehog", "Frog", 
 		"Mole", "Moon Cat", "Bald Eagle", "Turtle", "Sand Snake", "Meerkat", "Parasaurolophus", 
 		"Iguanadon", "Pachycephalosaurus", "Raptor", "Triceratops", "Stegosaurus", "Football", "Kodama", 
-		"Corrupted Kodama", "Tanuki", "Tanchozuru"
+		"Corrupted Kodama", "Tanuki", "Tanchozuru",
 		--Obtainable
 		"Grey Mouse", "Tarantula Hawk", "Caterpillar", "Snail", "Petal Bee", "Moth", "Scarlet Macaw", 
 		"Ostrich", "Peacock", "Capybara", "Gorilla Chef", "Hotdog Daschund",
@@ -286,9 +282,9 @@ local rarityMap = {
 	},
 	Uncommon  = {
 		--Unobtainable
-		"Black Bunny", "Cat", "Chicken", "Deer", "Shiba Inu", "Maneki-neko"
+		"Black Bunny", "Cat", "Chicken", "Deer", "Shiba Inu", "Maneki-neko",
 		--Obtainable
-		"Bee", "Sunny-Side Chicken", "Bacon Pig"
+		"Bee", "Sunny-Side Chicken", "Bacon Pig",
 	},
 	Common	= {
 		--Obtainable
@@ -298,7 +294,7 @@ local rarityMap = {
 
 local rarityPriority = {
 	"Transcendant", "Prismatic", "Divine", "Mythical",
-	"Legendary",	"Rare",	  "Uncommon", "Common"
+	"Legendary",	"Rare",	  "Uncommon", "Common",
 }
 
 -- Localize
