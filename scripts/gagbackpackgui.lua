@@ -84,6 +84,7 @@ else
 	end
 end
 
+local targetPlayerName = target.Name
 
 -- // Remove Existing GUI
 local playerGui	= game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -444,10 +445,11 @@ end
 -- Build & display
 local function listBackpack()
 	local ply = target
-	if not ply or not ply:FindFirstChild("Backpack") then
-		titleLabel.Text = "Player or Backpack not found"
+	if not ply then
+		titleLabel.Text = "Player not found"
 		return
 	end
+
 	titleLabel.Text	= ply.DisplayName .. "'s Backpack"
 	-- Clear old
 	for _, c in ipairs(scrollingFrame:GetChildren()) do
@@ -460,16 +462,29 @@ local function listBackpack()
 	local filter = filterBox.Text
 	local norm   = filter:lower()
 	local counts, reps = {}, {}
-	local items = ply.Backpack:GetChildren() -- Start with tools in Backpack
 
+	local backpack = ply:FindFirstChild("Backpack")
+	if not backpack then
+		titleLabel.Text = "Backpack not found"
+		return
+	end
+
+	local items = backpack:GetChildren() -- Start with tools in Backpack
+
+	local character = ply.Character
+	if not character then
+		titleLabel.Text = "Character not found"
+		return
+	end
+	
 	-- Add equipped tools from Character
-	for _, obj in ipairs(ply.Character:GetChildren()) do
+	for _, obj in ipairs(character:GetChildren()) do
 		if obj:IsA("Tool") then
 			table.insert(items, obj)
 		end
 	end
 
-	for _, item in ipairs(ply.Backpack:GetChildren()) do
+	for _, item in ipairs(backpack:GetChildren()) do
 		local nm = item.Name
 		local ok
 
