@@ -1,13 +1,29 @@
 --[[
 loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/sabESP.lua"))()
 ]]
-
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local PlotsFolder = workspace:WaitForChild("Plots")
 
-local LocalPlayer = Players.LocalPlayer
+local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+
+-- Variables for character, root, and backpack
+local backpack = player:WaitForChild("Backpack")
+local character = player.Character or player.CharacterAdded:Wait()
+local root = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+
+local cloneTool
+
+-- Listen for when the character is added or respawned
+player.CharacterAdded:Connect(function(newCharacter)
+    -- Reset character, root, and backpack variables when the character is added
+    character = newCharacter
+    root = character:WaitForChild("HumanoidRootPart")
+	humanoid = character:WaitForChild("Humanoid")
+	cloneTool = backpack:WaitForChild("Quantum Cloner")
+end)
 
 -- Destroy any previous ESPContainer or GUI
 local oldContainer = CoreGui:FindFirstChild("ESPContainer")
@@ -171,18 +187,23 @@ closeButton.MouseButton1Click:Connect(function()
 	if container then container:Destroy() end
 end)
 
-local cloneTool
--- Placeholder action for "TP Forward" button
+local cloneTool = cloneTool or character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
+
+-- action for "TP Forward" button
 tpForwardButton.MouseButton1Click:Connect(function()
-	-- You can replace this with your actual teleport logic
-	cloneTool = cloneTool or game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-	if not cloneTool then 
-		print("none")
-		return
+    if not cloneTool or not cloneTool.Parent then
+		cloneTool = backpack:WaitForChild("Quantum Cloner")
 	end
-	print(cloneTool:GetFullName())
-	task.wait(2)
+	if cloneTool.Parent ~= character then
+		cloneTool.Parent = character
+	end
 	cloneTool:Activate()
+	task.wait(.1)
+	game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/QuantumCloner/OnTeleport"):FireServer()
+	task.wait(.1)
+	if cloneTool.Parent ~= backpack then
+		cloneTool.Parent = backpack
+	end
 end)
 
 -- State
@@ -306,7 +327,7 @@ task.spawn(function()
 					if frame then
 						local nameLabel = frame:FindFirstChild("TextLabel")
 						-- Only if textlabel and the plot doesn't belongs to the local player
-						if nameLabel and nameLabel.Text ~= "Empty Base" and nameLabel.Text:gsub("'s Base", "") ~= LocalPlayer.DisplayName then
+						if nameLabel and nameLabel.Text ~= "Empty Base" and nameLabel.Text:gsub("'s Base", "") ~= player.DisplayName then
 
 							-- Create the ESP using the plotSign and nameLabel.Text
 							local value = 500000  -- Replace with any dynamic value you want for sizing, e.g., generation number
