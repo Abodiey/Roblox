@@ -18,12 +18,8 @@ player.CharacterAdded:Connect(function(newCharacter)
 	character = newCharacter
 	root = character:WaitForChild("HumanoidRootPart")
 	humanoid = character:WaitForChild("Humanoid")
-	cloneTool = backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
-	while not cloneTool do
-			cloneTool = backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
-			task.wait()
-	end
-	print("Found")
+	backpack = player:WaitForChild("Backpack")
+	cloneTool = backpack:WaitForChild("Quantum Cloner")
 end)
 
 -- Destroy any previous ESPContainer or GUI
@@ -53,6 +49,13 @@ mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Draggable = false
 mainFrame.Parent = gui
+
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1,-5,0,25)
+topBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+topBar.BackgroundTransparency = 1
+topBar.Position = UDim2.new(0,2.5,0,2.5)
+topBar.Parent = mainFrame
 
 -- Frame for buttons
 local frame = Instance.new("Frame")
@@ -180,12 +183,15 @@ end
 -- Minimize functionality
 local minimized = false
 local originalSize = mainFrame.Size
+local originalTransparency = mainFrame.Transparency
 minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	toggle.Visible = not minimized
 	input.Visible = not minimized
 	tpForwardButton.Visible = not minimized
 	resetButton.Visible = not minimized
+	mainFrame.BackgroundTransparency = minimized and 1 or originalTransparency
+	topBar.BackgroundTransparency = minimized and 0.1 or 1
 	closeButton.Visible = minimized
 	mainFrame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, originalSize.Y.Scale, 30) or originalSize
 	minimize.Text = minimized and "+" or "-"
@@ -214,20 +220,24 @@ resetButton.MouseButton1Click:Connect(function()
 end)
 
 -- Clone tool setup
-cloneTool = character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
+cloneTool = (cloneTool and cloneTool.Parent) and cloneTool or backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
 
 -- TP Forward button action
 tpForwardButton.MouseButton1Click:Connect(function()
-	if not cloneTool then cloneTool = character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner") return end
-	if cloneTool.Parent ~= character then
-		cloneTool.Parent = character
-	end
+	cloneTool = (cloneTool and cloneTool.Parent) and cloneTool or backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
+	if not cloneTool or not cloneTool.Parent then return end
+	local heldTool = character:FindFirstChildOfClass("Tool")
+	humanoid:EquipTool(cloneTool)
+	task.wait()
 	cloneTool:Activate()
 	task.wait()
 	game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/QuantumCloner/OnTeleport"):FireServer()
 	task.wait()
 	if cloneTool.Parent ~= backpack then
 		cloneTool.Parent = backpack
+	end
+	if heldTool and heldTool.Parent and heldTool.Parent ~= character then
+			humanoid:EquipTool(heldTool)
 	end
 end)
 
