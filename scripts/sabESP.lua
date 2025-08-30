@@ -234,26 +234,22 @@ task.spawn(function()
 		-- Iterate through each plot (optimized for processing)
 		for _, plot in ipairs(PlotsFolder:GetChildren()) do
 			local plotSign = plot:FindFirstChild("PlotSign")
-			if plotSign and not plotSignsProcessed[plotSign] then
-				plotSignsProcessed[plotSign] = true  -- Mark the plotSign as processed
-
+			if plotSign then
 				local surfaceGui = plotSign:FindFirstChild("SurfaceGui")
 				if surfaceGui then
 					local frame = surfaceGui:FindFirstChild("Frame")
 					if frame then
 						local nameLabel = frame:FindFirstChild("TextLabel")
-						-- Skip if no textlabel OR the plot belongs to the local player
-						if nameLabel and nameLabel.Text:gsub("'s Base", "") ~= LocalPlayer.DisplayName then
+						-- Only if textlabel and the plot doesn't belongs to the local player
+						if nameLabel and nameLabel.Text ~= "Empty Base" and nameLabel.Text:gsub("'s Base", "") ~= LocalPlayer.DisplayName then
 
 							-- Create the ESP using the plotSign and nameLabel.Text
 							local value = 100000  -- Replace with any dynamic value you want for sizing, e.g., generation number
 
 							-- Call createESP with the plotSign as targetPart
-							local ESP = createESP(plotSign, nameLabel.Text, value)
-							ESP.TextColor = Color3.new(1, 1, 1)
-							nameLabel:GetPropertyChanged("Text"):Connect(function()
-								ESP.Text = (nameLabel.Text ~= "Empty Base") and nameLabel.Text or ""
-							end)
+							local text = nameLabel.Text:gsub("'s Base", "")
+							text = '<font color="#FFFFFF">' .. text .. '</font>'
+							createESP(plotSign, text, value)
 						end
 					end
 				end
