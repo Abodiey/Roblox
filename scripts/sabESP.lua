@@ -1,6 +1,6 @@
 local Players = game:GetService("Players")
-local CoreGui = Players.LocalPlayer.PlayerGui --game:GetService("CoreGui")
-local PlotsFolder = workspace--:WaitForChild("Plots")
+local CoreGui = game:GetService("CoreGui")
+local PlotsFolder = workspace:WaitForChild("Plots")
 
 local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -18,7 +18,12 @@ player.CharacterAdded:Connect(function(newCharacter)
 	character = newCharacter
 	root = character:WaitForChild("HumanoidRootPart")
 	humanoid = character:WaitForChild("Humanoid")
-	cloneTool = backpack:WaitForChild("Quantum Cloner")
+	cloneTool = backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
+	while not cloneTool do
+			cloneTool = backpack:FindFirstChild("Quantum Cloner") or character:FindFirstChild("Quantum Cloner")
+			task.wait()
+	end
+	print("Found")
 end)
 
 -- Destroy any previous ESPContainer or GUI
@@ -180,6 +185,7 @@ minimize.MouseButton1Click:Connect(function()
 	toggle.Visible = not minimized
 	input.Visible = not minimized
 	tpForwardButton.Visible = not minimized
+	resetButton.Visible = not minimized
 	closeButton.Visible = minimized
 	mainFrame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, originalSize.Y.Scale, 30) or originalSize
 	minimize.Text = minimized and "+" or "-"
@@ -190,9 +196,6 @@ closeButton.MouseButton1Click:Connect(function()
 	if gui then gui:Destroy() end
 	if container then container:Destroy() end
 end)
-
--- Clone tool setup
-cloneTool = cloneTool or character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
 
 -- Player reset function
 local function resetPlayer()
@@ -210,11 +213,12 @@ resetButton.MouseButton1Click:Connect(function()
 	resetPlayer()
 end)
 
+-- Clone tool setup
+cloneTool = character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
+
 -- TP Forward button action
 tpForwardButton.MouseButton1Click:Connect(function()
-	if not cloneTool or not cloneTool.Parent then
-		cloneTool = backpack:WaitForChild("Quantum Cloner")
-	end
+	if not cloneTool then cloneTool = character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner") return end
 	if cloneTool.Parent ~= character then
 		cloneTool.Parent = character
 	end
