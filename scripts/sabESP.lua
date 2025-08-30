@@ -1,9 +1,6 @@
---[[
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/sabESP.lua"))()
-]]
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
-local PlotsFolder = workspace:WaitForChild("Plots")
+local CoreGui = Players.LocalPlayer.PlayerGui --game:GetService("CoreGui")
+local PlotsFolder = workspace--:WaitForChild("Plots")
 
 local player = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
@@ -18,9 +15,8 @@ local cloneTool
 
 -- Listen for when the character is added or respawned
 player.CharacterAdded:Connect(function(newCharacter)
-    -- Reset character, root, and backpack variables when the character is added
-    character = newCharacter
-    root = character:WaitForChild("HumanoidRootPart")
+	character = newCharacter
+	root = character:WaitForChild("HumanoidRootPart")
 	humanoid = character:WaitForChild("Humanoid")
 	cloneTool = backpack:WaitForChild("Quantum Cloner")
 end)
@@ -44,60 +40,59 @@ gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 150)
+mainFrame.Size = UDim2.new(0, 200, 0, 180)
 mainFrame.Position = UDim2.new(0, 10, 0, 10)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BackgroundTransparency = 0.3
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
-mainFrame.Draggable = false -- we'll handle dragging manually
+mainFrame.Draggable = false
 mainFrame.Parent = gui
 
--- Create a frame for buttons
+-- Frame for buttons
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(1, 0, 1, -30)  -- Adjust height so the top bar can fit
-frame.Position = UDim2.new(0, 0, 0, 30)  -- Position below the top bar
+frame.Size = UDim2.new(1, 0, 1, -30)
+frame.Position = UDim2.new(0, 0, 0, 30)
 frame.BackgroundTransparency = 1
 frame.Parent = mainFrame
 
-
+-- Input handling for dragging
 local dragging, dragInput, dragStart, startPos
-
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-    end
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+	end
 end)
 
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
+	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
 end)
 
--- Create a UIListLayout for vertical stacking
+-- UIListLayout for buttons
 local listLayout = Instance.new("UIListLayout")
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 5)  -- Optional spacing between buttons
+listLayout.Padding = UDim.new(0, 5)
 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 listLayout.Parent = frame
 
--- Add buttons to the frame (will be handled by UIListLayout)
+-- Buttons: Toggle ESP, Input Min Gen, TP Forward, Reset, Minimize, Close
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(1, -20, 0, 30)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -107,7 +102,7 @@ toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Font = Enum.Font.SourceSansBold
 toggle.TextSize = 18
 toggle.RichText = true
-toggle.Text = 'ESP: <font color="rgb(0,255,0)">ON</font>'  -- Green for ON initially
+toggle.Text = 'ESP: <font color="rgb(0,255,0)">ON</font>'
 toggle.Parent = frame
 
 local input = Instance.new("TextBox")
@@ -122,7 +117,6 @@ input.Text = "10000"
 input.PlaceholderText = "Min Gen ($/s)"
 input.Parent = frame
 
--- New TP Forward Button
 local tpForwardButton = Instance.new("TextButton")
 tpForwardButton.Size = UDim2.new(1, -20, 0, 30)
 tpForwardButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
@@ -134,7 +128,18 @@ tpForwardButton.TextSize = 18
 tpForwardButton.Text = "TP Forward"
 tpForwardButton.Parent = frame
 
--- Create buttons for minimize/close that are outside the UIListLayout
+local resetButton = Instance.new("TextButton")
+resetButton.Size = UDim2.new(1, -20, 0, 30)
+resetButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+resetButton.BackgroundTransparency = mainFrame.BackgroundTransparency
+resetButton.BorderSizePixel = 0
+resetButton.TextColor3 = Color3.new(1, 1, 1)
+resetButton.Font = Enum.Font.SourceSansBold
+resetButton.TextSize = 18
+resetButton.Text = "Reset Player"
+resetButton.Parent = frame
+
+-- Minimize and Close buttons
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0, 20, 0, 20)
 minimize.Position = UDim2.new(1, -25, 0, 5)
@@ -158,19 +163,18 @@ closeButton.Text = "X"
 closeButton.Visible = false
 closeButton.Parent = mainFrame
 
-
--- Round corners for all UI elements
+-- Round corners for UI elements
 for _, guiObject in pairs(gui:GetDescendants()) do
-	if not guiObject:IsA("GuiObject") then continue end
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 15)
-	corner.Parent = guiObject
+	if guiObject:IsA("GuiObject") then
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 15)
+		corner.Parent = guiObject
+	end
 end
 
 -- Minimize functionality
 local minimized = false
 local originalSize = mainFrame.Size
-
 minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	toggle.Visible = not minimized
@@ -187,11 +191,28 @@ closeButton.MouseButton1Click:Connect(function()
 	if container then container:Destroy() end
 end)
 
+-- Clone tool setup
 cloneTool = cloneTool or character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
 
--- action for "TP Forward" button
+-- Player reset function
+local function resetPlayer()
+	if replicatesignal then
+		replicatesignal(player.Kill)  -- Trigger server to respawn or reset
+	elseif humanoid then
+		humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+	else
+		character:BreakJoints()
+	end
+end
+
+-- Reset button action
+resetButton.MouseButton1Click:Connect(function()
+	resetPlayer()
+end)
+
+-- TP Forward button action
 tpForwardButton.MouseButton1Click:Connect(function()
-    if not cloneTool or not cloneTool.Parent then
+	if not cloneTool or not cloneTool.Parent then
 		cloneTool = backpack:WaitForChild("Quantum Cloner")
 	end
 	if cloneTool.Parent ~= character then
