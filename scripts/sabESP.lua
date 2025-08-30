@@ -35,8 +35,6 @@ frame.Active = true
 frame.Draggable = false -- we'll handle dragging manually
 frame.Parent = gui
 
-
-
 local dragging, dragInput, dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
@@ -68,8 +66,9 @@ end)
 
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(1, -20, 0, 30)
-toggle.Position = UDim2.new(0, 10, 0, 10)
+toggle.Position = UDim2.new(0, 10, 0, 20)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggle.BorderSizePixel = 0
 toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Font = Enum.Font.SourceSansBold
 toggle.TextSize = 18
@@ -78,8 +77,9 @@ toggle.Parent = frame
 
 local input = Instance.new("TextBox")
 input.Size = UDim2.new(1, -20, 0, 30)
-input.Position = UDim2.new(0, 10, 0, 50)
+input.Position = UDim2.new(0, 10, 0, 60)
 input.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+input.BorderSizePixel = 0
 input.TextColor3 = Color3.new(1, 1, 1)
 input.Font = Enum.Font.SourceSans
 input.TextSize = 16
@@ -87,20 +87,11 @@ input.Text = "10000"
 input.PlaceholderText = "Min Gen ($/s)"
 input.Parent = frame
 
-local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 20, 0, 20)
-minimize.Position = UDim2.new(1, -25, 0, 5)
-minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-minimize.TextColor3 = Color3.new(1, 1, 1)
-minimize.Font = Enum.Font.SourceSansBold
-minimize.TextSize = 14
-minimize.Text = "-"
-minimize.Parent = frame
-
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 20, 0, 20)
 closeButton.Position = UDim2.new(1, -50, 0, 5)
 closeButton.BackgroundColor3 = Color3.fromRGB(120, 0, 0)
+closeButton.BorderSizePixel = 0
 closeButton.TextColor3 = Color3.new(1, 1, 1)
 closeButton.Font = Enum.Font.SourceSansBold
 closeButton.TextSize = 14
@@ -112,6 +103,17 @@ closeButton.MouseButton1Click:Connect(function()
 	if gui then gui:Destroy() end
 	if container then container:Destroy() end
 end)
+
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 20, 0, 20)
+minimize.Position = UDim2.new(1, -25, 0, 5)
+minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minimize.BorderSizePixel = 0
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.Font = Enum.Font.SourceSansBold
+minimize.TextSize = 14
+minimize.Text = "-"
+minimize.Parent = frame
 
 local minimized = false
 
@@ -249,7 +251,7 @@ task.spawn(function()
 							-- Call createESP with the plotSign as targetPart
 							local text = nameLabel.Text:gsub("'s Base", "")
 							text = '<font color="#FFFFFF">' .. text .. '</font>'
-							createESP(plotSign, text, value)
+							createESP(plotSign, text, value).TextWrapped = false
 						end
 					end
 				end
