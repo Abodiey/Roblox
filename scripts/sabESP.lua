@@ -5,6 +5,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/h
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local PlotsFolder = workspace:WaitForChild("Plots")
+
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
@@ -26,62 +27,47 @@ gui.Name = "ESPControlGui"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 200, 0, 150)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BackgroundTransparency = 0.3
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = false -- we'll handle dragging manually
+mainFrame.Parent = gui
+
+-- Create a frame for buttons
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 120)
-frame.Position = UDim2.new(0, 10, 0, 10)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BackgroundTransparency = 0.3
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = false -- we'll handle dragging manually
-frame.Parent = gui
+frame.Size = UDim2.new(1, 0, 1, -30)  -- Adjust height so the top bar can fit
+frame.Position = UDim2.new(0, 0, 0, 30)  -- Position below the top bar
+frame.BackgroundTransparency = 1
+frame.Parent = mainFrame
 
-local dragging, dragInput, dragStart, startPos
+-- Create a UIListLayout for vertical stacking
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 5)  -- Optional spacing between buttons
+listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+listLayout.Parent = frame
 
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-	end
-end)
-
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = false
-	end
-end)
-
+-- Add buttons to the frame (will be handled by UIListLayout)
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(1, -20, 0, 30)
-toggle.Position = UDim2.new(0, 10, 0, 30)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggle.BackgroundTransparency = frame.BackgroundTransparency
+toggle.BackgroundTransparency = mainFrame.BackgroundTransparency
 toggle.BorderSizePixel = 0
 toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Font = Enum.Font.SourceSansBold
 toggle.TextSize = 18
-toggle.Text = "ESP: ON"
+toggle.RichText = true
+toggle.Text = 'ESP: <font color="rgb(0,255,0)">ON</font>'  -- Green for ON initially
 toggle.Parent = frame
 
 local input = Instance.new("TextBox")
 input.Size = UDim2.new(1, -20, 0, 30)
-input.Position = UDim2.new(0, 10, 0, 70)
 input.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-input.BackgroundTransparency = frame.BackgroundTransparency
+input.BackgroundTransparency = mainFrame.BackgroundTransparency
 input.BorderSizePixel = 0
 input.TextColor3 = Color3.new(1, 1, 1)
 input.Font = Enum.Font.SourceSans
@@ -89,6 +75,30 @@ input.TextSize = 16
 input.Text = "10000"
 input.PlaceholderText = "Min Gen ($/s)"
 input.Parent = frame
+
+-- New TP Forward Button
+local tpForwardButton = Instance.new("TextButton")
+tpForwardButton.Size = UDim2.new(1, -20, 0, 30)
+tpForwardButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+tpForwardButton.BackgroundTransparency = mainFrame.BackgroundTransparency
+tpForwardButton.BorderSizePixel = 0
+tpForwardButton.TextColor3 = Color3.new(1, 1, 1)
+tpForwardButton.Font = Enum.Font.SourceSansBold
+tpForwardButton.TextSize = 18
+tpForwardButton.Text = "TP Forward"
+tpForwardButton.Parent = frame
+
+-- Create buttons for minimize/close that are outside the UIListLayout
+local minimize = Instance.new("TextButton")
+minimize.Size = UDim2.new(0, 20, 0, 20)
+minimize.Position = UDim2.new(1, -25, 0, 5)
+minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+minimize.BorderSizePixel = 0
+minimize.TextColor3 = Color3.new(1, 1, 1)
+minimize.Font = Enum.Font.SourceSansBold
+minimize.TextSize = 14
+minimize.Text = "-"
+minimize.Parent = mainFrame
 
 local closeButton = Instance.new("TextButton")
 closeButton.Size = UDim2.new(0, 20, 0, 20)
@@ -100,19 +110,10 @@ closeButton.Font = Enum.Font.SourceSansBold
 closeButton.TextSize = 14
 closeButton.Text = "X"
 closeButton.Visible = false
-closeButton.Parent = frame
+closeButton.Parent = mainFrame
 
-local minimize = Instance.new("TextButton")
-minimize.Size = UDim2.new(0, 20, 0, 20)
-minimize.Position = UDim2.new(1, -25, 0, 5)
-minimize.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-minimize.BorderSizePixel = 0
-minimize.TextColor3 = Color3.new(1, 1, 1)
-minimize.Font = Enum.Font.SourceSansBold
-minimize.TextSize = 14
-minimize.Text = "-"
-minimize.Parent = frame
 
+-- Round corners for all UI elements
 for _, guiObject in pairs(gui:GetDescendants()) do
 	if not guiObject:IsA("GuiObject") then continue end
 	local corner = Instance.new("UICorner")
@@ -120,32 +121,54 @@ for _, guiObject in pairs(gui:GetDescendants()) do
 	corner.Parent = guiObject
 end
 
+-- Minimize functionality
 local minimized = false
-local originalSize = frame.Size
+local originalSize = mainFrame.Size
 
 minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	toggle.Visible = not minimized
 	input.Visible = not minimized
+	tpForwardButton.Visible = not minimized
 	closeButton.Visible = minimized
-	frame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, originalSize.Y.Scale, 30) or originalSize
+	mainFrame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, originalSize.Y.Scale, 30) or originalSize
 	minimize.Text = minimized and "+" or "-"
 end)
 
+-- Close functionality
 closeButton.MouseButton1Click:Connect(function()
 	if gui then gui:Destroy() end
 	if container then container:Destroy() end
+end)
+
+local cloneTool
+-- Placeholder action for "TP Forward" button
+tpForwardButton.MouseButton1Click:Connect(function()
+	-- You can replace this with your actual teleport logic
+	cloneTool = cloneTool or game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
+	if not cloneTool then 
+		print("none")
+		return
+	end
+	print(cloneTool:GetFullName())
+	task.wait(2)
+	cloneTool:Activate()
 end)
 
 -- State
 local espEnabled = true
 local minGeneration = 10000
 
+-- Toggle ESP state
 toggle.MouseButton1Click:Connect(function()
 	espEnabled = not espEnabled
-	toggle.Text = espEnabled and "ESP: ON" or "ESP: OFF"
+	toggle.Text = espEnabled and 'ESP: <font color="rgb(0,255,0)">ON</font>' or 'ESP: <font color="rgb(255,0,0)">OFF</font>'
 end)
 
+-- Enable RichText so the text can be interpreted with color formatting
+toggle.RichText = true
+
+-- Handle input validation
 input.FocusLost:Connect(function()
 	local raw = input.Text:upper():gsub("%s+", ""):gsub(",", "") -- normalize
 	local isRate = raw:lower():sub(-2) == "/s"
@@ -178,7 +201,6 @@ input.FocusLost:Connect(function()
 	end
 end)
 
-
 -- Converts "$100K/s" → 100000, "$10.4M/s" → 10400000, etc.
 local function parseGeneration(genStr)
 	genStr = genStr:gsub("%$", ""):gsub("/s", "")
@@ -209,7 +231,7 @@ local function createESP(targetPart, richText, value)
 	billboard.Adornee = targetPart
 	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
 	billboard.AlwaysOnTop = true
-	
+
 	-- Create the text label for the ESP
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, 0, 1, 0)
@@ -230,7 +252,7 @@ end
 task.spawn(function()
 	while container.Parent == CoreGui do
 		local plotSignsProcessed = {}  -- Keep track of processed plot signs to avoid redundant operations
-		
+
 		-- Destroy existing ESPs only if necessary
 		for _, gui in ipairs(container:GetChildren()) do
 			if gui:IsA("BillboardGui") then
