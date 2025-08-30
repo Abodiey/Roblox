@@ -190,6 +190,29 @@ local function colorToHex(color)
 	return string.format("#%02X%02X%02X", r, g, b)
 end
 
+-- Function to create the ESP
+local function createESP(targetPart, richText, value)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Adornee = targetPart
+	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
+	billboard.AlwaysOnTop = true
+	
+	-- Create the text label for the ESP
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextStrokeTransparency = 0
+	label.TextScaled = true
+	label.Font = Enum.Font.SourceSansBold
+	label.RichText = true
+	label.Text = richText
+	label.Parent = billboard
+
+	-- Assuming `container` is a valid object where the ESP should be parented
+	billboard.Parent = container
+	return label
+end
+
 -- Main loop
 task.spawn(function()
 	while container.Parent == CoreGui do
@@ -197,7 +220,7 @@ task.spawn(function()
 		
 		-- Destroy existing ESPs only if necessary
 		for _, gui in ipairs(container:GetChildren()) do
-			if gui:IsA("BillboardGui") and gui.Name:match("^ESP_") then
+			if gui:IsA("BillboardGui") then
 				gui:Destroy()
 			end
 		end
@@ -219,17 +242,19 @@ task.spawn(function()
 					local frame = surfaceGui:FindFirstChild("Frame")
 					if frame then
 						local nameLabel = frame:FindFirstChild("TextLabel")
-						-- Skip if the plot belongs to the local player
-						if nameLabel and nameLabel.Text == LocalPlayer.DisplayName then
+						-- Skip if no textlabel OR the plot belongs to the local player
+						if not nameLabel or nameLabel.Text:gsub("'s Base", "") == LocalPlayer.DisplayName then
 							continue
 						end
 
 						-- Create the ESP using the plotSign and nameLabel.Text
-						local richText = nameLabel.Text
 						local value = 100000  -- Replace with any dynamic value you want for sizing, e.g., generation number
 
 						-- Call createESP with the plotSign as targetPart
-						createESP(plotSign, richText, value)
+						local ESP = createESP(plotSign, nameLabel.Text, value)
+						nameLabel:GetPropertyChanged("Text"):Connect(function()
+							ESP.Text = (nameLabel.Text ~= "Empty Base") and nameLabel.Text or ""
+						end)
 					end
 				end
 			end
@@ -318,29 +343,3 @@ task.spawn(function()
 		task.wait(0.1)
 	end
 end)
-
--- Function to create the ESP
-local function createESP(targetPart, richText, value)
-	local billboard = Instance.new("BillboardGui")
-	billboard.Adornee = targetPart
-	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
-	billboard.AlwaysOnTop = true
-
-	-- Use a unique name for the ESP (avoiding "GenerationESP_")
-	local uniqueName = targetPart.Name  -- Or use targetPart:GetFullName() for more specificity
-	billboard.Name = "ESP_" .. uniqueName
-
-	-- Create the text label for the ESP
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextStrokeTransparency = 0
-	label.TextScaled = true
-	label.Font = Enum.Font.SourceSansBold
-	label.RichText = true
-	label.Text = richText
-	label.Parent = billboard
-
-	-- Assuming `container` is a valid object where the ESP should be parented
-	billboard.Parent = container
-end
