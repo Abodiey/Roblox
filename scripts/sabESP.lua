@@ -198,9 +198,9 @@ tpForwardButton.MouseButton1Click:Connect(function()
 		cloneTool.Parent = character
 	end
 	cloneTool:Activate()
-	task.wait(.1)
+	task.wait()
 	game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RE/QuantumCloner/OnTeleport"):FireServer()
-	task.wait(.1)
+	task.wait()
 	if cloneTool.Parent ~= backpack then
 		cloneTool.Parent = backpack
 	end
