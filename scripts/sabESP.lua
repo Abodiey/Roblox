@@ -187,7 +187,7 @@ closeButton.MouseButton1Click:Connect(function()
 	if container then container:Destroy() end
 end)
 
-local cloneTool = cloneTool or character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
+cloneTool = cloneTool or character:FindFirstChild("Quantum Cloner") or backpack:FindFirstChild("Quantum Cloner")
 
 -- action for "TP Forward" button
 tpForwardButton.MouseButton1Click:Connect(function()
