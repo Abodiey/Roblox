@@ -27,9 +27,10 @@ gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 100)
+frame.Size = UDim2.new(0, 200, 0, 120)
 frame.Position = UDim2.new(0, 10, 0, 10)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundTransparency = 0.3
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = false -- we'll handle dragging manually
@@ -66,8 +67,9 @@ end)
 
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(1, -20, 0, 30)
-toggle.Position = UDim2.new(0, 10, 0, 20)
+toggle.Position = UDim2.new(0, 10, 0, 30)
 toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggle.BackgroundTransparency = frame.BackgroundTransparency
 toggle.BorderSizePixel = 0
 toggle.TextColor3 = Color3.new(1, 1, 1)
 toggle.Font = Enum.Font.SourceSansBold
@@ -77,8 +79,9 @@ toggle.Parent = frame
 
 local input = Instance.new("TextBox")
 input.Size = UDim2.new(1, -20, 0, 30)
-input.Position = UDim2.new(0, 10, 0, 60)
+input.Position = UDim2.new(0, 10, 0, 70)
 input.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+input.BackgroundTransparency = frame.BackgroundTransparency
 input.BorderSizePixel = 0
 input.TextColor3 = Color3.new(1, 1, 1)
 input.Font = Enum.Font.SourceSans
@@ -99,11 +102,6 @@ closeButton.Text = "X"
 closeButton.Visible = false
 closeButton.Parent = frame
 
-closeButton.MouseButton1Click:Connect(function()
-	if gui then gui:Destroy() end
-	if container then container:Destroy() end
-end)
-
 local minimize = Instance.new("TextButton")
 minimize.Size = UDim2.new(0, 20, 0, 20)
 minimize.Position = UDim2.new(1, -25, 0, 5)
@@ -115,15 +113,28 @@ minimize.TextSize = 14
 minimize.Text = "-"
 minimize.Parent = frame
 
+for _, guiObject in pairs(gui:GetDescendants()) do
+	if not guiObject:IsA("GuiObject") then continue end
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 15)
+	corner.Parent = guiObject
+end
+
 local minimized = false
+local originalSize = frame.Size
 
 minimize.MouseButton1Click:Connect(function()
 	minimized = not minimized
 	toggle.Visible = not minimized
 	input.Visible = not minimized
 	closeButton.Visible = minimized
-	frame.Size = minimized and UDim2.new(0, 200, 0, 30) or UDim2.new(0, 200, 0, 100)
+	frame.Size = minimized and UDim2.new(originalSize.X.Scale, originalSize.X.Offset, originalSize.Y.Scale, 30) or originalSize
 	minimize.Text = minimized and "+" or "-"
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+	if gui then gui:Destroy() end
+	if container then container:Destroy() end
 end)
 
 -- State
@@ -246,7 +257,7 @@ task.spawn(function()
 						if nameLabel and nameLabel.Text ~= "Empty Base" and nameLabel.Text:gsub("'s Base", "") ~= LocalPlayer.DisplayName then
 
 							-- Create the ESP using the plotSign and nameLabel.Text
-							local value = 100000  -- Replace with any dynamic value you want for sizing, e.g., generation number
+							local value = 500000  -- Replace with any dynamic value you want for sizing, e.g., generation number
 
 							-- Call createESP with the plotSign as targetPart
 							local text = nameLabel.Text:gsub("'s Base", "")
