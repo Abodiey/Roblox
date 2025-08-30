@@ -35,6 +35,8 @@ frame.Active = true
 frame.Draggable = false -- we'll handle dragging manually
 frame.Parent = gui
 
+
+
 local dragging, dragInput, dragStart, startPos
 
 frame.InputBegan:Connect(function(input)
@@ -109,7 +111,6 @@ closeButton.Parent = frame
 closeButton.MouseButton1Click:Connect(function()
 	if gui then gui:Destroy() end
 	if container then container:Destroy() end
-	script:Destroy() -- stops the script entirely
 end)
 
 local minimized = false
@@ -189,60 +190,57 @@ local function colorToHex(color)
 	return string.format("#%02X%02X%02X", r, g, b)
 end
 
-local function createESP(targetPart, richText, value)
-	local billboard = Instance.new("BillboardGui")
-	billboard.Adornee = targetPart
-	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
-	billboard.AlwaysOnTop = true
-	billboard.Name = "GenerationESP_" .. targetPart:GetFullName()
-
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 1, 0)
-	label.BackgroundTransparency = 1
-	label.TextStrokeTransparency = 0
-	label.TextScaled = true
-	label.Font = Enum.Font.SourceSansBold
-	label.RichText = true
-	label.Text = richText
-	label.Parent = billboard
-
-	billboard.Parent = container
-end
-
 -- Main loop
 task.spawn(function()
 	while container.Parent == CoreGui do
+		local plotSignsProcessed = {}  -- Keep track of processed plot signs to avoid redundant operations
+		
+		-- Destroy existing ESPs only if necessary
 		for _, gui in ipairs(container:GetChildren()) do
-			if gui:IsA("BillboardGui") and gui.Name:match("^GenerationESP_") then
+			if gui:IsA("BillboardGui") and gui.Name:match("^ESP_") then
 				gui:Destroy()
 			end
 		end
 
+		-- Wait for ESP to be enabled before continuing
 		if not espEnabled then
 			task.wait(1)
 			continue
 		end
 
+		-- Iterate through each plot (optimized for processing)
 		for _, plot in ipairs(PlotsFolder:GetChildren()) do
 			local plotSign = plot:FindFirstChild("PlotSign")
-			if plotSign then
+			if plotSign and not plotSignsProcessed[plotSign] then
+				plotSignsProcessed[plotSign] = true  -- Mark the plotSign as processed
+
 				local surfaceGui = plotSign:FindFirstChild("SurfaceGui")
 				if surfaceGui then
 					local frame = surfaceGui:FindFirstChild("Frame")
 					if frame then
 						local nameLabel = frame:FindFirstChild("TextLabel")
+						-- Skip if the plot belongs to the local player
 						if nameLabel and nameLabel.Text == LocalPlayer.DisplayName then
 							continue
 						end
+
+						-- Create the ESP using the plotSign and nameLabel.Text
+						local richText = nameLabel.Text
+						local value = 100000  -- Replace with any dynamic value you want for sizing, e.g., generation number
+
+						-- Call createESP with the plotSign as targetPart
+						createESP(plotSign, richText, value)
 					end
 				end
 			end
 
+			-- Handle podiums and spawn data (only if podiums exist)
 			local podiums = plot:FindFirstChild("AnimalPodiums")
 			if podiums then
 				local highestGen = 0
 				local podiumData = {}
 
+				-- Iterate through each podium to gather podium data
 				for _, podium in ipairs(podiums:GetChildren()) do
 					local base = podium:FindFirstChild("Base")
 					if base then
@@ -257,10 +255,12 @@ task.spawn(function()
 									local displayName = overhead:FindFirstChild("DisplayName")
 									local price = overhead:FindFirstChild("Price")
 
+									-- Check for valid generation text and minimum generation filter
 									if generation and generation:IsA("TextLabel") and generation.Text:match("/s$") and generation.Visible then
 										local genValue = parseGeneration(generation.Text)
 										if genValue < minGeneration then continue end
 
+										-- Update podiumData if a new highest generation is found
 										if genValue > highestGen then
 											highestGen = genValue
 											podiumData = {}
@@ -269,6 +269,7 @@ task.spawn(function()
 										if genValue == highestGen then
 											local lines = {}
 
+											-- Helper function to add rich text to lines
 											local function addRich(label)
 												if label and label:IsA("TextLabel") and label.Visible and label.Text ~= "" then
 													local hex = colorToHex(label.TextColor3)
@@ -276,10 +277,11 @@ task.spawn(function()
 												end
 											end
 
+											-- Handle mutation and add rich text labels
 											if mutation and mutation.Visible and mutation.Text:lower() == "rainbow" then
 												local rainbowText = ""
-												local chars = {"R","A","I","N","B","O","W"}
-												local colors = {"#FF0000","#FF7F00","#FFFF00","#00FF00","#0000FF","#4B0082","#8B00FF"}
+												local chars = {"R", "A", "I", "N", "B", "O", "W"}
+												local colors = {"#FF0000", "#FF7F00", "#FFFF00", "#00FF00", "#0000FF", "#4B0082", "#8B00FF"}
 												for i, char in ipairs(chars) do
 													rainbowText = rainbowText .. string.format("<font color='%s'>%s</font>", colors[i], char)
 												end
@@ -288,11 +290,14 @@ task.spawn(function()
 												addRich(mutation)
 											end
 
+											-- Add other rich text labels
 											addRich(displayName)
 											addRich(generation)
 											addRich(price)
 
+											-- Concatenate all lines into a rich text string
 											local richText = table.concat(lines, "\n")
+											-- Store the podium data
 											table.insert(podiumData, {part = spawn, text = richText, value = genValue})
 										end
 									end
@@ -302,12 +307,40 @@ task.spawn(function()
 					end
 				end
 
+				-- Create ESPs for each podium entry in podiumData
 				for _, data in ipairs(podiumData) do
 					createESP(data.part, data.text, data.value)
 				end
 			end
 		end
 
-		task.wait(.1)
+		-- Wait for the next iteration with some conditions
+		task.wait(0.1)
 	end
 end)
+
+-- Function to create the ESP
+local function createESP(targetPart, richText, value)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Adornee = targetPart
+	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
+	billboard.AlwaysOnTop = true
+
+	-- Use a unique name for the ESP (avoiding "GenerationESP_")
+	local uniqueName = targetPart.Name  -- Or use targetPart:GetFullName() for more specificity
+	billboard.Name = "ESP_" .. uniqueName
+
+	-- Create the text label for the ESP
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.TextStrokeTransparency = 0
+	label.TextScaled = true
+	label.Font = Enum.Font.SourceSansBold
+	label.RichText = true
+	label.Text = richText
+	label.Parent = billboard
+
+	-- Assuming `container` is a valid object where the ESP should be parented
+	billboard.Parent = container
+end
