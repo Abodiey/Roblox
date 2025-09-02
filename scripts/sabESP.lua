@@ -315,7 +315,7 @@ end
 local function createESP(targetPart, richText, value)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Adornee = targetPart
-	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 60)
+	billboard.Size = UDim2.new(0, 100 + math.clamp(value / 1e5, 0, 200), 0, 100)
 	billboard.AlwaysOnTop = true
 
 	-- Create the text label for the ESP
@@ -365,7 +365,7 @@ task.spawn(function()
 						if nameLabel and nameLabel.Text ~= "Empty Base" and nameLabel.Text:gsub("'s Base", "") ~= player.DisplayName then
 
 							-- Create the ESP using the plotSign and nameLabel.Text
-							local value = 500000  -- Replace with any dynamic value you want for sizing, e.g., generation number
+							local value = 50^5  -- Replace with any dynamic value you want for sizing, e.g., generation number
 
 							-- Call createESP with the plotSign as targetPart
 							local text = nameLabel.Text:gsub("'s Base", "")
