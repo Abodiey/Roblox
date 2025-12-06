@@ -1,4 +1,4 @@
--- Centralized ESP system with debug prints
+-- Centralized ESP system
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
@@ -49,16 +49,11 @@ local SKELETON_JOINTS = {
 
 -- FRIEND MODE: find first friend
 for _,plr in ipairs(Players:GetPlayers()) do
-    if plr:IsFriendsWith(LocalPlayer.UserId) then 
-        SpectateFriend = plr 
-        print("Friend found on script start:", plr.Name)
-        break 
-    end
+    if plr:IsFriendsWith(LocalPlayer.UserId) then SpectateFriend = plr break end
 end
 Players.PlayerAdded:Connect(function(plr)
     if FRIEND_MODE and not SpectateFriend and plr:IsFriendsWith(LocalPlayer.UserId) then
         SpectateFriend = plr
-        print("Friend found on PlayerAdded:", plr.Name)
     end
 end)
 
@@ -66,23 +61,10 @@ end)
 local function IsEnemy(player)
     local perspective = FRIEND_MODE and SpectateFriend or LocalPlayer
     if not perspective or not perspective.Character then perspective = LocalPlayer end
-
-    if player == LocalPlayer then 
-        print(player.Name,"is local player, not enemy")
-        return false 
-    end
-    if player:IsFriendsWith(LocalPlayer.UserId) then 
-        print(player.Name,"is friend, not enemy")
-        return false 
-    end
-    if not player:FindFirstChild("PlayerStates") or not player.PlayerStates:FindFirstChild("Team") then 
-        print(player.Name,"missing PlayerStates or Team")
-        return false 
-    end
-
-    local enemy = player.PlayerStates.Team.Value ~= perspective.PlayerStates.Team.Value
-    print(player.Name,"IsEnemy check:", enemy)
-    return enemy
+    if player == LocalPlayer then return false end
+    if player:IsFriendsWith(LocalPlayer.UserId) then return false end
+    if not player:FindFirstChild("PlayerStates") or not player.PlayerStates:FindFirstChild("Team") then return false end
+    return player.PlayerStates.Team.Value ~= perspective.PlayerStates.Team.Value
 end
 
 -- ESP STORAGE
@@ -98,30 +80,57 @@ local function newText(center)
     return t
 end
 
-local function CreateESP(player)
-    print("Attempting CreateESP for:", player.Name)
-
-    if ESPData[player] then 
-        print("ESP already exists for", player.Name)
-        return 
+-- Bounding box helper using only Head and HumanoidRootPart
+local function getScreenBox(char)
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local head = char:FindFirstChild("Head")
+    if not hrp or not head then
+        print(char.Name.." missing HRP or Head!")
+        return nil
     end
-    if not IsEnemy(player) then 
-        print(player.Name,"is not enemy, skipping ESP")
-        return 
+
+    local points = {hrp.Position, head.Position}
+    local minX, maxX = huge, -huge
+    local minY, maxY = huge, -huge
+    local onScreen = false
+
+    for _, pos in ipairs(points) do
+        local screenPos, visible = cam:WorldToViewportPoint(pos)
+        print("Debug:", char.Name, "screenPos:", screenPos, "visible:", visible)
+        if screenPos.Z > 0 and visible then
+            onScreen = true
+            minX = min(minX, screenPos.X)
+            maxX = max(maxX, screenPos.X)
+            minY = min(minY, screenPos.Y)
+            maxY = max(maxY, screenPos.Y)
+        end
+    end
+
+    if not onScreen then
+        print(char.Name.." is offscreen, hiding ESP")
+        return nil
+    end
+    return Vector2.new(minX, minY), Vector2.new(maxX, maxY)
+end
+
+local function CreateESP(player)
+    if ESPData[player] then return end
+    if not IsEnemy(player) then
+        print(player.Name.." is not enemy, skipping ESP")
+        return
     end
 
     local char = player.Character
-    if not char then 
-        print(player.Name,"has no character yet")
-        return 
+    if not char then
+        print(player.Name.." has no character, skipping ESP")
+        return
     end
     local hum = char:FindFirstChild("Humanoid")
-    if not hum then 
-        print(player.Name,"has no Humanoid")
-        return 
+    if not hum then
+        print(player.Name.." has no Humanoid, skipping ESP")
+        return
     end
 
-    print("Creating ESP for", player.Name)
     -- Highlight
     if char:FindFirstChild("ESPHighlight") then char.ESPHighlight:Destroy() end
     local highlight = Instance.new("Highlight")
@@ -157,17 +166,17 @@ local function CreateESP(player)
         drawings = {healthBar,armorBar,healthText,armorText,nameText,gunText,playerBox},
         skeleton = skeletonLines
     }
+    print("ESP created for "..player.Name)
 end
 
--- REMOVE ESP
 local function RemoveESP(player)
-    print("Removing ESP for", player.Name)
     local data = ESPData[player]
     if not data then return end
     if data.highlight and data.highlight.Parent then data.highlight:Destroy() end
     for _,d in ipairs(data.drawings) do if d.Remove then pcall(function() d:Remove() end) end end
     for _,s in ipairs(data.skeleton) do if s.line and s.line.Remove then pcall(function() s.line:Remove() end) end end
     ESPData[player] = nil
+    print("ESP removed for "..player.Name)
 end
 
 -- CENTRAL RENDER LOOP
@@ -176,7 +185,6 @@ RunService.RenderStepped:Connect(function()
         local char = data.char
         local hum = data.hum
         if not char or not hum or not char.Parent then
-            print("Skipping render for", player.Name,"(no char/hum/parent)")
             RemoveESP(player)
             continue
         end
@@ -186,86 +194,129 @@ RunService.RenderStepped:Connect(function()
         if player:FindFirstChild("PlayerStates") and player.PlayerStates:FindFirstChild("Alive") then
             alive = player.PlayerStates.Alive.Value
         end
-        if char:FindFirstChild("Killer") then alive=false end
+        if char:FindFirstChild("Killer") then alive = false end
 
         if not alive then
             for _,d in ipairs(data.drawings) do d.Visible=false end
             for _,s in ipairs(data.skeleton) do s.line.Visible=false end
-            if data.highlight and data.highlight.Parent then data.highlight.FillTransparency=1 end
-            print(player.Name,"is dead, hiding ESP")
+            if data.highlight and data.highlight.Parent then data.highlight.FillTransparency = 1 end
             continue
         else
-            if data.highlight and data.highlight.Parent then data.highlight.FillTransparency=0.3 end
+            if data.highlight and data.highlight.Parent then data.highlight.FillTransparency = 0.3 end
         end
 
-        -- Bounding box computation
-        local modelCFrame = char:GetModelCFrame()
-        local size = char:GetExtentsSize()
-        local half = size*0.5
-        local offsets = {
-            Vector3.new(-half.X,-half.Y,-half.Z),Vector3.new(-half.X,-half.Y,half.Z),
-            Vector3.new(-half.X,half.Y,-half.Z),Vector3.new(-half.X,half.Y,half.Z),
-            Vector3.new(half.X,-half.Y,-half.Z),Vector3.new(half.X,-half.Y,half.Z),
-            Vector3.new(half.X,half.Y,-half.Z),Vector3.new(half.X,half.Y,half.Z)
-        }
-
-        local minX,maxX = huge,-huge
-        local minY,maxY = huge,-huge
-        local onScreen=false
-
-        for _,offset in ipairs(offsets) do
-            local worldPos = modelCFrame.Position + modelCFrame:VectorToWorldSpace(offset)
-            local screenPos, visible = cam:WorldToViewportPoint(worldPos)
-            if visible then
-                onScreen=true
-                local sx,sy = screenPos.X, screenPos.Y
-                minX = min(minX,sx); maxX = max(maxX,sx)
-                minY = min(minY,sy); maxY = max(maxY,sy)
-            end
-        end
-
-        if not onScreen then
+        -- Bounding box
+        local minPos, maxPos = getScreenBox(char)
+        if not minPos or not maxPos then
             for _,d in ipairs(data.drawings) do d.Visible=false end
             for _,s in ipairs(data.skeleton) do s.line.Visible=false end
-            print(player.Name,"is offscreen, hiding ESP")
             continue
+        end
+
+        local minX, minY = minPos.X, minPos.Y
+        local maxX, maxY = maxPos.X, maxPos.Y
+        local barHeight = maxY-minY
+        local distance = (char.HumanoidRootPart.Position-cam.CFrame.Position).Magnitude
+        local fontSize = clamp(MAX_FONT_SIZE/(distance/15), MIN_FONT_SIZE, MAX_FONT_SIZE)
+
+        -- Box
+        local playerBox = data.drawings[7]
+        playerBox.Position = Vector2.new(minX,minY)
+        playerBox.Size = Vector2.new(maxX-minX,maxY-minY)
+        playerBox.Visible = true
+
+        -- Health
+        local healthBar = data.drawings[1]
+        local healthX = minX-BAR_WIDTH-5
+        local healthRatio = hum.Health>0 and clamp(hum.Health/hum.MaxHealth,0,1) or 0
+        healthBar.Position = Vector2.new(healthX,minY)
+        healthBar.Size = Vector2.new(BAR_WIDTH,barHeight)
+        healthBar.Color = getHealthColor(healthRatio)
+        healthBar.Visible = true
+
+        local healthText = data.drawings[3]
+        healthText.Text = tostring(ceil(hum.Health))
+        healthText.Position = Vector2.new(healthX+BAR_WIDTH/2,minY-15)
+        healthText.Size = fontSize
+        healthText.Visible = true
+
+        -- Armor
+        local armorBar = data.drawings[2]
+        local armorVal = char:FindFirstChild("Armor")
+        local armorRatio = armorVal and clamp(armorVal.Value/100,0,1) or 0
+        local armorX = maxX+5
+        armorBar.Position = Vector2.new(armorX,minY+(1-armorRatio)*barHeight)
+        armorBar.Size = Vector2.new(BAR_WIDTH,barHeight*armorRatio)
+        armorBar.Color = lerpColor(ARMOR_COLOR_MIN,ARMOR_COLOR_MAX,armorRatio)
+        armorBar.Visible = true
+
+        local armorText = data.drawings[4]
+        armorText.Text = armorVal and tostring(ceil(armorVal.Value)) or "0"
+        armorText.Position = Vector2.new(armorX+BAR_WIDTH/2,minY-15)
+        armorText.Size = fontSize
+        armorText.Visible = true
+
+        -- Name & Gun
+        local nameText = data.drawings[5]
+        nameText.Text = player.Name
+        nameText.Position = Vector2.new((minX+maxX)/2,minY+NAME_OFFSET_Y)
+        nameText.Size = fontSize
+        nameText.Visible = true
+
+        local gunText = data.drawings[6]
+        local gunName = "None"
+        local gun = char:FindFirstChild("Gun") or char:FindFirstChild("Gun1")
+        if gun and gun:FindFirstChild("GunName") then gunName = gun.GunName.Value end
+        gunText.Text = "Gun: "..gunName
+        gunText.Position = Vector2.new(maxX+5,minY)
+        gunText.Size = fontSize
+        gunText.Visible = true
+
+        -- Skeleton
+        for _,sk in ipairs(data.skeleton) do
+            local p1 = char:FindFirstChild(sk.parts[1])
+            local p2 = char:FindFirstChild(sk.parts[2])
+            if p1 and p2 then
+                local s1 = cam:WorldToViewportPoint(p1.Position)
+                local s2 = cam:WorldToViewportPoint(p2.Position)
+                sk.line.From = Vector2.new(s1.X,s1.Y)
+                sk.line.To = Vector2.new(s2.X,s2.Y)
+                sk.line.Visible = true
+            else
+                sk.line.Visible = false
+            end
         end
     end
 end)
 
 -- HOOK PLAYER
 local function HookPlayer(player)
-    if player == LocalPlayer then return end
-    print("Hooking player:", player.Name)
-
-    local states = player:WaitForChild("PlayerStates",5)
-    if not states then print("No PlayerStates for", player.Name) return end
-    local aliveVal = states:WaitForChild("Alive",5)
-    if not aliveVal then print("No Alive value for", player.Name) return end
-
     local function tryCreate()
-        print("Trying ESP for", player.Name, "Alive:", aliveVal.Value, "IsEnemy:", IsEnemy(player))
-        if aliveVal.Value and IsEnemy(player) then
-            CreateESP(player)
+        if player.Character and player:FindFirstChild("PlayerStates") and player.PlayerStates:FindFirstChild("Alive") then
+            if player.PlayerStates.Alive.Value and IsEnemy(player) then
+                CreateESP(player)
+            end
         end
     end
     tryCreate()
 
-    aliveVal.Changed:Connect(function(newVal)
-        print(player.Name,"Alive changed to",newVal)
-        if newVal and IsEnemy(player) then
-            CreateESP(player)
-        else
-            RemoveESP(player)
-        end
-    end)
+    -- Listen for Alive changes
+    if player:FindFirstChild("PlayerStates") and player.PlayerStates:FindFirstChild("Alive") then
+        player.PlayerStates.Alive.Changed:Connect(function(newVal)
+            if newVal and IsEnemy(player) then
+                CreateESP(player)
+            else
+                RemoveESP(player)
+            end
+        end)
+    end
 
+    -- Listen for character respawn
     player.CharacterAdded:Connect(function(newChar)
         task.wait(0.1)
-        print(player.Name,"CharacterAdded triggered")
         if newChar:FindFirstChild("Killer") then
             RemoveESP(player)
-        elseif aliveVal.Value and IsEnemy(player) then
+        elseif player:FindFirstChild("PlayerStates") and player.PlayerStates:FindFirstChild("Alive") and player.PlayerStates.Alive.Value and IsEnemy(player) then
             CreateESP(player)
         end
     end)
