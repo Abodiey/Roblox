@@ -26,7 +26,7 @@ local function TEAMCHECK_FLAG(player)
 	local ps = player:FindFirstChild("PlayerStates")
 	if ps and ps:FindFirstChild("Team") then
 		-- If we're enemies
-		return ps.Team.Value == localPlayer.PlayerStates.Team.Value
+		return ps.Team.Value ~= localPlayer.PlayerStates.Team.Value
 	end
 	-- If we're not enemies
 	return true
