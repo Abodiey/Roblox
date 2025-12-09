@@ -15,7 +15,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local localPlayer = Players:WaitForChild("lw" .. "9f")
+local localPlayer = Players:WaitForChild("lw9f")
 local ESP = {}
 
 ------------------------------------------------------------
@@ -26,10 +26,10 @@ local function TEAMCHECK_FLAG(player)
 	local ps = player:FindFirstChild("PlayerStates")
 	if ps and ps:FindFirstChild("Team") then
 		-- If we're enemies
-		return ps.Team.Value ~= ps.Team.Value
+		return ps.Team.Value == localPlayer.PlayerStates.Team.Value
 	end
 	-- If we're not enemies
-	return false
+	return true
 end
 
 ------------------------------------------------------------
@@ -164,12 +164,12 @@ end
 ------------------------------------------------------------
 local function setupPlayer(player)
 	player.CharacterAdded:Connect(function(char)
-		task.wait(0.1)
+		task.wait(0.5)
 		createESP(player, char)
 	end)
 
 	if player.Character then
-		task.wait(0.1)
+		task.wait(0.5)
 		createESP(player, player.Character)
 	end
 end
