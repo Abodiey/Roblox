@@ -5,7 +5,7 @@
 if _G.CatstarCleanup then _G.CatstarCleanup() end
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-local baseUrl = "https://raw.githubusercontent.com/YourUsername/YourRepo/main/modules/" -- Update this!
+local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
 _G.CatstarState = {
     Connections = {},
