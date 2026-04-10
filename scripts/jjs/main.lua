@@ -40,7 +40,7 @@ local VisualsTab = Window:CreateTab("Visuals")
 local TargetTab = Window:CreateTab("Targeting")
 
 -- Load Features
-local Blackflash = Load("Blackflash")
+local Blackflash = Load("BlackFlash")
 local Aimbot = Load("Aimbot")
 local QTE = Load("QTE")
 local Aura = Load("Aura")
@@ -51,7 +51,7 @@ local Targeting = Load("Targeting")
 CombatTab:CreateToggle({Name = "Enable Blackflash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Blackflash = v end})
 Blackflash.Init(_G.CatstarState)
 
-CombatTab:CreateKeybind({Name = "Rigid Aim Lock", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
+CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
 Aimbot.Init(_G.CatstarState)
 
 CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
