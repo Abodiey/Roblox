@@ -53,7 +53,7 @@ MainTab:CreateToggle({Name = "Auto Blackflash", CurrentValue = true, Callback = 
 MainTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(V) State.QTEActive = V end})
 
 MainTab:CreateKeybind({
-    Name = "Rigid Aim Lock",
+    Name = "Aimbot",
     CurrentKeybind = "C",
     Callback = function()
         if State.AimActive then 
