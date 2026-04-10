@@ -9,7 +9,7 @@ local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/mai
 
 _G.CatstarState = {
     Connections = {},
-    Toggles = { Blackflash = true, QTE = true, MsgAura = true, ItemEsp = false, Aim = false },
+    Toggles = { BlackFlash = true, QTE = true, MsgAura = true, ItemEsp = false, Aim = false },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -40,7 +40,7 @@ local VisualsTab = Window:CreateTab("Visuals")
 local TargetTab = Window:CreateTab("Targeting")
 
 -- Load Features
-local Blackflash = Load("BlackFlash")
+local BlackFlash = Load("BlackFlash")
 local Aimbot = Load("Aimbot")
 local QTE = Load("QTE")
 local Aura = Load("Aura")
@@ -48,8 +48,8 @@ local ESP = Load("ESP")
 local Targeting = Load("Targeting")
 
 -- UI Bindings
-CombatTab:CreateToggle({Name = "Enable Blackflash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Blackflash = v end})
-Blackflash.Init(_G.CatstarState)
+CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
+BlackFlash.Init(_G.CatstarState)
 
 CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
 Aimbot.Init(_G.CatstarState)
