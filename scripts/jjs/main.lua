@@ -62,5 +62,5 @@ VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = fun
 Aura.Init(_G.CatstarState)
 ESP.Init(_G.CatstarState)
 
-TargetTab:CreateInput({Name = "Search Player", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
+TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
 TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
