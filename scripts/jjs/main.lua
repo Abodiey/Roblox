@@ -36,9 +36,9 @@ local function doMove(moveNumber)
 end
 
 -- Load External Modules (Replace URLs with your actual raw links)
-local qteModule = loadstring(game:HttpGet("URL_TO_QTE_FILE"))()
-local bfModule = loadstring(game:HttpGet("URL_TO_BF_FILE"))()
-local aimModule = loadstring(game:HttpGet("URL_TO_AIM_FILE"))()
+local qteModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/auto_qte.lua"))()
+local bfModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/auto_blackflash.lua"))()
+local aimModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/aimbot.lua"))()
 
 -- Initialize Modules
 table.insert(ActiveConnections, qteModule(function() return State.QTEActive end))
