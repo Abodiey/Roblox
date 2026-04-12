@@ -39,6 +39,14 @@ local function Load(name)
     end
 end
 
+-- Load Features
+local BlackFlash = Load("BlackFlash")
+local Aimbot = Load("Aimbot")
+local QTE = Load("QTE")
+local Aura = Load("Aura")
+local ESP = Load("ESP")
+local Targeting = Load("Targeting")
+
 local Window = Rayfield:CreateWindow({
    Name = "CATSTAR PRO V6.2",
    ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro" }
@@ -48,14 +56,6 @@ local Window = Rayfield:CreateWindow({
 local CombatTab = Window:CreateTab("Combat & QTE")
 local VisualsTab = Window:CreateTab("Visuals")
 local TargetTab = Window:CreateTab("Targeting")
-
--- Load Features
-local BlackFlash = Load("BlackFlash")
-local Aimbot = Load("Aimbot")
-local QTE = Load("QTE")
-local Aura = Load("Aura")
-local ESP = Load("ESP")
-local Targeting = Load("Targeting")
 
 -- UI Bindings (Only initialize if Load returned successfully)
 if BlackFlash then
