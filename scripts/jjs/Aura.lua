@@ -18,7 +18,8 @@ local lastCheck = 0
 -- Helper to detect if a string contains RTL characters (Arabic/Hebrew range)
 local function isRTL(text)
     for _, codePoint in utf8.codes(text) do
-        if (codePoint >= 0x0590 and codePoint <= 0x08FF) or (codePoint >= 0 FB50 and codePoint <= 0xFDFF) then
+        -- FIXED: Removed the space in the hex literal (0xFB50)
+        if (codePoint >= 0x0590 and codePoint <= 0x08FF) or (codePoint >= 0xFB50 and codePoint <= 0xFDFF) then
             return true
         end
     end
@@ -35,7 +36,9 @@ function Aura.Init(State)
         if not State.Toggles.MsgAura or not charFolder then return end
         
         local currentLocalChar = localPlayer.Character
-        local generalChannel = TextChatService.TextChannels.RBXGeneral
+        local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+
+        if not generalChannel then return end
 
         for _, char in ipairs(charFolder:GetChildren()) do
             local board = char:FindFirstChild("Board")
