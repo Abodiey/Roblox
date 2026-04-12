@@ -16,8 +16,8 @@ _G.CatstarState = {
 
 -- Comprehensive Cleanup
 _G.CatstarCleanup = function()
-    if Rayfield then Rayfield:Destroy() end
-    local esp = game:GetService("CoreGui"):FindFirstChild("RayfieldItemESP")
+    Rayfield:Destroy()
+    local esp = game.CoreGui:FindFirstChild("RayfieldItemESP")
     if esp then esp:Destroy() end
     for _, conn in pairs(_G.CatstarState.Connections) do if conn then conn:Disconnect() end end
     table.clear(_G.CatstarState.Connections)
@@ -25,32 +25,18 @@ _G.CatstarCleanup = function()
     _G.CatstarState = nil
 end
 
--- Enhanced Load Function with Error Reporting
+-- Simple Load with Error Printing
 local function Load(name)
-    local fullUrl = baseUrl .. name .. ".lua"
+    local success, result = pcall(function()
+        return loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
+    end)
     
-    -- 1. Fetch Source
-    local success, content = pcall(game.HttpGet, game, fullUrl)
-    if not success then
-        warn(" [CATSTAR ERROR] Failed to fetch " .. name .. ": " .. tostring(content))
-        return { Init = function() end, Toggle = function() end } -- Return dummy table to prevent crashes
+    if success then
+        return result
+    else
+        warn("Failed to load " .. name .. ": " .. tostring(result))
+        return nil
     end
-
-    -- 2. Compile Source
-    local func, compileErr = loadstring(content)
-    if not func then
-        warn(" [CATSTAR ERROR] Syntax error in " .. name .. ": " .. tostring(compileErr))
-        return { Init = function() end, Toggle = function() end }
-    end
-
-    -- 3. Execute and Return
-    local execSuccess, result = pcall(func)
-    if not execSuccess then
-        warn(" [CATSTAR ERROR] Runtime error during load of " .. name .. ": " .. tostring(result))
-        return { Init = function() end, Toggle = function() end }
-    end
-
-    return result
 end
 
 local Window = Rayfield:CreateWindow({
@@ -65,36 +51,36 @@ local TargetTab = Window:CreateTab("Targeting")
 
 -- Load Features
 local BlackFlash = Load("BlackFlash")
-local Aimbot     = Load("Aimbot")
-local QTE        = Load("QTE")
-local Aura       = Load("Aura")
-local ESP        = Load("ESP")
-local Targeting  = Load("Targeting")
+local Aimbot = Load("Aimbot")
+local QTE = Load("QTE")
+local Aura = Load("Aura")
+local ESP = Load("ESP")
+local Targeting = Load("Targeting")
 
--- UI Bindings & Initialization
--- We use pcall during .Init in case a specific feature script has a bug in its setup logic
-local function SafeInit(module, name)
-    local success, err = pcall(function() module.Init(_G.CatstarState) end)
-    if not success then
-        warn(" [CATSTAR ERROR] Failed to initialize " .. name .. ": " .. tostring(err))
-    end
+-- UI Bindings (Only initialize if Load returned successfully)
+if BlackFlash then
+    CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
+    BlackFlash.Init(_G.CatstarState)
 end
 
-CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
-SafeInit(BlackFlash, "BlackFlash")
+if Aimbot then
+    CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
+    Aimbot.Init(_G.CatstarState)
+end
 
-CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
-SafeInit(Aimbot, "Aimbot")
+if QTE then
+    CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
+    QTE.Init(_G.CatstarState)
+end
 
-CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
-SafeInit(QTE, "QTE")
+if Aura and ESP then
+    VisualsTab:CreateToggle({Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end})
+    VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
+    Aura.Init(_G.CatstarState)
+    ESP.Init(_G.CatstarState)
+end
 
-VisualsTab:CreateToggle({Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end})
-VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
-SafeInit(Aura, "Aura")
-SafeInit(ESP, "ESP")
-
-TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
-TargetTab:CreateButton({Name = "Spectate", Callback = function() 
-    pcall(function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end) 
-end})
+if Targeting then
+    TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
+    TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
+end
