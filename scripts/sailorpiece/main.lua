@@ -1,8 +1,8 @@
-if getgenv().shithub_running then
+if getgenv().sailorhub_running then
     return
 end
 
-getgenv().shithub_running = true
+getgenv().sailorhub_running = true
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 function missing(t, f, fallback)
@@ -62,7 +62,7 @@ local RM = RS:WaitForChild("Remotes")
 local RE = RS:WaitForChild("RemoteEvents")
 
 local Env = {
-    GameName = "sailor shit",
+    GameName = "sailor piece",
     Version = "rel-0.0.1",
     InviteCode = "vsEjjqvpK5",
     Executor = (identifyexecutor and identifyexecutor() or "Unknown"),
@@ -147,41 +147,7 @@ local eh_success, err = pcall(function()
 local randomIndex = math.random(1, #omg)
 local theChosenOne = omg[randomIndex]
 
-local hasJoinedDiscord = "OTD.txt"
-
-if not isfile(hasJoinedDiscord) then 
-    Library:Notify("join the dc for leaks", 5)
-    
-    pcall(function()
-        if Env.Support.Clipboard then
-            setclipboard("discord.gg/"..Env.InviteCode)
-        end
-    end)
-
-    if Env.Support.Webhook then
-        task.spawn(function()
-            pcall(function()
-                httprequest({
-                    Url = "http://127.0.0.1:6463/rpc?v=1",
-                    Method = "POST",
-                    Headers = { 
-                        ["Content-Type"] = "application/json",
-                        ["Origin"] = "https://discord.com"
-                    },
-                    Body = Http:JSONEncode({
-                        cmd = "INVITE_BROWSER",
-                        args = { code = Env.InviteCode },
-                        nonce = Http:GenerateGUID(false)
-                    })
-                })
-            end)
-        end)
-    end
-
-    pcall(function()
-        writefile(hasJoinedDiscord, "Joined")
-    end)
-elseif not Env.Support.FileIO then
+if not Env.Support.FileIO then
     Library:Notify("Recommended to use better executor.", 3)
 end
 
@@ -996,7 +962,7 @@ local function PostToWebhook()
     local lstats = Plr:FindFirstChild("leaderstats")
     local bounty = lstats and lstats:FindFirstChild("Bounty") and lstats.Bounty.Value or 0
     
-    local desc = "### sailor shit\n"
+    local desc = "### sailor piece\n"
     
     if selected["Name"] then
         desc = desc .. string.format("\n👤 **Player:** ||%s||\n", Plr.Name)
@@ -1053,7 +1019,7 @@ local function PostToWebhook()
         ["embeds"] = {{
             ["description"] = desc,
             ["color"] = tonumber("ffff77", 16),
-            ["footer"] = { ["text"] = string.format("shit hub • Session: %s • %s", GetSessionTime(), os.date("%x %X")) },
+            ["footer"] = { ["text"] = string.format("sailor hub • Session: %s • %s", GetSessionTime(), os.date("%x %X")) },
             ["thumbnail"] = { ["url"] = catLink }
         }}
     }
@@ -1559,7 +1525,7 @@ local function Func_MemoryMonitor()
                                     { ["name"] = "Usage", ["value"] = string.format("`%.0f MB` / `%.0f MB`", currentMemory, limit), ["inline"] = true },
                                     { ["name"] = "JobId", ["value"] = "```" .. game.JobId .. "```", ["inline"] = false }
                                 },
-                                ["footer"] = { ["text"] = "shit hub • " .. os.date("%x %X") }
+                                ["footer"] = { ["text"] = "sailor hub • " .. os.date("%x %X") }
                             }}
                         }
                         httprequest({ 
@@ -1575,7 +1541,7 @@ local function Func_MemoryMonitor()
             task.wait(3)
             
             if #game:GetService("Players"):GetPlayers() <= 1 then
-                Plr:Kick("\n[shit hub]\nRejoining (" .. math.floor(currentMemory) .. "MB)")
+                Plr:Kick("\n[sailor hub]\nRejoining (" .. math.floor(currentMemory) .. "MB)")
                 task.wait(0.5)
                 TP:Teleport(game.PlaceId, Plr)
             else
@@ -1735,7 +1701,7 @@ local function SendSafetyWebhook(targetPlayer, reason)
                 { ["name"] = "Type", ["value"] = reason, ["inline"] = true },
                 { ["name"] = "ID", ["value"] = "```" .. game.JobId .. "```", ["inline"] = false }
             },
-            ["footer"] = { ["text"] = "shit hub • " .. os.date("%x %X") }
+            ["footer"] = { ["text"] = "sailor hub • " .. os.date("%x %X") }
         }}
     }
 
@@ -1776,7 +1742,7 @@ local function CheckServerTypeSafety()
                             { ["name"] = "Username", ["value"] = "`" .. Plr.Name .. "`", ["inline"] = true },
                             { ["name"] = "JobId", ["value"] = "```" .. game.JobId .. "```", ["inline"] = false }
                         },
-                        ["footer"] = { ["text"] = "shit hub" }
+                        ["footer"] = { ["text"] = "sailor hub" }
                     }}
                 }
                 task.spawn(function()
@@ -1792,7 +1758,7 @@ local function CheckServerTypeSafety()
             end
 
             task.wait(0.8)
-            Plr:Kick("\n[shit hub]\nReason: You are in a public server.")
+            Plr:Kick("\n[sailor hub]\nReason: You are in a public server.")
         end
     end
 end
@@ -1807,7 +1773,7 @@ local function CheckPlayerForSafety(targetPlayer)
         SendSafetyWebhook(targetPlayer, "Player Join Detection")
         
         task.wait(0.5) 
-        Plr:Kick("\n[shit hub]\nReason: A player joined the server (" .. targetPlayer.Name .. ")")
+        Plr:Kick("\n[sailor hub]\nReason: A player joined the server (" .. targetPlayer.Name .. ")")
         return
     end
 
@@ -1817,7 +1783,7 @@ local function CheckPlayerForSafety(targetPlayer)
             SendSafetyWebhook(targetPlayer, "Moderator Detection (Rank: " .. tostring(rank) .. ")")
             
             task.wait(0.5)
-            Plr:Kick("\n[shit hub]\nReason: Moderator Detected (" .. targetPlayer.Name .. ")")
+            Plr:Kick("\n[sailor hub]\nReason: Moderator Detected (" .. targetPlayer.Name .. ")")
         end
     end
 end
@@ -4474,7 +4440,7 @@ local function Func_ArtifactAutomation()
 end
 
 local Window = Library:CreateWindow({
-	Title = "shit hub",
+	Title = "sailor hub",
 	Footer = "" .. Env.GameName .. " | ".. Env.Version,
 	NotifySide = "Right",
     Icon = tostring(theChosenOne),
@@ -4726,38 +4692,6 @@ GB.Information.Left.Game:AddButton("Redeem All Codes", function()
 end)
 
 GB.Information.Right.Others:AddLabel("- ⚠️ If some features are disabled, it is because your executor lacks the required functions.", true)
-GB.Information.Right.Others:AddLabel("- this hub is so <b>shit</b>", true)
-
-local dc1 = GB.Information.Right.Others:AddButton({ 
-    Text = "Copy Invite", 
-    Func = function() setclipboard("https://discord.gg/"..Env.InviteCode) end,
-    Disabled = not Env.Support.Clipboard,
-    DisabledTooltip = "Missing function: setclipboard"
-})
-
-dc1:AddButton({ 
-    Text = "Join Prompt",
-    Func = function()
-        if Env.Support.Webhook then
-            pcall(function()
-                httprequest({
-                    Url = "http://127.0.0.1:6463/rpc?v=1",
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json",
-                        ["Origin"] = "https://discord.com"
-                    },
-                    Body = Http:JSONEncode({
-                        cmd = "INVITE_BROWSER",
-                        args = { code = Env.InviteCode },
-                        nonce = Http:GenerateGUID(false)
-                    })
-                })
-            end)
-        end
-  
-    end
-})
 
 for i = 1, #Status.Priority.Task do
     GB.Priority.Left.Config:AddDropdown("SelectedPriority_" .. i, {
@@ -6089,7 +6023,7 @@ TB_Tabs.Puzzle.T1:AddButton({
 })
 
 TB_Tabs.Puzzle.T2:AddLabel({
-    Text = "- ⚠️: Experimental feature. Deep testing required!\n- ⚠️: Make sure to store your race & clan before using this.\n- Dungeon tasks only make you join dungeon.\n- Feature will change some other features settings.\n- Report any bugs on discord server!",
+    Text = "- ⚠️: Experimental feature. Deep testing required!\n- ⚠️: Make sure to store your race & clan before using this.\n- Dungeon tasks only make you join dungeon.\n- Feature will change some other features settings.",
     DoesWrap = true,
 })
 
@@ -6431,7 +6365,7 @@ Remotes.UpAscend.OnClientEvent:Connect(function(data)
 end)
 
 task.spawn(function()
-    while getgenv().shithub_running do
+    while getgenv().sailorhub_running do
         if Remotes.ReqInventory then
             Remotes.ReqInventory:FireServer()
         end
@@ -6441,7 +6375,7 @@ end)
 
 task.spawn(function()
     while task.wait(1) do
-        if not getgenv().shithub_running then break end
+        if not getgenv().sailorhub_running then break end
         
         pcall(function()
             if PityLabel then
@@ -6583,7 +6517,7 @@ end)
 
 task.spawn(function()
     while task.wait(1) do
-        if not getgenv().shithub_running then break end
+        if not getgenv().sailorhub_running then break end
         
         local char = GetCharacter()
         local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -6660,7 +6594,7 @@ MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", { Default = "U", NoUI = true, Text = "Menu keybind" })
 
 MenuGroup:AddButton("Unload", function()
-    getgenv().shithub_running = false
+    getgenv().sailorhub_running = false
     Status.Main.Farm = false
     Cleanup(Status.Connections)
     Cleanup(Flags)
@@ -6681,8 +6615,8 @@ SaveManager:SetIgnoreIndexes({ "SelectedMiscAllNPC" })
 SaveManager:SetIgnoreIndexes({ "SelectedMovesetNPC" })
 SaveManager:SetIgnoreIndexes({ "SelectedMasteryNPC" })
 
-ThemeManager:SetFolder("shithub")
-SaveManager:SetFolder("shithub/sailorshit")
+ThemeManager:SetFolder("sailorhub")
+SaveManager:SetFolder("sailorhub/sailorpiece")
 
 SaveManager:BuildConfigSection(Tabs.Config)
 
