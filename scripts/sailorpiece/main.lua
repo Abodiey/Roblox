@@ -5062,7 +5062,7 @@ TB_Tabs.Autofarm.T4:AddSlider("Distance", {
     Text = "Farm Distance",
     Default = 12,
     Min = 0,
-    Max = 30,
+    Max = 200,
     Rounding = 0,
     Callback = function(a)
         tonumber(a)
