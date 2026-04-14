@@ -4,6 +4,7 @@ end
 
 getgenv().sailorhub_running = true
 if not game:IsLoaded() then game.Loaded:Wait() end
+if game.PlaceId ~= 77_747_658_251_236 then return end
 
 function missing(t, f, fallback)
 	if type(f) == t then return f end
