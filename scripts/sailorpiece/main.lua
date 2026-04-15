@@ -4919,7 +4919,7 @@ TB_Tabs.Autofarm.T3:AddToggle("AltBossFarm", {
 TB_Tabs.Autofarm.T4:AddDropdown("SelectedWeaponType", {
     Text = "Select Weapon Type",
     Values = Tables.Weapon,
-    Default = nil,
+    Default = "Sword",
     Multi = true,
 })
 
