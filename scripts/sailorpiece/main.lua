@@ -3,12 +3,14 @@ if getgenv().sailorhub_running then
 end
 
 getgenv().sailorhub_running = true
-if not game:IsLoaded() then game.Loaded:Wait() end
-local ids = {
-	[77747658251236] = true, -- main game
-	[75159314259063] = true, -- dungeon
-}
-if not game.PlaceId[ids] then return end
+
+if not game:IsLoaded() then 
+    game.Loaded:Wait() 
+end
+
+if game["GameId"] ~= 9186719164 then return end
+
+print("Sailor Hub running")
 
 function missing(t, f, fallback)
 	if type(f) == t then return f end
