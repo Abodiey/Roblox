@@ -4,7 +4,11 @@ end
 
 getgenv().sailorhub_running = true
 if not game:IsLoaded() then game.Loaded:Wait() end
-if game.PlaceId ~= 77_747_658_251_236 then return end
+local ids = {
+	[77747658251236] = true, -- main game
+	[75159314259063] = true, -- dungeon
+}
+if not game.PlaceId[ids] then return end
 
 function missing(t, f, fallback)
 	if type(f) == t then return f end
