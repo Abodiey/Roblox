@@ -15,9 +15,9 @@ local VirtualUser = cloneref(game:GetService("VirtualUser"))
 local HttpService = cloneref(game:GetService("HttpService"))
 
 -- Configuration
-local RECONNECT_TIME = 15
-local SAME_SERVER_TIME = 20
-local NEW_SERVER_TIME = 30
+local RECONNECT_TIME = 15*2
+local SAME_SERVER_TIME = 20*2
+local NEW_SERVER_TIME = 30*2
 local INTERNET_CHECK_DELAY = 3
 
 -- Variables
