@@ -1190,7 +1190,7 @@ PATH.Mobs.ChildRemoved:Connect(function(child)
     end
 end)
 
-RS.Remotes.NotifyItemDrop.OnClientEvent:Connect(function(d) Status.Cached.NewItem[d.name] = (Status.Cached.NewItem[d.name] or 0) + (d.quantity or 1) end)
+RM.NotifyItemDrop.OnClientEvent:Connect(function(d) if d and d.Name then Status.Cached.NewItem[d.Name] = (Status.Cached.NewItem[d.Name] or 0) + (d.quantity or 1) else print("Drop failed: " .. (not d and "data packet is nil" or "Item Name is nil")) end end)
 Remotes.StockUpdate.OnClientEvent:Connect(function(n, s) Status.Main.CurrentStock[n] = tonumber(s) end)
 Remotes.UpSkillTree.OnClientEvent:Connect(function(d) Status.Main.SkillTree.Nodes = d.Nodes; Status.Main.SkillTree.Points = d.SkillPoints end)
 Remotes.SettingsSync.OnClientEvent:Connect(function(d) Status.Main.Settings = d end)
