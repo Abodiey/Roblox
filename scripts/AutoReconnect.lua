@@ -61,7 +61,6 @@ task.spawn(function()
             VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
             task.wait(0.2)
             VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            print("Anti-AFK: Active loop pulse at " .. os.date("%X"))
         end)
     end
 end)
