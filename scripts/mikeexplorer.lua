@@ -1,19 +1,59 @@
-local cloneref = cloneref or function(o) return o end
+local safe_mode = true
+
+local whitelist = {
+    ["Workspace"] = true,
+    ["RunService"] = true,
+    ["GuiService"] = true,
+    ["Players"] = true,
+    ["ReplicatedStorage"] = true,
+    ["Debris"] = true,
+    ["SoundService"] = true,
+    ["StarterGui"] = true,
+    ["CoreGui"] = true,
+    ["Lighting"] = true,
+    ["Teams"] = true,
+}
+
+if safe_mode then
+    for _,v in pairs({"RunService", "GuiService", "Debris", "SoundService"}) do
+        whitelist[v] = nil
+    end
+end
+
+getgenv().cloneref = getgenv().cloneref or cloneref or function(o) 
+    return o 
+end 
+
 getgenv().game = workspace.Parent
+
 getgenv().service = setmetatable({}, {
-	__index = function(self, name)
-		self[name] = cloneref(game:GetService(name))
-		return self[name]
-	end
+    __mode = "v", 
+    __index = function(self, name)
+        local success, s = pcall(game.GetService, game, name)
+        if success and s then
+            local ref = cloneref(s)
+            rawset(self, name, ref)
+            return ref
+        end
+    end
 })
+
 getgenv().GetService = function(name)
     return service[name]
+end
+
+local success, IrisSource = pcall(function() 
+    return game:HttpGet("https://raw.githubusercontent.com/x0581/Iris-Exploit-Bundle/main/bundle.lua") 
 end)
 
-local Iris = game:HttpGet("https://raw.githubusercontent.com/x0581/Iris-Exploit-Bundle/main/bundle.lua")
-Iris = string.gsub(Iris, "game:GetService", "GetService")
-print(Iris)
-Iris = loadstring(Iris)().Init()
+local Iris
+if success then
+    IrisSource = string.gsub(IrisSource, "game:GetService", "GetService")
+    Iris = loadstring(IrisSource)().Init()
+else
+    warn("Failed to load Iris dependency.")
+    return
+end
 
 local PropertyAPIDump = service.HttpService:JSONDecode(game:HttpGet("https://anaminus.github.io/rbx/json/api/latest.json"))
 
@@ -39,9 +79,9 @@ local SelectedInstance = nil
 local Properties = {}
 
 local function CrawlInstances(Inst)
-    local isGame = Inst == game
+    local isGame = (Inst == game)
     for _, Instance in next, Inst:GetChildren() do
-        if isGame and not (Instance and #Instance:GetChildren() > 0) then 
+        if isGame and Instance and Instance.Name and not whitelist[Instance.Name] then 
             Instance = nil 
             continue
         end
