@@ -1,12 +1,10 @@
 local Aura = {}
 
--- Service Localization
 local TextChatService = game:GetService("TextChatService")
 local Chat = game:GetService("Chat")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 
--- Unicode Directional Marks
 local LRM = "\226\128\142" -- Left-to-Right Mark
 local RLM = "\226\128\143" -- Right-to-Left Mark
 
@@ -15,7 +13,6 @@ local localPlayer = Players.LocalPlayer
 local CHECK_INTERVAL = 0.1
 local lastCheck = 0
 
--- Helper to detect if a string contains RTL characters (Arabic/Hebrew range)
 local function isRTL(text)
     for _, codePoint in utf8.codes(text) do
         -- FIXED: Removed the space in the hex literal (0xFB50)
@@ -27,6 +24,10 @@ local function isRTL(text)
 end
 
 function Aura.Init(State)
+    local BubbleConfig = TextChatService.BubbleChatConfiguration
+    BubbleConfig.MaxDistance = 500 
+    BubbleConfig.MinimizeDistance = 400
+    BubbleConfig.TextSize = 20
     local conn = RunService.Heartbeat:Connect(function(deltaTime)
         lastCheck = lastCheck + deltaTime
         if lastCheck < CHECK_INTERVAL then return end
@@ -55,20 +56,15 @@ function Aura.Init(State)
             lastMsg[charName] = rawMsg
             
             task.spawn(function()
-                -- Determine directionality
                 local directionalMsg = rawMsg
                 if isRTL(rawMsg) then
-                    -- Wrap RTL text in RLM and ensure the system tag stays LTR
                     directionalMsg = RLM .. rawMsg .. RLM
                 end
 
-                -- Format with LRM at the start to prevent the brackets from flipping
                 local formattedChat = string.format("%s[<b>%s</b>]: %s", LRM, charName, directionalMsg)
                 
-                -- 1. Display in Chat Window
                 generalChannel:DisplaySystemMessage(formattedChat)
                 
-                -- 2. Bubble Chat
                 local head = char:FindFirstChild("Head")
                 if head then
                     Chat:Chat(head, rawMsg, Enum.ChatColor.White)
