@@ -17,8 +17,9 @@ _G.CatstarState = {
 -- Comprehensive Cleanup
 _G.CatstarCleanup = function()
     Rayfield:Destroy()
-    local esp = game.CoreGui:FindFirstChild("RayfieldItemESP")
-    if esp then esp:Destroy() end
+    local iEsp, pEsp = game.CoreGui:FindFirstChild("ItemESP"), game.CoreGui:FindFirstChild("PlayerESP")
+    if iEsp then iEsp:Destroy() end
+    if pEsp then pEsp:Destroy() end
     for _, conn in pairs(_G.CatstarState.Connections) do if conn then conn:Disconnect() end end
     table.clear(_G.CatstarState.Connections)
     _G.CatstarCleanup = nil
