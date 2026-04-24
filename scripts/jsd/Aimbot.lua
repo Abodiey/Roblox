@@ -12,7 +12,7 @@ function Aimbot.Toggle(State)
     local nearest, dist = nil, math.huge
     local mousePos = Vector2.new(Player:GetMouse().X, Player:GetMouse().Y)
     local myTeam = Player.Team
-    for _, obj in ipairs(workspace.Characters:GetChildren()) do
+    for _, obj in ipairs(workspace.Models:GetChildren()) do
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if obj == Player.Character or not hrp then continue end
         local targetPlayer = Players:GetPlayerFromCharacter(obj)
