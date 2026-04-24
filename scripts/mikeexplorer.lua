@@ -1,5 +1,21 @@
-local Iris = loadstring(game:HttpGet("https://raw.githubusercontent.com/x0581/Iris-Exploit-Bundle/main/bundle.lua"))().Init()
-local PropertyAPIDump = game.HttpService:JSONDecode(game:HttpGet("https://anaminus.github.io/rbx/json/api/latest.json"))
+local cloneref = cloneref or function(o) return o end
+getgenv().game = workspace.Parent
+getgenv().service = setmetatable({}, {
+	__index = function(self, name)
+		self[name] = cloneref(game:GetService(name))
+		return self[name]
+	end
+})
+getgenv().GetService = function(name)
+    return service[name]
+end)
+
+local Iris = game:HttpGet("https://raw.githubusercontent.com/x0581/Iris-Exploit-Bundle/main/bundle.lua")
+Iris = string.gsub(Iris, "game:GetService", "GetService")
+print(Iris)
+Iris = loadstring(Iris)().Init()
+
+local PropertyAPIDump = service.HttpService:JSONDecode(game:HttpGet("https://anaminus.github.io/rbx/json/api/latest.json"))
 
 local function GetPropertiesForInstance(Instance)
     local Properties = {}
@@ -12,7 +28,9 @@ local function GetPropertiesForInstance(Instance)
                 }
             end)
         end
+        v = nil
     end
+    Instance = nil
     return Properties
 end
 
@@ -21,7 +39,12 @@ local SelectedInstance = nil
 local Properties = {}
 
 local function CrawlInstances(Inst)
+    local isGame = Inst == game
     for _, Instance in next, Inst:GetChildren() do
+        if isGame and not (Instance and #Instance:GetChildren() > 0) then 
+            Instance = nil 
+            continue
+        end
         local InstTree = Iris.Tree({Instance.Name})
 
         Iris.SameLine() do
@@ -40,6 +63,7 @@ local function CrawlInstances(Inst)
         if InstTree.state.isUncollapsed.value then
             CrawlInstances(Instance)
         end
+        Instance = nil
         Iris.End()
     end
 end
