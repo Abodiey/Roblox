@@ -73,11 +73,14 @@ if QTE then
     QTE.Init(_G.CatstarState)
 end
 
-if Aura and ESP then
+if Aura then
     VisualsTab:CreateToggle({Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end})
-    VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
     Aura.Init(_G.CatstarState)
-    ESP.Init(_G.CatstarState)
+end
+
+if ItemESP then
+    VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
+    ItemESP.Init(_G.CatstarState)
 end
 
 if Targeting then
