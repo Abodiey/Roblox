@@ -88,7 +88,11 @@ function ESP.Init(State)
                     elements.Line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
 
                     -- Update Label
-                    elements.Label.Text = string.format("%s\n[%.1f]", player.Name, dist)
+                    local leaderstats = player:FindFirstChild("leaderstats")
+                    local kills = leaderstats and leaderstats:FindFirstChild("Kills")
+                    local killCount = kills and kills.Value or 0
+
+                    elements.Label.Text = string.format("%s\nKills: %d\n[%.1f]", player.Name, killCount, dist)
                     elements.Label.Position = UDim2.new(0, p2.X, 0, p2.Y - 40)
                 else
                     elements.Line.Visible = false
