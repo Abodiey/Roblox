@@ -78,33 +78,45 @@ local ScriptContent = [[]]
 local SelectedInstance = nil
 local Properties = {}
 
+local getChildren = game.GetChildren
+local isA = game.IsA
+local irisEnd = Iris.End
+local irisSameLine = Iris.SameLine
+local irisSmallButton = Iris.SmallButton
+local irisCheckBox = Iris.Checkbox
+
 local function CrawlInstances(Inst)
+    local children = getChildren(Inst)
     local isGame = (Inst == game)
-    for _, Instance in next, Inst:GetChildren() do
-        if isGame and Instance and Instance.Name and not whitelist[Instance.Name] then 
-            Instance = nil 
+    for i = 1, #children do
+        local obj = children[i]
+        local objName = obj.Name
+        if isGame and not whitelist[objName] then 
             continue
         end
-        local InstTree = Iris.Tree({Instance.Name})
+        local InstTree = Iris.Tree({objName})
+        
+        irisSameLine()
+        local isScript = isA(obj, "LuaSourceContainer") -- Matches LocalScript & ModuleScript
 
-        Iris.SameLine() do
-            if Instance:IsA("LocalScript") or Instance:IsA("ModuleScript") then
-                if Iris.SmallButton({"View Script"}).clicked then
-                    ScriptContent = decompile(Instance)
-                end
+        if isScript then
+            if irisSmallButton({"View Script"}).clicked then
+                ScriptContent = decompile(obj)
             end
-            if Iris.SmallButton({"View Properties"}).clicked then
-                SelectedInstance = Instance
-                Properties = GetPropertiesForInstance(Instance)
-            end
-            Iris.End()
         end
+
+        if irisSmallButton({"View Properties"}).clicked then
+            SelectedInstance = obj
+            Properties = GetPropertiesForInstance(obj)
+        end
+        
+        irisEnd() -- Ends SameLine
 
         if InstTree.state.isUncollapsed.value then
-            CrawlInstances(Instance)
+            CrawlInstances(obj)
         end
-        Instance = nil
-        Iris.End()
+        
+        irisEnd() -- Ends Tree
     end
 end
 
@@ -114,19 +126,19 @@ Iris:Connect(function()
     local ScriptViewer = Iris.State(false)
 
     Iris.Window({"MikeExplorer Settings", [Iris.Args.Window.NoResize] = true}, {size = Iris.State(Vector2.new(400, 75)), position = Iris.State(Vector2.new(0, 0))}) do
-        Iris.SameLine() do
-            Iris.Checkbox({"Instance Viewer"}, {isChecked = InstanceViewer})
-            Iris.Checkbox({"Property Viewer"}, {isChecked = PropertyViewer})
-            Iris.Checkbox({"Script Viewer"}, {isChecked = ScriptViewer})
-            Iris.End()
+        irisSameLine() do
+            irisCheckBox({"Instance Viewer"}, {isChecked = InstanceViewer})
+            irisCheckBox({"Property Viewer"}, {isChecked = PropertyViewer})
+            irisCheckBox({"Script Viewer"}, {isChecked = ScriptViewer})
+            irisEnd()
         end
-        Iris.End()
+        irisEnd()
     end
 
     if InstanceViewer.value then
         Iris.Window({"MikeExplorer Instance Viewer", [Iris.Args.Window.NoClose] = true}, {size = Iris.State(Vector2.new(400, 300)), position = Iris.State(Vector2.new(0, 75))}) do
             CrawlInstances(game)
-            Iris.End()
+            irisEnd()
         end
     end
 
@@ -144,10 +156,10 @@ Iris:Connect(function()
                     Iris.Text({tostring(PropDetails.Value)})
                     Iris.NextColumn()
                 end
-                Iris.End()
+                irisEnd()
             end
         end
-        Iris.End()
+        irisEnd()
     end
 
     if ScriptViewer.value then
@@ -159,7 +171,7 @@ Iris:Connect(function()
             for I, Line in next, Lines do
                 Iris.Text({Line})
             end
-            Iris.End()
+            irisEnd()
         end
     end
 end)
