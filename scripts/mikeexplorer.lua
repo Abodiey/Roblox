@@ -1,3 +1,4 @@
+--loadstring(game:HttpGet("https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/mikeexplorer.lua"))()
 if not game:IsLoaded() then game.Loaded:Wait() end
 
 if safe_mode == nil then 
