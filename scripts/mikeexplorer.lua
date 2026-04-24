@@ -1,4 +1,8 @@
-local safe_mode = true
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+if safe_mode == nil then 
+    getgenv().safe_mode = true 
+end
 
 local whitelist = {
     ["Workspace"] = true,
