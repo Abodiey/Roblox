@@ -44,6 +44,7 @@ local BlackFlash = Load("BlackFlash")
 local Aimbot = Load("Aimbot")
 local QTE = Load("QTE")
 local Aura = Load("Aura")
+local ItemESP = Load("ItemESP")
 local ESP = Load("ESP")
 local Targeting = Load("Targeting")
 
@@ -81,6 +82,11 @@ end
 if ItemESP then
     VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
     ItemESP.Init(_G.CatstarState)
+end
+
+if ESP then
+    VisualsTab:CreateToggle({Name = "Player ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.Esp = v end})
+    ESP.Init(_G.CatstarState)
 end
 
 if Targeting then
