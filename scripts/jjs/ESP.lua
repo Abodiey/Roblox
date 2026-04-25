@@ -2,118 +2,78 @@ local ESP = {}
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
--- Cleanup existing
-local Existing = CoreGui:FindFirstChild("PlayerESP")
-if Existing then Existing:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "PlayerESP"
-ScreenGui.DisplayOrder = 10
 
 local Cache = {}
 
-local function CreatePlayerElements(player)
-    local elements = {}
-    
-    -- Tracer Line
-    local line = Instance.new("Frame")
-    line.Thickness = 1 -- Internal reference for math
-    line.BackgroundColor3 = Color3.new(1, 1, 1)
-    line.BorderSizePixel = 0
-    line.AnchorPoint = Vector2.new(0.5, 0.5)
-    line.Visible = false
-    line.Parent = ScreenGui
-    elements.Line = line
-    
-    -- Distance/Name Label
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.TextStrokeTransparency = 0
-    label.Font = Enum.Font.Code
-    label.TextSize = 14
-    label.Size = UDim2.new(0, 100, 0, 20)
-    label.Visible = false
-    label.Parent = ScreenGui
-    elements.Label = label
-    
-    return elements
-end
-
 function ESP.Init(State)
     local conn = RunService.RenderStepped:Connect(function()
-        if not State.Toggles.Esp then 
-            for _, entry in pairs(Cache) do
-                entry.Line.Visible = false
-                entry.Label.Visible = false
-            end
-            return 
-        end
+        if not State.Toggles.Esp then ScreenGui.Enabled = false return end
+        ScreenGui.Enabled = true
 
-        local myChar = LocalPlayer.Character
-        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        local cam = workspace.CurrentCamera
+        local myRoot = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 
-        for _, player in pairs(Players:GetPlayers()) do
-            if player == LocalPlayer then continue end
+        for _, p in pairs(Players:GetPlayers()) do
+            if p == Players.LocalPlayer then continue end
             
-            local char = player.Character
+            local char = p.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
-            local id = player.UserId
+            local head = char and char:FindFirstChild("Head")
 
-            if root and myRoot then
-                if not Cache[id] then
-                    Cache[id] = CreatePlayerElements(player)
-                end
-                
-                local elements = Cache[id]
-                local p1, vis1 = Camera:WorldToViewportPoint(myRoot.Position)
-                local p2, vis2 = Camera:WorldToViewportPoint(root.Position)
-
-                -- Only show if target is in front of camera (Z > 0)
-                if p2.Z > 0 then
-                    elements.Line.Visible = true
-                    elements.Label.Visible = true
+            if root and head and myRoot then
+                if not Cache[p] then
+                    -- Create Line
+                    local l = Instance.new("Frame", ScreenGui)
+                    l.BorderSizePixel = 0
+                    l.BackgroundColor3 = Color3.new(1, 1, 1)
+                    l.AnchorPoint = Vector2.new(0.5, 0.5)
                     
+                    -- Create Billboard (Above Head)
+                    local b = Instance.new("BillboardGui", ScreenGui)
+                    b.AlwaysOnTop = true
+                    b.Size = UDim2.new(0, 100, 0, 30)
+                    b.ExtentsOffset = Vector3.new(0, 3, 0)
+                    
+                    local t = Instance.new("TextLabel", b)
+                    t.Size = UDim2.new(1, 0, 1, 0)
+                    t.BackgroundTransparency = 1
+                    t.TextColor3 = Color3.new(1, 1, 1)
+                    t.TextStrokeTransparency = 0
+                    
+                    Cache[p] = {Line = l, Bill = b, Text = t}
+                end
+
+                local c = Cache[p]
+                local p1, vis1 = cam:WorldToViewportPoint(myRoot.Position)
+                local p2, vis2 = cam:WorldToViewportPoint(root.Position)
+                
+                if p2.Z > 0 then
+                    c.Line.Visible = true
+                    c.Bill.Enabled = true
+                    c.Bill.Adornee = head
+                    
+                    -- Update Tracer
                     local startPos = Vector2.new(p1.X, p1.Y)
                     local endPos = Vector2.new(p2.X, p2.Y)
                     local diff = endPos - startPos
-                    local dist = (myRoot.Position - root.Position).Magnitude
+                    
+                    c.Line.Size = UDim2.new(0, diff.Magnitude, 0, 2) -- Set Thickness here
+                    c.Line.Position = UDim2.new(0, (startPos.X + endPos.X)/2, 0, (startPos.Y + endPos.Y)/2)
+                    c.Line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
 
-                    -- Update Line
-                    elements.Line.Size = UDim2.new(0, diff.Magnitude, 0, 1) -- 1px thickness
-                    elements.Line.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
-                    elements.Line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
-
-                    -- Update Label
-                    local leaderstats = player:FindFirstChild("leaderstats")
-                    local kills = leaderstats and leaderstats:FindFirstChild("Kills")
-                    local killCount = kills and kills.Value or 0
-
-                    elements.Label.Text = string.format("%s\nKills: %d\n[%.1f]", player.Name, killCount, dist)
-                    elements.Label.Position = UDim2.new(0, p2.X, 0, p2.Y - 40)
+                    -- Update Stats (Name + Kills)
+                    local kills = p:FindFirstChild("leaderstats") and p.leaderstats:FindFirstChild("Kills") and p.leaderstats.Kills.Value or 0
+                    c.Text.Text = string.format("%s | Kills: %d", p.DisplayName, kills)
                 else
-                    elements.Line.Visible = false
-                    elements.Label.Visible = false
+                    c.Line.Visible = false
+                    c.Bill.Enabled = false
                 end
-            elseif Cache[id] then
-                Cache[id].Line.Visible = false
-                Cache[id].Label.Visible = false
-            end
-        end
-
-        -- Clean up cache for players who left
-        for id, elements in pairs(Cache) do
-            if not Players:GetPlayerByUserId(id) then
-                elements.Line:Destroy()
-                elements.Label:Destroy()
-                Cache[id] = nil
             end
         end
     end)
-
     table.insert(State.Connections, conn)
 end
 
