@@ -108,6 +108,8 @@ function ESP.Init(State)
                     c.Line.Visible = true
                     c.Bill.Enabled = true
                     c.HealthBill.Enabled = true
+                    c.Text.Visible = true
+                    c.HealthFill.Visible = true
                     c.Bill.Adornee = root
                     c.HealthBill.Adornee = root
 
@@ -142,11 +144,15 @@ function ESP.Init(State)
                     c.Line.Visible = false
                     c.Bill.Enabled = false
                     c.HealthBill.Enabled = false
+                    c.Text.Visible = false
+                    c.HealthFill.Visible = false
                 end
             elseif Cache[p] then
                 Cache[p].Line.Visible = false
                 Cache[p].Bill.Enabled = false
                 Cache[p].HealthBill.Enabled = false
+                Cache[p].HealthFill.Visible = false
+                Cache[p].Text.Visible = true
             end
         end
     end)
