@@ -3,8 +3,11 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
-local ScreenGui = CoreGui:FindFirstChild("PlayerESP") or Instance.new("ScreenGui", CoreGui)
+local ScreenGui = CoreGui:FindFirstChild("PlayerESP")
+if ScreenGui then ScreenGui:Destroy() end
+ScreenGui = Instance.new("ScreenGui", CoreGui)
 ScreenGui.Name = "PlayerESP"
+ScreenGui.IgnoreGuiInset = true
 
 local Cache = {}
 
@@ -83,7 +86,7 @@ function ESP.Init(State)
 
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
-                    c.Bill.Enabled = dist > 12 
+                    c.Bill.Enabled = dist > 5 
                     c.Bill.Adornee = root
 
                     -- 1. Fixed Tracer (Midpoint Method)
@@ -110,7 +113,7 @@ function ESP.Init(State)
 
                     c.Text.Text = string.format(
                         "<b>%s</b> <font color='#%s'>[%s]</font> <font color='#%s'>%sm</font> <font color='#%s'>%d%%</font>",
-                        p.Name,
+                        dist > 50 and p.Name or "",
                         toHex(killCol), formatVal(kills),
                         toHex(distCol), formatVal(math.floor(dist)),
                         toHex(healthCol), math.floor(hpPerc * 100)
