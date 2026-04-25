@@ -8,16 +8,38 @@ ScreenGui.Name = "PlayerESP"
 
 local Cache = {}
 
+-- Distance-based color coding
+local function GetDistanceColor(dist)
+    if dist < 50 then return Color3.fromRGB(255, 0, 0)      -- Red (Very Close)
+    elseif dist < 150 then return Color3.fromRGB(255, 165, 0) -- Orange (Close)
+    elseif dist < 300 then return Color3.fromRGB(255, 255, 0) -- Yellow (Medium)
+    else return Color3.fromRGB(0, 255, 0)                  -- Green (Far)
+    end
+end
+
 function ESP.Init(State)
     local conn = RunService.RenderStepped:Connect(function()
-        if not State.Toggles.Esp then ScreenGui.Enabled = false return end
+        if not State.Toggles.Esp then 
+            ScreenGui.Enabled = false 
+            return 
+        end
         ScreenGui.Enabled = true
 
         local cam = workspace.CurrentCamera
-        local myRoot = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local lp = Players.LocalPlayer
+        local myRoot = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+
+        -- Cleanup players who left or died (fixes "stuck" lines)
+        for player, folder in pairs(Cache) do
+            if not player.Parent or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+                folder.Line:Destroy()
+                folder.Bill:Destroy()
+                Cache[player] = nil
+            end
+        end
 
         for _, p in pairs(Players:GetPlayers()) do
-            if p == Players.LocalPlayer then continue end
+            if p == lp then continue end
             
             local char = p.Character
             local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -25,23 +47,22 @@ function ESP.Init(State)
 
             if root and head and myRoot then
                 if not Cache[p] then
-                    -- Create Line
                     local l = Instance.new("Frame", ScreenGui)
                     l.BorderSizePixel = 0
-                    l.BackgroundColor3 = Color3.new(1, 1, 1)
                     l.AnchorPoint = Vector2.new(0.5, 0.5)
                     
-                    -- Create Billboard (Above Head)
                     local b = Instance.new("BillboardGui", ScreenGui)
                     b.AlwaysOnTop = true
-                    b.Size = UDim2.new(0, 100, 0, 30)
-                    b.ExtentsOffset = Vector3.new(0, 3, 0)
+                    b.Size = UDim2.new(0, 200, 0, 50)
+                    b.ExtentsOffset = Vector3.new(0, 4, 0) -- Higher position
                     
                     local t = Instance.new("TextLabel", b)
                     t.Size = UDim2.new(1, 0, 1, 0)
                     t.BackgroundTransparency = 1
                     t.TextColor3 = Color3.new(1, 1, 1)
                     t.TextStrokeTransparency = 0
+                    t.Font = Enum.Font.RobotoMono -- Clean bold-ish font
+                    t.RichText = true -- Allows for <b> tag
                     
                     Cache[p] = {Line = l, Bill = b, Text = t}
                 end
@@ -51,22 +72,33 @@ function ESP.Init(State)
                 local p2, vis2 = cam:WorldToViewportPoint(root.Position)
                 
                 if p2.Z > 0 then
-                    c.Line.Visible = true
-                    c.Bill.Enabled = true
-                    c.Bill.Adornee = head
+                    local dist = (myRoot.Position - root.Position).Magnitude
+                    local color = GetDistanceColor(dist)
                     
-                    -- Update Tracer
+                    -- 1. Accurate Thin Tracer
+                    c.Line.Visible = true
                     local startPos = Vector2.new(p1.X, p1.Y)
                     local endPos = Vector2.new(p2.X, p2.Y)
                     local diff = endPos - startPos
                     
-                    c.Line.Size = UDim2.new(0, diff.Magnitude, 0, 2) -- Set Thickness here
+                    c.Line.BackgroundColor3 = color
+                    c.Line.Size = UDim2.new(0, diff.Magnitude, 0, 1) -- Thinner (1px)
                     c.Line.Position = UDim2.new(0, (startPos.X + endPos.X)/2, 0, (startPos.Y + endPos.Y)/2)
                     c.Line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
 
-                    -- Update Stats (Name + Kills)
-                    local kills = p:FindFirstChild("leaderstats") and p.leaderstats:FindFirstChild("Kills") and p.leaderstats.Kills.Value or 0
-                    c.Text.Text = string.format("%s | Kills: %d", p.DisplayName, kills)
+                    -- 2. Stats & Text Logic
+                    c.Bill.Enabled = true
+                    c.Bill.Adornee = head
+                    
+                    local stats = p:FindFirstChild("leaderstats")
+                    local kills = stats and stats:FindFirstChild("Kills") and stats.Kills.Value or 0
+                    
+                    -- Username only if distance > 50 studs
+                    local nameDisplay = (dist > 50) and p.Name or ""
+                    local text = string.format("<b>%s [%d]</b>\n%dm", nameDisplay, kills, math.floor(dist))
+                    
+                    c.Text.Text = text
+                    c.Text.TextColor3 = color
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
