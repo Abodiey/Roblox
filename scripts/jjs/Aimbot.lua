@@ -46,7 +46,7 @@ function Aimbot.Init(State)
         Highlight.Adornee = State.LockedTarget
         if State.Toggles.Aim and State.LockedTarget and State.LockedTarget.Parent and State.LockedTarget:FindFirstChild("HumanoidRootPart") then
             local targetPart = State.LockedTarget.HumanoidRootPart
-            local offset = targetPart.CFrame.LookVector * 2 -- Change 2 to how many studs behind you want
+            local offset = targetPart.CFrame.LookVector * 0.5 -- Change 2 to how many studs behind you want
 
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
         end
