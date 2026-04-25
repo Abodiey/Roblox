@@ -34,7 +34,10 @@ end
 function Aimbot.Init(State)
     local conn = game:GetService("RunService").Heartbeat:Connect(function()
         if State.Toggles.Aim and State.LockedTarget and State.LockedTarget:FindFirstChild("HumanoidRootPart") then
-            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, State.LockedTarget.HumanoidRootPart.Position)
+            local targetPart = State.LockedTarget.HumanoidRootPart
+            local offset = targetPart.CFrame.LookVector * 2 -- Change 2 to how many studs behind you want
+
+            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
         end
     end)
     table.insert(State.Connections, conn)
