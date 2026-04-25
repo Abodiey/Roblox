@@ -1,48 +1,56 @@
 local Noclip = {}
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
--- Simple function to flip collision on a model
-function Noclip.SetCollision(model, boolean)
+Noclip.Cache = {} -- Stores lists of parts for each character
+
+function Noclip.UpdateCache(model)
     if model == Players.LocalPlayer.Character then return end
     
+    local parts = {}
     for _, part in pairs(model:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.CanCollide = boolean
+            table.insert(parts, part)
         end
     end
+    Noclip.Cache[model] = parts
 end
 
 function Noclip.Init(State)
     local charFolder = Workspace:WaitForChild("Characters")
 
-    -- 1. Watch for new additions while toggle is ON
-    local conn = charFolder.ChildAdded:Connect(function(child)
-        if State.Toggles.NoclipPlayers then
-            Noclip.SetCollision(child, false)
-        end
+    -- 1. Listen for new characters and cache their parts
+    local added = charFolder.ChildAdded:Connect(function(child)
+        task.wait(0.1) -- Small wait for parts to load
+        Noclip.UpdateCache(child)
     end)
 
-    -- 2. Handle the "Toggle Off" logic
-    -- We watch the State table for changes
-    task.spawn(function()
-        local lastState = State.Toggles.NoclipPlayers
-        while task.wait(0.5) do -- Low frequency check to save CPU
-            local currentState = State.Toggles.NoclipPlayers
-            if currentState ~= lastState then
-                lastState = currentState
-                
-                -- When toggle flips, update everyone currently in the folder
-                for _, child in pairs(charFolder:GetChildren()) do
-                    Noclip.SetCollision(child, not currentState) 
-                    -- if currentState is true, collision is false
-                    -- if currentState is false, collision is true
-                end
+    -- 2. Clean up cache when they leave
+    local removed = charFolder.ChildRemoved:Connect(function(child)
+        Noclip.Cache[child] = nil
+    end)
+
+    -- 3. The Loop: High frequency, but low CPU cost because it uses the cache
+    local loop = RunService.Stepped:Connect(function()
+        if not State.Toggles.NoclipPlayers then return end
+
+        for model, parts in pairs(Noclip.Cache) do
+            for i = 1, #parts do
+                parts[i].CanCollide = false
             end
         end
     end)
 
-    table.insert(State.Connections, conn)
+    -- Initial cache for anyone already there
+    for _, child in pairs(charFolder:GetChildren()) do
+        Noclip.UpdateCache(child)
+    end
+
+    table.insert(State.Connections, added)
+    table.insert(State.Connections, removed)
+    table.insert(State.Connections, loop)
+
     return Noclip
 end
 
