@@ -2,9 +2,9 @@ local Aimbot = {}
 local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local Highlight = game.CoreGui:FindFirstChild("AimH")
-if Highlight then Highlight:Destroy() end
-local Highlight = Instance.new("Highlight", game.CoreGui)
+local Highlight = game.CoreGui:FindFirstChild("AimH") or Instance.new("Highlight", game.CoreGui)
+Highlight.Name = "AimH"
+
 function Aimbot.Toggle(State)
     if State.Toggles.Aim then 
         State.Toggles.Aim = false
@@ -34,7 +34,7 @@ function Aimbot.Toggle(State)
     end
 end
 function Aimbot.Init(State)
-    local conns
+    local conns = {}
     conns[#conns+1] = Players.PlayerRemoving:Connect(function(p)
         -- Check if the LockedTarget exists and matches the character of the player leaving
         if State.LockedTarget and State.LockedTarget.Name == p.Name then
