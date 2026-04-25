@@ -9,7 +9,7 @@ local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/mai
 
 _G.CatstarState = {
     Connections = {},
-    Toggles = { BlackFlash = true, QTE = true, MsgAura = true, ItemEsp = false, Aim = false },
+    Toggles = { BlackFlash = true, Noclip = false, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -42,6 +42,7 @@ end
 
 -- Load Features
 local BlackFlash = Load("BlackFlash")
+local Noclip = Load("Noclip")
 local Aimbot = Load("Aimbot")
 local QTE = Load("QTE")
 local Aura = Load("Aura")
@@ -63,6 +64,11 @@ local TargetTab = Window:CreateTab("Targeting")
 if BlackFlash then
     CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
     BlackFlash.Init(_G.CatstarState)
+end
+
+if Noclip then
+    CombatTab:CreateToggle({Name = "Enable Noclip through Players", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end})
+    Noclip.Init(_G.CatstarState)
 end
 
 if Aimbot then
