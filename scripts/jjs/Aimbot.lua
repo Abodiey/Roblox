@@ -2,11 +2,13 @@ local Aimbot = {}
 local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-
+local Highlight = game.CoreGui:FindFirstChild("AimH")
+if Highlight then Highlight:Destroy() end
+local Highlight = Instance.new("Highlight", game.CoreGui)
 function Aimbot.Toggle(State)
     if State.Toggles.Aim then 
         State.Toggles.Aim = false
-        State.LockedTarget = nil 
+        State.LockedTarget = nil
         return 
     end
     local nearest, dist = nil, math.huge
@@ -28,18 +30,28 @@ function Aimbot.Toggle(State)
     end
     if nearest then 
         State.LockedTarget = nearest
-        State.Toggles.Aim = true 
+        State.Toggles.Aim = true
     end
 end
 function Aimbot.Init(State)
-    local conn = game:GetService("RunService").Heartbeat:Connect(function()
-        if State.Toggles.Aim and State.LockedTarget and State.LockedTarget:FindFirstChild("HumanoidRootPart") then
+    local conns
+    conns[#conns+1] = Players.PlayerRemoving:Connect(function(p)
+        -- Check if the LockedTarget exists and matches the character of the player leaving
+        if State.LockedTarget and State.LockedTarget.Name == p.Name then
+            State.LockedTarget = nil
+            Highlight.Adornee = nil
+        end
+    end)
+    conns[#conns+1] = game:GetService("RunService").Heartbeat:Connect(function()
+        Highlight.Adornee = State.LockedTarget
+        if State.Toggles.Aim and State.LockedTarget and State.LockedTarget.Parent and State.LockedTarget:FindFirstChild("HumanoidRootPart") then
             local targetPart = State.LockedTarget.HumanoidRootPart
             local offset = targetPart.CFrame.LookVector * 2 -- Change 2 to how many studs behind you want
 
             Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
         end
     end)
+    
     table.insert(State.Connections, conn)
 end
 
