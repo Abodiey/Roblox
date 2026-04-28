@@ -52,7 +52,7 @@ local Targeting = Load("Targeting")
 
 local Window = Rayfield:CreateWindow({
    Name = "CATSTAR PRO V6.2",
-   ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro" }
+   ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro", DisableRayfieldPrompts = true }
 })
 
 -- Initialize Tabs
