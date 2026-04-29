@@ -1,9 +1,8 @@
 local Noclip = {}
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 
 function Noclip.Init(State)
-    local charFolder = Workspace:WaitForChild("Characters")
+    local charFolder = workspace:WaitForChild("Characters")
     local lp = Players.LocalPlayer
 
     task.spawn(function()
