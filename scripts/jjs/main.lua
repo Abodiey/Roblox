@@ -2,7 +2,7 @@
     CATSTAR PRO V6.2 | Main Loader
 ]]
 
-if game.GameId ~= 175416123*2 then return end
+if game.GameId ~= 3508322461 then return end
 
 if _G.CatstarCleanup then _G.CatstarCleanup() end
 
