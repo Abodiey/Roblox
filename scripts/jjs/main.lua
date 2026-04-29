@@ -2,7 +2,7 @@
     CATSTAR PRO V6.2 | Main Loader
 ]]
 
-if game.GameId ~= 3508322461 then return end
+if not game or game["GameId"] ~= 3508322461 then return end
 
 if _G.CatstarCleanup then _G.CatstarCleanup() end
 
@@ -71,7 +71,7 @@ if BlackFlash then
 end
 
 if Noclip then
-    CombatTab:CreateToggle({Name = "Enable Noclip through Players", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end})
+    CombatTab:CreateToggle({Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end})
     Noclip.Init(_G.CatstarState)
 end
 
@@ -96,7 +96,7 @@ if ItemESP then
 end
 
 if ESP then
-    VisualsTab:CreateToggle({Name = "Player ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.Esp = v end})
+    VisualsTab:CreateToggle({Name = "Player ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Esp = v end})
     ESP.Init(_G.CatstarState)
 end
 
