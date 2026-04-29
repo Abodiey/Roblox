@@ -3,6 +3,7 @@
 ]]
 
 if not game or game["GameId"] ~= 3508322461 then return end
+print("Catstar Running")
 
 if _G.CatstarCleanup then _G.CatstarCleanup() end
 
