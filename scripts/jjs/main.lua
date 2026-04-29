@@ -2,9 +2,11 @@
     CATSTAR PRO V6.2 | Main Loader
 ]]
 
+if game.GameId ~= 175416123*2 then return end
+
 if _G.CatstarCleanup then _G.CatstarCleanup() end
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield
 local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
 _G.CatstarState = {
@@ -16,7 +18,7 @@ _G.CatstarState = {
 
 -- Comprehensive Cleanup
 _G.CatstarCleanup = function()
-    Rayfield:Destroy()
+    if Rayfield then Rayfield:Destroy() end
     local iEsp, pEsp = game.CoreGui:FindFirstChild("ItemESP"), game.CoreGui:FindFirstChild("PlayerESP")
     if iEsp then iEsp:Destroy() end
     if pEsp then pEsp:Destroy() end
@@ -49,6 +51,8 @@ local Aura = Load("Aura")
 local ItemESP = Load("ItemESP")
 local ESP = Load("ESP")
 local Targeting = Load("Targeting")
+
+Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
    Name = "CATSTAR PRO V6.2",
