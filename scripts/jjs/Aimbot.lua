@@ -17,6 +17,7 @@ Highlight.Name = "AimbotHighlight"
 Highlight.Parent = CoreGui
 
 function Aimbot.Toggle(State)
+    -- If already aiming, turn it off
     if State.Toggles.Aim then 
         State.Toggles.Aim = false
         State.LockedTarget = nil
@@ -33,10 +34,14 @@ function Aimbot.Toggle(State)
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         local hum = obj:FindFirstChildOfClass("Humanoid")
         
+        -- Basic validity checks
         if obj == Player.Character or not hrp or (hum and hum.Health <= 0) then continue end
         
+        -- Team Check Logic
         local targetPlayer = Players:GetPlayerFromCharacter(obj)
-        if myTeam and targetPlayer and targetPlayer.Team == myTeam then continue end
+        if State.Toggles.TeamCheck and myTeam and targetPlayer and targetPlayer.Team == myTeam then 
+            continue 
+        end
 
         local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
         if onScreen then
@@ -56,6 +61,10 @@ end
 
 function Aimbot.Init(State)
     State.Connections = State.Connections or {}
+    -- Ensure TeamCheck exists in state if not defined
+    if State.Toggles.TeamCheck == nil then
+        State.Toggles.TeamCheck = true
+    end
 
     local removeConn = Players.PlayerRemoving:Connect(function(p)
         if State.LockedTarget and State.LockedTarget.Name == p.Name then
