@@ -12,7 +12,7 @@ local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/mai
 
 _G.CatstarState = {
     Connections = {},
-    Toggles = { BlackFlash = true, Noclip = false, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false },
+    Toggles = { BlackFlash = true, Noclip = false, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false, TeamCheck = true },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -78,6 +78,7 @@ end
 
 if Aimbot then
     CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
+    CombatTab:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(Value) _G.CatstarState.Toggles.TeamCheck = Value end})
     Aimbot.Init(_G.CatstarState)
 end
 
