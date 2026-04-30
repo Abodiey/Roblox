@@ -1,24 +1,43 @@
+local cloneref = cloneref or function(o) return o end
 local Aimbot = {}
+
+local Players = cloneref(game:GetService("Players"))
+local RunService = cloneref(game:GetService("RunService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+
 local Camera = workspace.CurrentCamera
-local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
-local Highlight = game.CoreGui:FindFirstChild("AimH") or Instance.new("Highlight", game.CoreGui)
-Highlight.Name = "AimH"
+
+while not Player or not Player.Parent or not CoreGui do
+    task.wait()
+end
+
+local Highlight = CoreGui:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
+Highlight.Name = "AimbotHighlight"
+Highlight.Parent = CoreGui
 
 function Aimbot.Toggle(State)
     if State.Toggles.Aim then 
         State.Toggles.Aim = false
         State.LockedTarget = nil
+        Highlight.Adornee = nil
         return 
     end
+
     local nearest, dist = nil, math.huge
     local mousePos = Vector2.new(Player:GetMouse().X, Player:GetMouse().Y)
     local myTeam = Player.Team
-    for _, obj in ipairs(workspace.Characters:GetChildren()) do
+    local characterFolder = workspace:FindFirstChild("Characters") or workspace
+
+    for _, obj in ipairs(characterFolder:GetChildren()) do
         local hrp = obj:FindFirstChild("HumanoidRootPart")
-        if obj == Player.Character or not hrp then continue end
+        local hum = obj:FindFirstChildOfClass("Humanoid")
+        
+        if obj == Player.Character or not hrp or (hum and hum.Health <= 0) then continue end
+        
         local targetPlayer = Players:GetPlayerFromCharacter(obj)
         if myTeam and targetPlayer and targetPlayer.Team == myTeam then continue end
+
         local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
         if onScreen then
             local mDist = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
@@ -28,31 +47,42 @@ function Aimbot.Toggle(State)
             end
         end
     end
+
     if nearest then 
         State.LockedTarget = nearest
         State.Toggles.Aim = true
     end
 end
+
 function Aimbot.Init(State)
-    local conns = {}
-    conns[#conns+1] = Players.PlayerRemoving:Connect(function(p)
-        -- Check if the LockedTarget exists and matches the character of the player leaving
+    State.Connections = State.Connections or {}
+
+    local removeConn = Players.PlayerRemoving:Connect(function(p)
         if State.LockedTarget and State.LockedTarget.Name == p.Name then
             State.LockedTarget = nil
             Highlight.Adornee = nil
         end
     end)
-    conns[#conns+1] = game:GetService("RunService").Heartbeat:Connect(function()
-        Highlight.Adornee = State.LockedTarget
-        if State.Toggles.Aim and State.LockedTarget and State.LockedTarget.Parent and State.LockedTarget:FindFirstChild("HumanoidRootPart") then
-            local targetPart = State.LockedTarget.HumanoidRootPart
-            local offset = targetPart.CFrame.LookVector * 0.5 -- Change 2 to how many studs behind you want
+    table.insert(State.Connections, removeConn)
 
-            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
+    local updateConn = RunService.Heartbeat:Connect(function()
+        if State.Toggles.Aim and State.LockedTarget and State.LockedTarget.Parent then
+            local targetPart = State.LockedTarget:FindFirstChild("HumanoidRootPart")
+            local humanoid = State.LockedTarget:FindFirstChildOfClass("Humanoid")
+
+            if targetPart and (not humanoid or humanoid.Health > 0) then
+                Highlight.Adornee = State.LockedTarget
+                local offset = targetPart.CFrame.LookVector * 0.5 
+                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
+            else
+                State.LockedTarget = nil
+                Highlight.Adornee = nil
+            end
+        else
+            Highlight.Adornee = nil
         end
     end)
-    
-    table.insert(State.Connections, conn)
+    table.insert(State.Connections, updateConn)
 end
 
 return Aimbot
