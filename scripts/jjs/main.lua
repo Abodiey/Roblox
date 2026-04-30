@@ -53,7 +53,16 @@ local ItemESP = Load("ItemESP")
 local ESP = Load("ESP")
 local Targeting = Load("Targeting")
 
-Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local file, day = "RF_Cache.lua", "--" .. os.date("%d")
+local content = isfile(file) and readfile(file)
+
+-- #day gets the exact length of the tag (usually 4)
+if not content or content:sub(1, #day) ~= day then
+    content = day .. "\n" .. game:HttpGet("https://sirius.menu/rayfield")
+    writefile(file, content)
+end
+
+Rayfield = loadstring(content)()
 
 local Window = Rayfield:CreateWindow({
    Name = "CATSTAR PRO V6.2",
