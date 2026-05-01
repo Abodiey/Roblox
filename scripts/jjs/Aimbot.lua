@@ -4,6 +4,7 @@ local Aimbot = {}
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
+local DEAD_STATE = Enum.HumanoidStateType.Dead
 
 local Camera = workspace.CurrentCamera
 local Player = Players.LocalPlayer
@@ -79,7 +80,7 @@ function Aimbot.Init(State)
             local targetPart = State.LockedTarget:FindFirstChild("HumanoidRootPart")
             local humanoid = State.LockedTarget:FindFirstChildOfClass("Humanoid")
 
-            if targetPart and (not humanoid or humanoid.Health > 0) then
+            if targetPart and (not humanoid or humanoid:GetState() ~= DEAD_STATE) then
                 Highlight.Adornee = State.LockedTarget
                 local offset = targetPart.CFrame.LookVector * 0.5 
                 Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
