@@ -48,6 +48,7 @@ local BlackFlash = Load("BlackFlash")
 local Noclip = Load("Noclip")
 local Aimbot = Load("Aimbot")
 local QTE = Load("QTE")
+local Train = Load("Train")
 local Aura = Load("Aura")
 local ItemESP = Load("ItemESP")
 local ESP = Load("ESP")
@@ -94,6 +95,10 @@ end
 if QTE then
     CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
     QTE.Init(_G.CatstarState)
+end
+
+if Train then
+    CombatTab:CreateButton({Name = "Spawn Train", Callback = function() Train.Init() end})
 end
 
 if Aura then
