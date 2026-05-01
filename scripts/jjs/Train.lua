@@ -10,4 +10,4 @@ function Train.Init()
     end
 end
 
-Train.Init()
+return Train
