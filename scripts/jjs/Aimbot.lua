@@ -82,7 +82,7 @@ function Aimbot.Init(State)
 
             if targetPart and (not humanoid or humanoid:GetState() ~= DEAD_STATE) then
                 Highlight.Adornee = State.LockedTarget
-                local offset = targetPart.CFrame.LookVector * 0.5 
+                local offset = targetPart.CFrame.LookVector * 0
                 Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
             else
                 State.LockedTarget = nil
