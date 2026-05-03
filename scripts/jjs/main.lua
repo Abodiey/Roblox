@@ -120,3 +120,15 @@ if Targeting then
     TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
     TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
 end
+
+--Effects Fix
+local Effects = workspace:WaitForChild("Effects", 10)
+if Effects then
+    Effects.ChildAdded:Connect(function(c)
+        task.delay(30, function()
+            if c and c.Parent then
+                c:Destroy()
+            end
+        end)
+    end)
+end
