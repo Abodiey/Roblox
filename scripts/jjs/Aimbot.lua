@@ -7,8 +7,9 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 local DEAD_STATE = Enum.HumanoidStateType.Dead
 
 local Player = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-while not Player or not Player.Parent or not CoreGui do
+while not Player or not Player.Parent or not CoreGui or Camera do
     task.wait()
 end
 
@@ -29,7 +30,7 @@ function Aimbot.Toggle(State)
     local mousePos = Vector2.new(Player:GetMouse().X, Player:GetMouse().Y)
     local myTeam = Player.Team
     local characterFolder = workspace:FindFirstChild("Characters") or workspace
-    local Camera = workspace.CurrentCamera
+    Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
         local hrp = obj:FindFirstChild("HumanoidRootPart")
@@ -61,6 +62,8 @@ function Aimbot.Toggle(State)
 end
 
 function Aimbot.Init(State)
+    Camera = workspace.CurrentCamera
+    
     State.Connections = State.Connections or {}
     -- Ensure TeamCheck exists in state if not defined
     if State.Toggles.TeamCheck == nil then
