@@ -1,27 +1,27 @@
 local Noclip = {}
-local Players = game:GetService("Players")
+
+local RunService = cloneref(game:GetService("RunService"))
+local Players = cloneref(game:GetService("Players"))
+local lp = Players.LocalPlayer
+local charFolder = workspace:WaitForChild("Characters")
 
 function Noclip.Init(State)
-    local charFolder = workspace:WaitForChild("Characters")
-    local lp = Players.LocalPlayer
+    local connection = RunService.Stepped:Connect(function()
+        if not State.Toggles.Noclip then return end
 
-    task.spawn(function()
-        task.wait(0.1)
-        while State.Toggles.Noclip do
-            local myChar = lp.Character
-            for _, char in pairs(charFolder:GetChildren()) do
-                if char == myChar then continue end
-
-                -- Force CanCollide false on all parts
+        local myChar = lp.Character
+        for _, char in pairs(charFolder:GetChildren()) do
+            if char ~= myChar then
                 for _, v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") and v.CanCollide then
+                    if v:IsA("BasePart") then
                         v.CanCollide = false
                     end
                 end
             end
-            task.wait(0.1)
         end
     end)
+
+    table.insert(State.Connections, connection)
 end
 
 return Noclip
