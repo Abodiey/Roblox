@@ -9,7 +9,7 @@ local DEAD_STATE = Enum.HumanoidStateType.Dead
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-while not Player or not Player.Parent or not CoreGui or Camera do
+while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
