@@ -1,25 +1,26 @@
-local DomainNoclip = {}
-
+local RunService = game:GetService("RunService")
 local domains = workspace:WaitForChild("Domains")
 
+local DomainNoclip = {}
+
 function DomainNoclip.Init(State)
-    task.spawn(function()
-        while State.Toggles.DomainNoclip do
+    local connection
+    connection = RunService.Stepped:Connect(function()
+        if not State.Toggles.DomainNoclip then
             for _, v in pairs(domains:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
+                if v:IsA("BasePart") then v.CanCollide = true end
             end
-            task.wait(0.1)
+            connection:Disconnect()
+            return 
         end
 
-        -- Reset collisions when toggled off
+        -- Apply noclip
         for _, v in pairs(domains:GetChildren()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = true
-            end
+            if v:IsA("BasePart") then v.CanCollide = false end
         end
     end)
+
+    table.insert(State.Connections, connection)
 end
 
 return DomainNoclip
