@@ -6,7 +6,6 @@ local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local DEAD_STATE = Enum.HumanoidStateType.Dead
 
-local Camera = workspace.CurrentCamera
 local Player = Players.LocalPlayer
 
 while not Player or not Player.Parent or not CoreGui do
@@ -30,6 +29,7 @@ function Aimbot.Toggle(State)
     local mousePos = Vector2.new(Player:GetMouse().X, Player:GetMouse().Y)
     local myTeam = Player.Team
     local characterFolder = workspace:FindFirstChild("Characters") or workspace
+    local Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
         local hrp = obj:FindFirstChild("HumanoidRootPart")
