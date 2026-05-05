@@ -17,7 +17,6 @@ _G.CatstarState = {
     TargetIdentifier = ""
 }
 
--- Comprehensive Cleanup
 _G.CatstarCleanup = function()
     if Rayfield then Rayfield:Destroy() end
     local iEsp, pEsp = game.CoreGui:FindFirstChild("ItemESP"), game.CoreGui:FindFirstChild("PlayerESP")
@@ -29,105 +28,124 @@ _G.CatstarCleanup = function()
     _G.CatstarState = nil
 end
 
--- Simple Load with Error Printing
+-- Updated Load function with 30s timeout
 local function Load(name)
-    local success, result = pcall(function()
-        return loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
-    end)
+    local result = nil
+    local completed = false
     
-    if success then
-        return result
-    else
-        warn("Failed to load " .. name .. ": " .. tostring(result))
-        return nil
+    task.spawn(function()
+        local success, err = pcall(function()
+            result = loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
+        end)
+        
+        if not success then
+            warn("Failed to load " .. name .. ": " .. tostring(err))
+        end
+        completed = true
+    end)
+
+    -- Wait loop for timeout
+    local start = os.clock()
+    while not completed and (os.clock() - start) < 30 do
+        task.wait()
     end
+
+    if not completed then
+        warn("Load timed out for: " .. name)
+    end
+
+    return result
 end
 
--- Load Features
-local BlackFlash = Load("BlackFlash")
-local Noclip = Load("Noclip")
-local DomainNoclip = Load("DomainNoclip")
-local Aimbot = Load("Aimbot")
-local QTE = Load("QTE")
-local Train = Load("Train")
-local Aura = Load("Aura")
-local ItemESP = Load("ItemESP")
-local ESP = Load("ESP")
-local Targeting = Load("Targeting")
+-- Wrap the entire setup in task.spawn to prevent main thread hanging
+task.spawn(function()
+    -- Load Features
+    local BlackFlash = Load("BlackFlash")
+    local Noclip = Load("Noclip")
+    local DomainNoclip = Load("DomainNoclip")
+    local Aimbot = Load("Aimbot")
+    local QTE = Load("QTE")
+    local Train = Load("Train")
+    local Aura = Load("Aura")
+    local ItemESP = Load("ItemESP")
+    local ESP = Load("ESP")
+    local Targeting = Load("Targeting")
 
-local file, day = "RF_Cache.lua", "--" .. os.date("%d")
-local content = isfile(file) and readfile(file)
+    local file, day = "RF_Cache.lua", "--" .. os.date("%d")
+    local content = isfile(file) and readfile(file)
 
--- #day gets the exact length of the tag (usually 4)
-if not content or content:sub(1, #day) ~= day then
-    content = day .. "\n" .. game:HttpGet("https://sirius.menu/rayfield")
-    writefile(file, content)
-end
+    if not content or content:sub(1, #day) ~= day then
+        local success, rayData = pcall(function() return game:HttpGet("https://sirius.menu/rayfield") end)
+        if success then
+            content = day .. "\n" .. rayData
+            writefile(file, content)
+        end
+    end
 
-Rayfield = loadstring(content)()
+    if not content then warn("Could not load Rayfield") return end
+    Rayfield = loadstring(content)()
 
-local Window = Rayfield:CreateWindow({
-   Name = "CATSTAR PRO V6.2",
-   ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro", DisableRayfieldPrompts = true }
-})
+    local Window = Rayfield:CreateWindow({
+       Name = "CATSTAR PRO V6.2",
+       ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro", DisableRayfieldPrompts = true }
+    })
 
--- Initialize Tabs
-local CombatTab = Window:CreateTab("Combat & QTE")
-local VisualsTab = Window:CreateTab("Visuals")
-local TargetTab = Window:CreateTab("Targeting")
+    local CombatTab = Window:CreateTab("Combat & QTE")
+    local VisualsTab = Window:CreateTab("Visuals")
+    local TargetTab = Window:CreateTab("Targeting")
 
--- UI Bindings (Only initialize if Load returned successfully)
-if BlackFlash then
-    CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
-    BlackFlash.Init(_G.CatstarState)
-end
+    if BlackFlash then
+        CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
+        BlackFlash.Init(_G.CatstarState)
+    end
 
-if Noclip then
-    CombatTab:CreateToggle({Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end})
-    Noclip.Init(_G.CatstarState)
-end
+    if Noclip then
+        CombatTab:CreateToggle({Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end})
+        Noclip.Init(_G.CatstarState)
+    end
 
-if DomainNoclip then
-    CombatTab:CreateToggle({Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.DomainNoclip = v end})
-    DomainNoclip.Init(_G.CatstarState)
-end
+    if DomainNoclip then
+        CombatTab:CreateToggle({Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.DomainNoclip = v end})
+        DomainNoclip.Init(_G.CatstarState)
+    end
 
-if Aimbot then
-    CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
-    CombatTab:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(Value) _G.CatstarState.Toggles.TeamCheck = Value end})
-    Aimbot.Init(_G.CatstarState)
-end
+    if Aimbot then
+        CombatTab:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() Aimbot.Toggle(_G.CatstarState) end})
+        CombatTab:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(Value) _G.CatstarState.Toggles.TeamCheck = Value end})
+        Aimbot.Init(_G.CatstarState)
+    end
 
-if QTE then
-    CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
-    QTE.Init(_G.CatstarState)
-end
+    if QTE then
+        CombatTab:CreateToggle({Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end})
+        QTE.Init(_G.CatstarState)
+    end
 
-if Train then
-    CombatTab:CreateButton({Name = "Spawn Train", Callback = function() Train.Init() end})
-end
+    if Train then
+        CombatTab:CreateButton({Name = "Spawn Train", Callback = function() Train.Init() end})
+    end
 
-if Aura then
-    VisualsTab:CreateToggle({Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end})
-    Aura.Init(_G.CatstarState)
-end
+    if Aura then
+        VisualsTab:CreateToggle({Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end})
+        Aura.Init(_G.CatstarState)
+    end
 
-if ItemESP then
-    VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
-    ItemESP.Init(_G.CatstarState)
-end
+    if ItemESP then
+        VisualsTab:CreateToggle({Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end})
+        ItemESP.Init(_G.CatstarState)
+    end
 
-if ESP then
-    VisualsTab:CreateToggle({Name = "Player ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Esp = v end})
-    ESP.Init(_G.CatstarState)
-end
+    if ESP then
+        VisualsTab:CreateToggle({Name = "Player ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Esp = v end})
+        ESP.Init(_G.CatstarState)
+    end
 
-if Targeting then
-    TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
-    TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
-end
+    if Targeting then
+        TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
+        TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
+    end
+end)
 
---Effects Fix
+-- Effects Fix
 local Effects = workspace:WaitForChild("Effects", 10)
 if Effects then
     Effects.ChildAdded:Connect(function(c)
