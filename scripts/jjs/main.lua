@@ -12,7 +12,7 @@ local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/mai
 
 _G.CatstarState = {
     Connections = {},
-    Toggles = { BlackFlash = true, Noclip = false, DomainNoclip = false, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false, TeamCheck = true },
+    Toggles = { BlackFlash = true, Noclip = true, DomainNoclip = true, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false, TeamCheck = true },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
