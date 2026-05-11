@@ -1,8 +1,10 @@
 local QTE = {}
-local VIM = game:GetService("VirtualInputManager")
+local VIM = cloneref(game:GetService("VirtualInputManager"))
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
 
 function QTE.Init(State)
-    local conn = game:GetService("Players").LocalPlayer.PlayerGui.ChildAdded:Connect(function(child)
+    local conn = PlayerGui.ChildAdded:Connect(function(child)
         if State.Toggles.QTE and child.Name == "QTE" then
             local label = child:WaitForChild("QTE_PC", 5)
             if label then
@@ -11,10 +13,10 @@ function QTE.Init(State)
                         local key = label.Text:match("%a")
                         if key then
                             VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
-                            task.wait(0.1)
+                            task.wait() task.wait()
                             VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game)
                         end
-                        task.wait(0.01)
+                        task.wait(1/50)
                     end
                 end)
             end
