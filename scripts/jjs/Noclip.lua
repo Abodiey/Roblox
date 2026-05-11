@@ -5,37 +5,68 @@ local Players = cloneref(game:GetService("Players"))
 local lp = Players.LocalPlayer
 local charFolder = workspace:WaitForChild("Characters")
 
--- Passive memory management using Weak Keys
 local storedParts = {}
 setmetatable(storedParts, {__mode = "k"}) 
 
 local lastToggle = false
+
+-- Whitelist of part names for R6 and your specific assets
+local TARGET_NAMES = {
+    ["Head"] = true, ["Torso"] = true, 
+    ["Left Leg"] = true, ["Right Leg"] = true, 
+    ["Left Arm"] = true, ["Right Arm"] = true,
+    ["Collide"] = true, ["Mask"] = true
+}
 
 function Noclip.Init(State)
     local connection = RunService.Stepped:Connect(function()
         local enabled = State.Toggles.Noclip
         local myChar = lp.Character
 
-        -- 1. RESTORE ON TOGGLE OFF
+        -- 1. Restore Logic (Checks before updating lastToggle)
         if lastToggle and not enabled then
             for part in pairs(storedParts) do
-                -- No need to check if part exists; weak table cleans up nil parts
-                part.CanCollide = true
+                if part and part.Parent then
+                    part.CanCollide = true
+                end
             end
             table.clear(storedParts)
         end
         lastToggle = enabled
 
-        -- 2. FORCE NOCLIP WHILE ACTIVE
-        if enabled then
-            for _, char in pairs(charFolder:GetChildren()) do
-                if char ~= myChar then
-                    for _, v in pairs(char:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            if v.CanCollide then
-                                storedParts[v] = true
-                                v.CanCollide = false
-                            end
+        if not enabled then return end
+
+        -- 2. Optimized Targeted Scan
+        local players = charFolder:GetChildren()
+        for i = 1, #players do
+            local char = players[i]
+            if char ~= myChar then
+                -- Only check immediate children and specific deep paths
+                local children = char:GetChildren()
+                for j = 1, #children do
+                    local v = children[j]
+                    
+                    -- Check if it's a target part OR the specific GojoMask folder
+                    if TARGET_NAMES[v.Name] and v:IsA("BasePart") then
+                        if v.CanCollide then
+                            storedParts[v] = true
+                            v.CanCollide = false
+                        end
+                    elseif v.Name == "SetAssets" then
+                        -- Highly specific path optimization
+                        local mask = v:FindFirstChild("GojoMask") and v.GojoMask:FindFirstChild("Mask")
+                        if mask and mask:IsA("BasePart") and mask.CanCollide then
+                            storedParts[mask] = true
+                            mask.CanCollide = false
+                        end
+                    end
+
+                    -- Check for "Collide" child inside the R6 parts
+                    if TARGET_NAMES[v.Name] then
+                        local childCollide = v:FindFirstChild("Collide")
+                        if childCollide and childCollide:IsA("BasePart") and childCollide.CanCollide then
+                            storedParts[childCollide] = true
+                            childCollide.CanCollide = false
                         end
                     end
                 end
