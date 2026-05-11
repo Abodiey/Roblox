@@ -1,6 +1,6 @@
 local BlackFlash = {}
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 local DB = {
     [100962226150441] = {delay = 0.18, move = 3},
