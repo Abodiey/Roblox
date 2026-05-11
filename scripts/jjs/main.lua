@@ -12,7 +12,7 @@ local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/mai
 
 _G.CatstarState = {
     Connections = {},
-    Toggles = { BlackFlash = true, Noclip = true, DomainNoclip = true, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false, TeamCheck = true },
+    Toggles = { BlackFlash = true, Ratio = true, Noclip = true, DomainNoclip = true, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, Aim = false, TeamCheck = true },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -61,6 +61,7 @@ end
 task.spawn(function()
     -- Load Features
     local BlackFlash = Load("BlackFlash")
+    local Ratio = Load("Ratio")
     local Noclip = Load("Noclip")
     local DomainNoclip = Load("DomainNoclip")
     local Aimbot = Load("Aimbot")
@@ -97,6 +98,11 @@ task.spawn(function()
     if BlackFlash then
         CombatTab:CreateToggle({Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end})
         BlackFlash.Init(_G.CatstarState)
+    end
+        
+    if Ratio then
+        CombatTab:CreateToggle({Name = "Enable Ratio", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Ratio = v end})
+        Ratio.Init(_G.CatstarState)
     end
 
     if Noclip then
