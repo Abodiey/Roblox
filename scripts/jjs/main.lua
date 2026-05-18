@@ -71,6 +71,7 @@ task.spawn(function()
     local Aura = Load("Aura")
     local ItemESP = Load("ItemESP")
     local ESP = Load("ESP")
+    local DummyESP = Load("DummyESP")
     local Targeting = Load("Targeting")
 
     local file, day = "RF_Cache.lua", "--" .. os.date("%d")
