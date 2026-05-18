@@ -1,8 +1,10 @@
 --[[ 
     CATSTAR PRO V6.2 | Main Loader
 ]]
-
-if not game or game["GameId"] ~= 3508322461 then return end
+while not game or not game["GameId"] do
+    task.wait()
+end
+if game["GameId"] ~= 3508322461 then return end
 print("Catstar Running")
 
 if _G.CatstarCleanup then _G.CatstarCleanup() end
