@@ -42,13 +42,14 @@ local function Load(name)
             warn("Failed to load " .. name .. ": " .. tostring(err))
         end
         completed = true
+        task.wait()
     end)
 
     -- Wait loop for timeout
     local start = os.clock()
-    while not completed and (os.clock() - start) < 30 do
+    repeat
         task.wait()
-    end
+    until completed and (os.clock() - start) >= 10
 
     if not completed then
         warn("Load timed out for: " .. name)
@@ -145,6 +146,11 @@ task.spawn(function()
         ESP.Init(_G.CatstarState)
     end
 
+    if DummyESP then
+        VisualsTab:CreateToggle({Name = "Dummy ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.DummyESP = v end})
+        DummyESP.Init(_G.CatstarState)
+    end
+        
     if Targeting then
         TargetTab:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
         TargetTab:CreateButton({Name = "Spectate", Callback = function() Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
