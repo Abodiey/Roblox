@@ -21,79 +21,55 @@ local uiStroke = Instance.new("UIStroke", strokeFrame)
 uiStroke.Color = Color3.fromRGB(255, 0, 0)
 uiStroke.Thickness = 2
 
--- Persistent tracking references
-local ChildAddedConn = nil
-local ChildRemovedConn = nil
-local DummyDestroyedConn = nil
-
--- Helper to safely disconnect and pull from State.Connections
-local function cleanupConnection(conn, connectionsTable)
-    if conn then
-        conn:Disconnect()
-        if connectionsTable then
-            local index = table.find(connectionsTable, conn)
-            if index then
-                table.remove(connectionsTable, index)
-            end
-        end
-    end
-    return nil
-end
-
--- Helper function to reset/disable the ESP
-local function clearESP(State)
-    BBQ.Enabled = false
-    BBQ.Adornee = nil
-    DummyDestroyedConn = cleanupConnection(DummyDestroyedConn, State and State.Connections)
-end
-
--- Helper function to lock ESP onto a target
-local function setupESP(target, State)
-    BBQ.Enabled = true
-    BBQ.Adornee = target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")
-    
-    -- Disconnect old destroying listener if switching targets
-    DummyDestroyedConn = cleanupConnection(DummyDestroyedConn, State.Connections)
-    
-    -- Track target destruction
-    DummyDestroyedConn = target.Destroying:Connect(function()
-        clearESP(State)
-    end)
-    table.insert(State.Connections, DummyDestroyedConn)
-end
+-- Thread controller variable
+local isLoopRunning = false
 
 function DummyESP.Init(State)
     if State.Toggles.DummyESP then
-        -- Initial scan
-        local dummy = Characters:FindFirstChild("Dummy")
-        if dummy then
-            setupESP(dummy, State)
-        end
+        if isLoopRunning then return end -- Prevent duplicating the loop if Init is called multiple times
+        isLoopRunning = true
 
-        -- Listen for new Dummies spawning
-        if not ChildAddedConn then
-            ChildAddedConn = Characters.ChildAdded:Connect(function(child)
-                if child.Name == "Dummy" then
-                    setupESP(child, State)
-                end
-            end)
-            table.insert(State.Connections, ChildAddedConn)
-        end
+        -- Run the polling loop on a separate fast task thread
+        task.spawn(function()
+            while isLoopRunning and State.Toggles.DummyESP do
+                local dummy = Characters:FindFirstChild("Dummy")
 
-        -- Listen for Dummy being removed
-        if not ChildRemovedConn then
-            ChildRemovedConn = Characters.ChildRemoved:Connect(function(child)
-                if child.Name == "Dummy" and BBQ.Adornee and BBQ.Adornee:IsDescendantOf(child) then
-                    clearESP(State)
+                if dummy then
+                    local targetPart = dummy.PrimaryPart or dummy:FindFirstChildWhichIsA("BasePart")
+                    
+                    if targetPart then
+                        -- Update or maintain the ESP position
+                        if BBQ.Adornee ~= targetPart then
+                            BBQ.Adornee = targetPart
+                        end
+                        if not BBQ.Enabled then
+                            BBQ.Enabled = true
+                        end
+                    else
+                        -- Dummy exists but has no valid parts yet
+                        BBQ.Enabled = false
+                        BBQ.Adornee = nil
+                    end
+                else
+                    -- Dummy does not exist / was removed
+                    if BBQ.Enabled then
+                        BBQ.Enabled = false
+                        BBQ.Adornee = nil
+                    end
                 end
-            end)
-            table.insert(State.Connections, ChildRemovedConn)
-        end
+
+                task.wait(0.1) -- Fast enough to feel responsive, slow enough to be lightweight
+            end
+            
+            -- Fallback cleanup when loop terminates naturally
+            BBQ.Enabled = false
+            BBQ.Adornee = nil
+        end)
     else
-        -- Clean up absolutely everything from State.Connections on toggle off
-        ChildAddedConn = cleanupConnection(ChildAddedConn, State.Connections)
-        ChildRemovedConn = cleanupConnection(ChildRemovedConn, State.Connections)
-        clearESP(State)
+        -- Kill the loop and clear UI immediately when toggle turns off
+        isLoopRunning = false
+        BBQ.Enabled = false
+        BBQ.Adornee = nil
     end
 end
 
