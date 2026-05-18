@@ -21,29 +21,79 @@ local uiStroke = Instance.new("UIStroke", strokeFrame)
 uiStroke.Color = Color3.fromRGB(255, 0, 0)
 uiStroke.Thickness = 2
 
-local ChildConnection = nil
+-- Persistent tracking references
+local ChildAddedConn = nil
+local ChildRemovedConn = nil
+local DummyDestroyedConn = nil
+
+-- Helper to safely disconnect and pull from State.Connections
+local function cleanupConnection(conn, connectionsTable)
+    if conn then
+        conn:Disconnect()
+        if connectionsTable then
+            local index = table.find(connectionsTable, conn)
+            if index then
+                table.remove(connectionsTable, index)
+            end
+        end
+    end
+    return nil
+end
+
+-- Helper function to reset/disable the ESP
+local function clearESP(State)
+    BBQ.Enabled = false
+    BBQ.Adornee = nil
+    DummyDestroyedConn = cleanupConnection(DummyDestroyedConn, State and State.Connections)
+end
+
+-- Helper function to lock ESP onto a target
+local function setupESP(target, State)
+    BBQ.Enabled = true
+    BBQ.Adornee = target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")
+    
+    -- Disconnect old destroying listener if switching targets
+    DummyDestroyedConn = cleanupConnection(DummyDestroyedConn, State.Connections)
+    
+    -- Track target destruction
+    DummyDestroyedConn = target.Destroying:Connect(function()
+        clearESP(State)
+    end)
+    table.insert(State.Connections, DummyDestroyedConn)
+end
 
 function DummyESP.Init(State)
     if State.Toggles.DummyESP then
+        -- Initial scan
         local dummy = Characters:FindFirstChild("Dummy")
         if dummy then
-            BBQ.Adornee = dummy.PrimaryPart or dummy:FindFirstChildWhichIsA("BasePart")
+            setupESP(dummy, State)
         end
 
-        if not ChildConnection then
-            ChildConnection = Characters.ChildAdded:Connect(function(child)
+        -- Listen for new Dummies spawning
+        if not ChildAddedConn then
+            ChildAddedConn = Characters.ChildAdded:Connect(function(child)
                 if child.Name == "Dummy" then
-                    BBQ.Adornee = child.PrimaryPart or child:FindFirstChildWhichIsA("BasePart")
+                    setupESP(child, State)
                 end
             end)
-            table.insert(State.Connections, ChildConnection)
+            table.insert(State.Connections, ChildAddedConn)
+        end
+
+        -- Listen for Dummy being removed
+        if not ChildRemovedConn then
+            ChildRemovedConn = Characters.ChildRemoved:Connect(function(child)
+                if child.Name == "Dummy" and BBQ.Adornee and BBQ.Adornee:IsDescendantOf(child) then
+                    clearESP(State)
+                end
+            end)
+            table.insert(State.Connections, ChildRemovedConn)
         end
     else
-        if ChildConnection then
-            ChildConnection:Disconnect()
-            ChildConnection = nil
-        end
-        BBQ.Adornee = nil
+        -- Clean up absolutely everything from State.Connections on toggle off
+        ChildAddedConn = cleanupConnection(ChildAddedConn, State.Connections)
+        ChildRemovedConn = cleanupConnection(ChildRemovedConn, State.Connections)
+        clearESP(State)
     end
 end
 
