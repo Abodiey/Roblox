@@ -34,29 +34,14 @@ end
 local function Load(name)
     local result = nil
     local completed = false
-    
-    task.spawn(function()
-        local success, err = pcall(function()
-            result = loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
-        end)
-        
-        if not success then
-            warn("Failed to load " .. name .. ": " .. tostring(err))
-        end
-        completed = true
-        task.wait()
+
+    local success, err = pcall(function()
+        result = loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
     end)
-
-    -- Wait loop for timeout
-    local start = os.clock()
-    repeat
-        task.wait()
-    until completed and (os.clock() - start) >= 10
-
-    if not completed then
-        warn("Load timed out for: " .. name)
+        
+    if not success then
+        warn("Failed to load " .. name .. ": " .. tostring(err))
     end
-
     return result
 end
 
