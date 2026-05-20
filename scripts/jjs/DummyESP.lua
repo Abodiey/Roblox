@@ -7,19 +7,28 @@ if BBQ then
     BBQ:Destroy()
 end
 
-BBQ = Instance.new("BillboardGui", CoreGui)
+BBQ = Instance.new("BillboardGui")
 BBQ.Name = "DummyHighlightESP"
 BBQ.Size = UDim2.new(4, 0, 6, 0)
 BBQ.AlwaysOnTop = true
 BBQ.ResetOnSpawn = false
+BBQ.Enabled = false
 
-local strokeFrame = Instance.new("Frame", BBQ)
+if Characters:FindFirstChild("Dummy") then
+    BBQ.Adornee = Characters.Dummy
+end
+
+local strokeFrame = Instance.new("Frame")
 strokeFrame.Size = UDim2.new(1, 0, 1, 0)
 strokeFrame.BackgroundTransparency = 1
 
-local uiStroke = Instance.new("UIStroke", strokeFrame)
+local uiStroke = Instance.new("UIStroke")
 uiStroke.Color = Color3.fromRGB(255, 0, 0)
 uiStroke.Thickness = 2
+
+BBQ.Parent = CoreGui
+strokeFrame.Parent = BBQ
+uiStroke.Parent = strokeFrame
 
 -- Thread controller variable
 local isLoopRunning = false
