@@ -22,7 +22,8 @@ local function doMove(moveNumber)
     end
 
     local main = PlayerGui:FindFirstChild("Main")
-    local movesetGui = main and main:FindFirstChild("Moveset")
+    local controls = main and main:FindFirstChild("Controls")
+    local movesetGui = controls and controls:FindFirstChild("Moveset")
     if not movesetGui then return end
 
     local frames = {}
