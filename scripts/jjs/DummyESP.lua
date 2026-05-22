@@ -2,12 +2,12 @@ local DummyESP = {}
 local Characters = workspace:WaitForChild("Characters")
 local CoreGui = cloneref(game:GetService("CoreGui"))
 
-local BBQ = CoreGui:FindFirstChild("DummyHighlightESP")
-if BBQ then
-    BBQ:Destroy()
+while CoreGui:FindFirstChild("DummyHighlightESP") do
+    CoreGui.DummyHighlightESP:Destroy()
+    task.wait()
 end
 
-BBQ = Instance.new("BillboardGui")
+local BBQ = Instance.new("BillboardGui")
 BBQ.Name = "DummyHighlightESP"
 BBQ.Size = UDim2.new(4, 0, 6, 0)
 BBQ.AlwaysOnTop = true
@@ -44,7 +44,7 @@ function DummyESP.Init(State)
                 local dummy = Characters:FindFirstChild("Dummy")
 
                 if dummy then
-                    local targetPart = dummy.PrimaryPart or dummy:FindFirstChildWhichIsA("BasePart")
+                    local targetPart = dummy.PrimaryPart
                     
                     if targetPart then
                         -- Update or maintain the ESP position
