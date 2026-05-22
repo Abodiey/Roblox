@@ -1,12 +1,18 @@
 local ESP = {}
-local ExistingFolder = game.CoreGui:FindFirstChild("ItemESP")
 
-if ExistingFolder then
-    ExistingFolder:Destroy()
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local RunService = cloneref(game:GetService("RunService"))
+
+local itemsFolder = workspace:WaitForChild("Items")
+
+while CoreGui:FindFirstChild("ItemESP") do
+    CoreGui.ItemESP:Destroy()
+    task.wait()
 end
 
-local Folder = Instance.new("Folder", game.CoreGui)
+local Folder = Instance.new("Folder")
 Folder.Name = "ItemESP"
+Folder.Parent = CoreGui
 
 local Cache = {}
 
@@ -32,14 +38,13 @@ local function CreateESP(item, part)
 end
 
 function ESP.Init(State)
-    local conn = game:GetService("RunService").Heartbeat:Connect(function()
+    local conn = RunService.Heartbeat:Connect(function()
         if not State.Toggles.ItemEsp then 
             Folder:ClearAllChildren()
             Cache = {}
             return 
         end
         
-        local itemsFolder = workspace:FindFirstChild("Items")
         if not itemsFolder then return end
 
         local currentItems = itemsFolder:GetChildren()
