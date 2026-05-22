@@ -103,15 +103,21 @@ end
 local Effects = workspace:WaitForChild("Effects", 30)
 if Effects then
     Effects.ChildAdded:Connect(function(c)
-        if string.find(c.Name, "Rika") or c:FindFirstChild("Rika", true) then
-            for _, descendant in ipairs(c:GetDescendants()) do
-                if descendant.Name == "Client" and descendant:IsA("BaseScript") then
-                    toclipboard(decompile(descendant))
-                    descendant.Disabled = true
-                    warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName())
-                end
+        if c and c.Name == "Rika" then
+            local descendant = c:FindFirstChild("Client")
+            if descendant and descendant:IsA("BaseScript") then
+                descendant.Disabled = true
+                toclipboard(decompile(descendant))
+                warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName())
             end
         end
-        task.delay(30, function() if c and c.Parent then c:Destroy() end end)
+        task.delay(60, function() if c and c.Parent then c:Destroy() end end)
+    end)
+end
+
+local Beams = workspace:WaitForChild("Effects", 30)
+if Beams then
+    Beams.ChildAdded:Connect(function(c)
+        task.delay(60, function() if c and c.Parent then c:Destroy() end end)
     end)
 end
