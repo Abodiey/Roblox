@@ -4,16 +4,21 @@ local Aimbot = {}
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local GuiService = cloneref(game:GetService("GuiService"))
 local DEAD_STATE = Enum.HumanoidStateType.Dead
 
 local Player = Players.LocalPlayer
+local workspace = cloneref(game:GetService("Workspace"))
 local Camera = workspace.CurrentCamera
 
 while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
-local Highlight = CoreGui:FindFirstChildOfClass("Highlight") or Instance.new("Highlight")
+local Highlight = CoreGui:FindFirstChild("AimbotHighlight")
+if Highlight then Highlight:Destroy() end 
+Highlight = Instance.new("Highlight")
 Highlight.Name = "AimbotHighlight"
 Highlight.Parent = CoreGui
 
@@ -27,7 +32,11 @@ function Aimbot.Toggle(State)
     end
 
     local nearest, dist = nil, math.huge
-    local mousePos = Vector2.new(Player:GetMouse().X, Player:GetMouse().Y)
+    
+    -- Optimized: Get dynamic UI inset offset and adjust mouse position directly
+    local inset = GuiService:GetGuiInset()
+    local mousePos = UserInputService:GetMouseLocation() - inset
+    
     local myTeam = Player.Team
     local characterFolder = workspace:FindFirstChild("Characters") or workspace
     Camera = workspace.CurrentCamera
@@ -47,6 +56,7 @@ function Aimbot.Toggle(State)
 
         local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
         if onScreen then
+            -- Position aligns natively now that mousePos has been adjusted by the inset
             local mDist = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
             if mDist < dist then 
                 dist = mDist
@@ -85,8 +95,8 @@ function Aimbot.Init(State)
 
             if targetPart and (not humanoid or humanoid:GetState() ~= DEAD_STATE) then
                 Highlight.Adornee = State.LockedTarget
-                local offset = targetPart.CFrame.LookVector * 0
-                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position - offset)
+                --local offset = targetPart.CFrame.LookVector * 0
+                Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)-- - offset)
             else
                 State.LockedTarget = nil
                 Highlight.Adornee = nil
