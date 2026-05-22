@@ -16,9 +16,8 @@ while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
-local Highlight = CoreGui:FindFirstChild("AimbotHighlight")
-if Highlight then Highlight:Destroy() end 
-Highlight = Instance.new("Highlight")
+while CoreGui:FindFirstChild("AimbotHighlight") do CoreGui.AimbotHighlight:Destroy() task.wait() end
+local Highlight = Instance.new("Highlight")
 Highlight.Name = "AimbotHighlight"
 Highlight.Parent = CoreGui
 
