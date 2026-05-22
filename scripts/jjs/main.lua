@@ -11,8 +11,20 @@ local Rayfield
 local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
 getgenv().CatstarState = {
-    Connections = {},
-    Toggles = { BlackFlash = true, Ratio = true, Noclip = true, DomainNoclip = true, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, DummyESP = true, Aim = false, TeamCheck = true },
+    Connections = setmetatable({}, { __mode = "v" }), -- Weak values allow disconnected links to be garbage collected
+    Toggles = { 
+        BlackFlash = true, 
+        Ratio = true, 
+        Noclip = true, 
+        DomainNoclip = true, 
+        QTE = true, 
+        MsgAura = true, 
+        ItemEsp = false, 
+        Esp = true, 
+        DummyESP = true, 
+        Aim = false, 
+        TeamCheck = true 
+    },
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -20,12 +32,12 @@ getgenv().CatstarState = {
 local CoreGui = cloneref(game:GetService("CoreGui"))
 
 getgenv().CatstarCleanup = function()
-    if Rayfield then Rayfield:Destroy() end
+    if Rayfield then pcall(function() Rayfield:Destroy() end) end
     for _, espName in {"ItemESP", "PlayerESP"} do
         local esp = CoreGui:FindFirstChild(espName)
-        if esp then esp:Destroy() end
+        if esp and esp.Parent then esp:Destroy() end
     end
-    for _, conn in pairs(getgenv().CatstarState.Connections) do if conn then conn:Disconnect() end end
+    for _, conn in pairs(getgenv().CatstarState.Connections) do if conn then pcall(function() conn:Disconnect() end) end end
     table.clear(getgenv().CatstarState.Connections)
     getgenv().CatstarCleanup, getgenv().CatstarState = nil, nil
 end
@@ -46,15 +58,20 @@ end
 local file, day = "RF_Cache.lua", "--" .. os.date("%d")
 local content = isfile(file) and readfile(file)
 
+-- Fallback to HttpGet if file doesn't exist, is empty, or the day prefix doesn't match
 if not content or content:sub(1, #day) ~= day then
     local success, rayData = pcall(game.HttpGet, game, "https://sirius.menu/rayfield")
-    if success then
+    if success and rayData then
         content = day .. "\n" .. rayData
         writefile(file, content)
     end
 end
 
-if not content then warn("Could not load Rayfield") return end
+-- Final check to ensure we have content from either source
+if not content or content == "" then 
+    warn("Could not load Rayfield") 
+    return 
+end
 Rayfield = loadstring(content)()
 
 local Window = Rayfield:CreateWindow({
@@ -107,7 +124,15 @@ if Effects then
             local descendant = c:FindFirstChild("Client")
             if descendant and descendant:IsA("BaseScript") then
                 descendant.Disabled = true
-                toclipboard(decompile(descendant))
+                local success, result = pcall(function()
+                    return decompile(descendant)
+                end)
+
+                if success and result then
+                    toclipboard(tostring(result))
+                else
+                    warn("Failed to decompile object: " .. tostring(descendant))
+                end
                 warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName())
             end
         end
