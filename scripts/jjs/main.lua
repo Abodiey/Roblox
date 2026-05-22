@@ -5,12 +5,12 @@ while not game or not game["GameId"] do task.wait() end
 if game["GameId"] ~= 3508322461 then return end
 print("Catstar Running")
 
-if _G.CatstarCleanup then _G.CatstarCleanup() end
+if getgenv().CatstarCleanup then getgenv().CatstarCleanup() end
 
 local Rayfield
 local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
-_G.CatstarState = {
+getgenv().CatstarState = {
     Connections = {},
     Toggles = { BlackFlash = true, Ratio = true, Noclip = true, DomainNoclip = true, QTE = true, MsgAura = true, ItemEsp = false, Esp = true, DummyESP = true, Aim = false, TeamCheck = true },
     LockedTarget = nil,
@@ -19,15 +19,15 @@ _G.CatstarState = {
 
 local CoreGui = cloneref(game:GetService("CoreGui"))
 
-_G.CatstarCleanup = function()
+getgenv().CatstarCleanup = function()
     if Rayfield then Rayfield:Destroy() end
     for _, espName in {"ItemESP", "PlayerESP"} do
         local esp = CoreGui:FindFirstChild(espName)
         if esp then esp:Destroy() end
     end
-    for _, conn in pairs(_G.CatstarState.Connections) do if conn then conn:Disconnect() end end
-    table.clear(_G.CatstarState.Connections)
-    _G.CatstarCleanup, _G.CatstarState = nil, nil
+    for _, conn in pairs(getgenv().CatstarState.Connections) do if conn then conn:Disconnect() end end
+    table.clear(getgenv().CatstarState.Connections)
+    getgenv().CatstarCleanup, getgenv().CatstarState = nil, nil
 end
 
 local function Load(name)
@@ -69,15 +69,15 @@ local tabs = {
 }
 
 local UI_Map = {
-    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.BlackFlash = v end}},
-    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Ratio = v end}},
-    Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Noclip = v end}},
-    DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.DomainNoclip = v end}},
-    QTE          = {tabs.Combat, "Toggle",  {Name = "Auto QTE", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.QTE = v end}},
-    Aura         = {tabs.Visuals, "Toggle", {Name = "Message Aura", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.MsgAura = v end}},
-    ItemESP      = {tabs.Visuals, "Toggle", {Name = "Item ESP", CurrentValue = false, Callback = function(v) _G.CatstarState.Toggles.ItemEsp = v end}},
-    ESP          = {tabs.Visuals, "Toggle", {Name = "Player ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.Esp = v end}},
-    DummyESP     = {tabs.Visuals, "Toggle", {Name = "Dummy ESP", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.DummyESP = v end}},
+    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
+    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
+    Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Noclip = v end}},
+    DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DomainNoclip = v end}},
+    QTE          = {tabs.Combat, "Toggle",  {Name = "Auto QTE", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.QTE = v end}},
+    Aura         = {tabs.Visuals, "Toggle", {Name = "Message Aura", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.MsgAura = v end}},
+    ItemESP      = {tabs.Visuals, "Toggle", {Name = "Item ESP", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.ItemEsp = v end}},
+    ESP          = {tabs.Visuals, "Toggle", {Name = "Player ESP", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Esp = v end}},
+    DummyESP     = {tabs.Visuals, "Toggle", {Name = "Dummy ESP", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DummyESP = v end}},
     Train        = {tabs.Combat, "Button",  {Name = "Spawn Train", Callback = function() modules.Train.Init() end}}
 }
 
@@ -85,19 +85,19 @@ for modName, setup in pairs(UI_Map) do
     local mod = modules[modName]
     if mod then
         setup[1]["Create" .. setup[2]](setup[1], setup[3])
-        if modName ~= "Train" then mod.Init(_G.CatstarState) end
+        if modName ~= "Train" then mod.Init(getgenv().CatstarState) end
     end
 end
 
 if modules.Aimbot then
-    tabs.Combat:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() modules.Aimbot.Toggle(_G.CatstarState) end})
-    tabs.Combat:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(v) _G.CatstarState.Toggles.TeamCheck = v end})
-    modules.Aimbot.Init(_G.CatstarState)
+    tabs.Combat:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() modules.Aimbot.Toggle(getgenv().CatstarState) end})
+    tabs.Combat:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.TeamCheck = v end})
+    modules.Aimbot.Init(getgenv().CatstarState)
 end
 
 if modules.Targeting then
-    tabs.Target:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) _G.CatstarState.TargetIdentifier = t end})
-    tabs.Target:CreateButton({Name = "Spectate", Callback = function() modules.Targeting.Spectate(_G.CatstarState.TargetIdentifier) end})
+    tabs.Target:CreateInput({Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(t) getgenv().CatstarState.TargetIdentifier = t end})
+    tabs.Target:CreateButton({Name = "Spectate", Callback = function() modules.Targeting.Spectate(getgenv().CatstarState.TargetIdentifier) end})
 end
 
 local Effects = workspace:WaitForChild("Effects", 30)
