@@ -1,15 +1,21 @@
 local ESP = {}
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+local Players = cloneref(game:GetService("Players"))
+local RunService = cloneref(game:GetService("RunService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local workspace = cloneref(game:GetService("Workspace"))
+
+local lp = Players.LocalPlayer
 
 -- 1. Destroy previous ScreenGui if it exists
-local Existing = CoreGui:FindFirstChild("PlayerESP")
-if Existing then Existing:Destroy() end
+while CoreGui:FindFirstChild("PlayerESP")
+    CoreGui.PlayerESP:Destroy()
+    task.wait()
+end
 
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PlayerESP"
 ScreenGui.IgnoreGuiInset = true -- 3. Ignore Gui Inset for perfect alignment
+ScreenGui.Parent = CoreGui
 
 local Cache = {}
 
@@ -78,7 +84,6 @@ function ESP.Init(State)
         ScreenGui.Enabled = true
 
         local cam = workspace.CurrentCamera
-        local lp = Players.LocalPlayer
         local myRoot = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
 
         for p, assets in pairs(Cache) do
@@ -127,7 +132,7 @@ function ESP.Init(State)
                     local hpPerc = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
                     
                     local nameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
-                    local killCol = getGradientColor(1 - (kills / 50))
+                    local killCol = getGradientColor(1 - (kills / 1000))
                     local distCol = getGradientColor(dist / 800)
 
                     c.Text.Text = string.format(
