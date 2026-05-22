@@ -146,19 +146,23 @@ task.spawn(function()
 end)
 
 -- Effects Fix
-local Effects = workspace:WaitForChild("Effects", 10)
+local Effects = workspace:WaitForChild("Effects", 30)
 if Effects then
     Effects.ChildAdded:Connect(function(c)
-        -- Patches the broken Rika script the second it spawns
-        if c.Name == "Rika" then
-            local clientScript = c:FindFirstChild("Client")
-            if clientScript and clientScript:IsA("LocalScript") then
-                clientScript.Disabled = true
-                warn("[Fix] Disabled broken Rika client script to prevent console spam.")
+        -- If the new effect is related to Rika, clean up its scripts immediately
+        if string.find(c.Name, "Rika") or c:FindFirstChild("Rika", true) then
+            -- Use GetDescendants() to find the script even if it's buried in folders/models
+            for _, descendant in ipairs(c:GetDescendants()) do
+                -- Checking for "BaseScript" catches LocalScripts, Scripts, and ModuleScripts
+                if descendant.Name == "Client" and descendant:IsA("BaseScript") then
+                    toclipboard(decompile(descendant))
+                    descendant.Disabled = true
+                    warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName())
+                end
             end
         end
 
-        -- Your original safe cleanup code continues below
+        -- Your original safe cleanup code
         task.delay(30, function()
             if c and c.Parent then
                 c:Destroy()
