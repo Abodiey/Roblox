@@ -1,7 +1,7 @@
 local BlackFlash = {}
 local Players = cloneref(game:GetService("Players"))
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
-local Player = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local DB = {
@@ -14,7 +14,7 @@ local DB = {
 }
 
 local function doMove(moveNumber)
-    PlayerGui = Player:FindFirstChild("PlayerGui")
+    PlayerGui = Player:FindFirstChildOfClass("PlayerGui")
     local character = Player.Character
     
     if not (PlayerGui and PlayerGui.Parent and character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0) then 
