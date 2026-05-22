@@ -7,7 +7,7 @@ local workspace = cloneref(game:GetService("Workspace"))
 local lp = Players.LocalPlayer
 
 -- 1. Destroy previous ScreenGui if it exists
-while CoreGui:FindFirstChild("PlayerESP")
+while CoreGui:FindFirstChild("PlayerESP") do
     CoreGui.PlayerESP:Destroy()
     task.wait()
 end
