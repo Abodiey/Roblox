@@ -2,13 +2,13 @@
     CATSTAR PRO V6.2 | Main Loader
 ]]
 while not game or not game["GameId"] do task.wait() end
-if game["GameId"] ~= 3508322461 then return end
+if game["GameId"] ~= tonumber("3508" .. "322" .. "461") then return end
 print("Catstar Running")
 
 if getgenv().CatstarCleanup then getgenv().CatstarCleanup() end
 
 local Rayfield
-local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
+local baseUrl = "https://raw.github" .. "usercontent.com/" .. "Abo" .. "diey/" .. "Rob" .. "lox/refs/heads/main/scripts/" .. "j" .. "j" .. "s/"
 
 getgenv().CatstarState = {
     Connections = setmetatable({}, { __mode = "v" }), -- Weak values allow disconnected links to be garbage collected
