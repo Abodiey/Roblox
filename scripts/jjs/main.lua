@@ -72,14 +72,6 @@ local function Load(name)
     return result
 end
 
-local Players = cloneref(game:GetService("Players"))
-
-local Player = Players.LocalPlayer
-while not Player do
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    Player = Players.LocalPlayer
-end
-
 local modules = {}
 for _, name in {"BlackFlash", "Ratio", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
     modules[name] = Load(name)
