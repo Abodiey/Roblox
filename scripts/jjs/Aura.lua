@@ -1,9 +1,9 @@
 local Aura = {}
 
-local TextChatService = game:GetService("TextChatService")
-local Chat = game:GetService("Chat")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local TextChatService = cloneref(game:GetService("TextChatService"))
+local Chat = cloneref(game:GetService("Chat"))
+local RunService = cloneref(game:GetService("RunService"))
+local Players = cloneref(game:GetService("Players"))
 
 local LRM = "\226\128\142" -- Left-to-Right Mark
 local RLM = "\226\128\143" -- Right-to-Left Mark
