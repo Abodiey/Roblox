@@ -43,10 +43,32 @@ getgenv().CatstarCleanup = function()
 end
 
 local function Load(name)
-    local success, result = pcall(function()
-        return loadstring(game:HttpGet(baseUrl .. name .. ".lua"))()
+    local success, rawCode = pcall(function()
+        return game:HttpGet(baseUrl .. name .. ".lua")
     end)
-    if not success then warn("Failed to load " .. name .. ": " .. tostring(result)) return nil end
+    
+    if not success then 
+        warn("Failed to fetch " .. name .. ": " .. tostring(rawCode)) 
+        return nil 
+    end
+    
+    -- Compile the code and name the chunk for clean console errors
+    local chunk, compileError = loadstring(rawCode, "=" .. name)
+    if compileError then 
+        warn("Syntax error in " .. name .. ": " .. compileError) 
+        return nil 
+    end
+    
+    -- Run it via xpcall using debug.traceback. 
+    -- This intercepts the error deep inside the script and returns the value if successful!
+    local runtimeSuccess, result = xpcall(chunk, debug.traceback)
+    
+    if not runtimeSuccess then 
+        warn("Runtime error in " .. name .. ":\n" .. tostring(result)) 
+        return nil 
+    end
+    
+    -- Successfully return the script's returned value/module
     return result
 end
 
