@@ -1,6 +1,7 @@
 local QTE = {}
 local VIM = cloneref(game:GetService("VirtualInputManager"))
-local Player = game.Players.LocalPlayer
+local Players = cloneref(game:GetService("Players"))
+local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 function QTE.Init(State)
@@ -16,7 +17,7 @@ function QTE.Init(State)
                             task.wait() task.wait()
                             VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game)
                         end
-                        task.wait(1/50)
+                        task.wait(1/35)
                     end
                 end)
             end
