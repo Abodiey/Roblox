@@ -2,7 +2,6 @@ local BlackFlash = {}
 local Players = cloneref(game:GetService("Players"))
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
 
 local DB = {
     [100962226150441] = {delay = 0.18, move = 3},
@@ -14,8 +13,8 @@ local DB = {
 }
 
 local function doMove(moveNumber)
-    PlayerGui = Player:FindFirstChildOfClass("PlayerGui")
-    local character = Player.Character
+    local PlayerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    local character = LocalPlayer.Character
     
     if not (PlayerGui and PlayerGui.Parent and character and character:FindFirstChild("Humanoid") and character.Humanoid.Health > 0) then 
         return 
@@ -79,11 +78,11 @@ function BlackFlash.Init(State)
         table.insert(State.Connections, conn)
     end
 
-    if Player.Character then 
-        setup(Player.Character) 
+    if LocalPlayer.Character then 
+        setup(LocalPlayer.Character) 
     end
     
-    local charAddedConn = Player.CharacterAdded:Connect(setup)
+    local charAddedConn = LocalPlayer.CharacterAdded:Connect(setup)
     table.insert(State.Connections, charAddedConn)
 end
 
