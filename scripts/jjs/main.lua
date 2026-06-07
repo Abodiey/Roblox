@@ -15,7 +15,7 @@ getgenv().CatstarState = {
     Connections = setmetatable({}, { __mode = "v" }), -- Weak values allow disconnected links to be garbage collected
     Toggles = { 
         BlackFlash = true, 
-        Ratio = true, 
+        Ratio = false, 
         Noclip = true, 
         DomainNoclip = true, 
         QTE = true, 
