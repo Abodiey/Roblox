@@ -1,7 +1,8 @@
 --[[ 
     CATSTAR PRO V6.2 | Main Loader
 ]]
-while not game or not game["GameId"] do task.wait() end
+print(game.GameId)
+while not game or not game["GameId"] or game["GameId"] == 0 do task.wait() end
 if game["GameId"] ~= tonumber("3508" .. "322" .. "461") then return end
 print("Catstar Running")
 
@@ -109,7 +110,7 @@ local tabs = {
 
 local UI_Map = {
     BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
-    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
+    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
     Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Noclip = v end}},
     DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DomainNoclip = v end}},
     QTE          = {tabs.Combat, "Toggle",  {Name = "Auto QTE", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.QTE = v end}},
@@ -162,7 +163,7 @@ if Effects then
     end)
 end
 
-local Beams = workspace:WaitForChild("Effects", 30)
+local Beams = workspace:WaitForChild("Beams", 30)
 if Beams then
     Beams.ChildAdded:Connect(function(c)
         task.delay(60, function() if c and c.Parent then c:Destroy() end end)
