@@ -1,7 +1,6 @@
 --[[ 
     CATSTAR PRO V6.2 | Main Loader
 ]]
-print(game.GameId)
 while not game or not game["GameId"] or game["GameId"] == 0 do task.wait() end
 if game["GameId"] ~= tonumber("3508" .. "322" .. "461") then return end
 print("Catstar Running")
