@@ -13,7 +13,7 @@ local baseUrl = "https://raw.github" .. "usercontent.com/" .. "Abo" .. "diey/" .
 getgenv().CatstarState = {
     Connections = setmetatable({}, { __mode = "v" }), -- Weak values allow disconnected links to be garbage collected
     Toggles = { 
-        BlackFlash = true, 
+        BlackFlash = false, 
         Ratio = false, 
         Noclip = true, 
         DomainNoclip = true, 
@@ -108,7 +108,7 @@ local tabs = {
 }
 
 local UI_Map = {
-    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
+    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
     Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
     Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Noclip = v end}},
     DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DomainNoclip = v end}},
