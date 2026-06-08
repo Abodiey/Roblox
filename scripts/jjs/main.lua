@@ -43,10 +43,33 @@ getgenv().CatstarCleanup = function()
 end
 
 local function Load(name)
-    local success, rawCode = pcall(function()
-        return game:HttpGet(baseUrl .. name .. ".lua")
-    end)
+    local success, rawCode
+    local url = baseUrl .. name .. ".lua"
+
+    -- Check if the executor's global 'request' function exists
+    if type(request) == "function" then
+        local reqSuccess, response = pcall(function()
+            return request({
+                Url = url,
+                Method = "GET"
+            })
+        end)
+        
+        success = reqSuccess and type(response) == "table" and response.StatusCode == 200
+        if success then
+            rawCode = response.Body
+        else
+            -- Capture error message from pcall or status code mismatch
+            rawCode = not reqSuccess and tostring(response) or (response and "Status " .. tostring(response.StatusCode) or "Unknown error")
+        end
+    else
+        -- Fallback to game.HttpGet if request doesn't exist
+        success, rawCode = pcall(function()
+            return game.HttpGet(game, url)
+        end)
+    end
     
+    -- Verify we successfully grabbed a string of code
     if not success or type(rawCode) ~= "string" then 
         warn("Failed to fetch " .. name .. ": " .. tostring(rawCode)) 
         return nil 
