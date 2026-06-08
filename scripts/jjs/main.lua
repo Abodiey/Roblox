@@ -47,7 +47,7 @@ local function Load(name)
         return game:HttpGet(baseUrl .. name .. ".lua")
     end)
     
-    if not success then 
+    if not success or type(rawCode) ~= "string" then 
         warn("Failed to fetch " .. name .. ": " .. tostring(rawCode)) 
         return nil 
     end
