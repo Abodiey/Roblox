@@ -135,8 +135,16 @@ function ESP.Init(State)
                     local killCol = getGradientColor(1 - (kills / 1000))
                     local distCol = getGradientColor(dist / 800)
 
+                    -- Fetch character moveset attribute and prepend it if it exists
+                    local movesetAttr = char:GetAttribute("Moveset")
+                    local movesetDisplay = ""
+                    if movesetAttr and movesetAttr ~= "" then
+                        movesetDisplay = "<b><font color='#00FF80'>" .. tostring(movesetAttr) .. "</font></b>\n"
+                    end
+
                     c.Text.Text = string.format(
-                        "%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>",
+                        "%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>",
+                        movesetDisplay,
                         nameDisplay,
                         toHex(killCol), formatVal(kills),
                         toHex(distCol), formatVal(math.floor(dist))
