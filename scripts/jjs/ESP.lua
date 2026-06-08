@@ -139,6 +139,7 @@ function ESP.Init(State)
                     local movesetAttr = char:GetAttribute("Moveset")
                     local movesetDisplay = ""
                     if movesetAttr and movesetAttr ~= "" then
+                        if moveset:FindFirstChild("Custom") then movesetAttr = "Custom" end
                         movesetDisplay = "<b><font color='#00FF80'>" .. tostring(movesetAttr) .. "</font></b>\n"
                     end
 
