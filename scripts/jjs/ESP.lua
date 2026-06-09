@@ -1,24 +1,45 @@
 local ESP = {}
 
 -- Localize Services & Core API
+local cloneref = cloneref
+local game = game
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local workspace = cloneref(game:GetService("Workspace"))
 
 -- Localize Global Engine Functions
+local task = task
 local t_wait = task.wait
+local Instance = Instance
 local inst_new = Instance.new
 local type = type
-local v2_new = Vector2.new
-local v3_new = Vector3.new
-local ud2_new = UDim2.new
-local c3_new = Color3.new
+local tostring = tostring
+local ipairs = ipairs
+local pairs = pairs
+local table = table
+local table_insert = table.insert
+local table_clear = table.clear
+
+-- Localize Math & String Libraries
+local math = math
 local m_clamp = math.clamp
 local m_floor = math.floor
 local m_deg = math.deg
 local m_atan2 = math.atan2
+local string = string
 local s_format = string.format
+
+-- Localize Roblox Datatypes
+local Vector2 = Vector2
+local v2_new = Vector2.new
+local Vector3 = Vector3
+local v3_new = Vector3.new
+local UDim2 = UDim2
+local ud2_new = UDim2.new
+local Color3 = Color3
+local c3_new = Color3.new
+local Enum = Enum
 
 local lp = Players.LocalPlayer
 
@@ -41,6 +62,30 @@ local COLOR_RED = c3_new(1, 0, 0)
 local COLOR_YELLOW = c3_new(1, 1, 0)
 local COLOR_GREEN = c3_new(0, 1, 0)
 local COLOR_WHITE = c3_new(1, 1, 1)
+
+-- JJK Character Moveset Color Map (Thematic Hex Codes)
+local MOVESET_COLORS = {
+    ["Gojo"]       = "A020F0", -- Hollow Purple
+    ["Itadori"]    = "FF4500", -- Divergent Fist / Black Flash Orange
+    ["Hakari"]     = "39FF14", -- Neon Jackpot Green
+    ["Megumi"]     = "104E8B", -- Shadow Deep Blue
+    ["Mahito"]     = "40E0D0", -- Idle Transfiguration Cyan
+    ["Choso"]      = "8B0000", -- Blood Manipulation Dark Red
+    ["Todo"]       = "FFD700", -- Boogie Woogie Gold
+    ["Hiromi"]     = "708090", -- Deadly Sentencing Slate/Gavel Grey
+    ["Yuta"]       = "E066FF", -- Cursed Energy Ring Pink
+    ["Mechamaru"]  = "CD7F32", -- Puppet Bronze
+    ["Naoya"]      = "EEEE00", -- Projection Sorcery Flash Yellow
+    ["Hanami"]     = "228B22", -- Disaster Plants Forest Green
+    ["Ryu"]        = "FF00FF", -- Granite Blast Magenta
+    ["Locust"]     = "556B2F", -- Locust Plague Dark Olive
+    ["Yuki"]       = "FF8C00", -- Star Rage Heavy Dark Orange
+    ["Charles"]    = "458B74", -- G-Pen Turquoise
+    ["Haruta"]     = "FFB90F", -- Miracle Yellow
+    ["MeiMei"]     = "1C1C1C", -- Bird Strike Crow Black / Dark Charcoal
+    ["Kurourushi"] = "4A2E1B", -- Insectoid Roachy Brown
+    ["Custom"]     = "00FF80", -- Default Fallback Color if "Custom" instance overrides
+}
 
 local function getGradientColor(percent)
     percent = m_clamp(percent, 0, 1)
@@ -67,7 +112,7 @@ local function CreateAssets(p)
     -- Main Text Element Layout
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 250, 0, 50)
+    bill.Size = ud2_new(0, 250, 0, 65)
     bill.ExtentsOffset = v3_new(0, 3.5, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
@@ -108,15 +153,16 @@ local function CreateAssets(p)
     hFill.Parent = hBack
     assets.HealthFill = hFill
     
-    -- Clean connection trackers
+    -- Connection trackers
     assets.Connections = {}
-    assets.CharacterConnections = {} -- Specifically handles life/death cycle signals
+    assets.CharacterConnections = {} 
     
     -- Dynamic variable caching
     assets.LastDist = 0
     assets.CachedKills = 0
     assets.CachedMoveset = ""
     assets.NameDisplay = ""
+    assets.UltDisplay = ""
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
@@ -133,7 +179,6 @@ local function CleanupCacheEntry(p, assets)
     Cache[p] = nil
 end
 
--- Sets up connections that persist across respawns (like Kills tracking)
 local function SetupPlayerSignals(p, assets)
     local function watchKills(leaderstats)
         local killsVal = leaderstats:FindFirstChild("Kills")
@@ -143,7 +188,7 @@ local function SetupPlayerSignals(p, assets)
                 local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
                 assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
             end
-            table.insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
+            table_insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
             updateKills()
         end
     end
@@ -159,14 +204,13 @@ local function SetupPlayerSignals(p, assets)
                 lConn:Disconnect()
             end
         end)
-        table.insert(assets.Connections, lConn)
+        table_insert(assets.Connections, lConn)
     end
 end
 
--- Sets up connections that must reset whenever they respawn
 local function SetupCharacterSignals(assets, char, hum)
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
-    table.clear(assets.CharacterConnections)
+    table_clear(assets.CharacterConnections)
 
     if not hum then return end
 
@@ -177,8 +221,8 @@ local function SetupCharacterSignals(assets, char, hum)
         assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
     end
     
-    table.insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("Health"):Connect(updateHealth))
-    table.insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
+    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("Health"):Connect(updateHealth))
+    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
     updateHealth()
 end
 
@@ -221,14 +265,13 @@ function ESP.Init(State)
                     SetupPlayerSignals(p, c)
                     SetupCharacterSignals(c, char, hum)
                     
-                    -- Track character respawning to refresh signals natively
                     local respawnConn
                     respawnConn = p.CharacterAdded:Connect(function(newChar)
                         if not Cache[p] then respawnConn:Disconnect() return end
                         local newHum = newChar:WaitForChild("Humanoid", 3)
                         SetupCharacterSignals(Cache[p], newChar, newHum)
                     end)
-                    table.insert(c.Connections, respawnConn)
+                    table_insert(c.Connections, respawnConn)
                 end
                 
                 local p2, vis2 = cam:WorldToViewportPoint(root.Position)
@@ -257,20 +300,34 @@ function ESP.Init(State)
                         local dist = (currentRootPos - root.Position).Magnitude
                         c.LastDist = dist
                         
-                        c.NameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
+                        -- Attribute Checks: InUlt & Dead
+                        local isDead = char:GetAttribute("Dead")
+                        local inUlt = char:GetAttribute("InUlt")
+                        
+                        -- Ult Text Handler
+                        c.UltDisplay = inUlt and "<b><font color='#FF007F'>[Ult]</font></b>\n" or ""
+                        
+                        -- Name Formatting with Dead color fallback
+                        if isDead then
+                            c.NameDisplay = "<b><font color='#FF0000'>" .. p.Name .. "</font></b> "
+                        else
+                            c.NameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
+                        end
                         
                         local distCol = getGradientColor(dist / 800)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Moveset attribute verification
+                        -- Moveset attribute verification & color translation lookup
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
                             local movesetInstance = char:FindFirstChild("Moveset")
                             if movesetInstance and movesetInstance:FindFirstChild("Custom") then 
                                 movesetAttr = "Custom" 
                             end
-                            c.CachedMoveset = "<b><font color='#00FF80'>" .. tostring(movesetAttr) .. "</font></b>\n"
+                            
+                            local hexColor = MOVESET_COLORS[movesetAttr] or MOVESET_COLORS["Custom"]
+                            c.CachedMoveset = "<b><font color='#" .. hexColor .. "'>" .. tostring(movesetAttr) .. "</font></b>\n"
                         else
                             c.CachedMoveset = ""
                         end
@@ -288,8 +345,8 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Core Text Display update
-                    c.Text.Text = c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. "]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
+                    -- Consolidated Concatenation Render
+                    c.Text.Text = c.UltDisplay .. c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. "]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
@@ -307,7 +364,7 @@ function ESP.Init(State)
             end
         end
     end)
-    table.insert(State.Connections, conn)
+    table_insert(State.Connections, conn)
 end
 
 return ESP
