@@ -140,7 +140,7 @@ local function CreateAssets(p)
     
     local stroke = inst_new("UIStroke")
     stroke.Thickness = 0.5
-    stroke.Color = COLOR_BLACK
+    stroke.Color = COLOR_BLACK -- Stays globally black for uniform fallback readability
     stroke.Parent = txt
     assets.Stroke = stroke
     
@@ -179,7 +179,6 @@ local function CreateAssets(p)
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
-    assets.TargetStrokeColor = COLOR_BLACK
     
     return assets
 end
@@ -332,7 +331,7 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Moveset attribute verification & dynamic outline adjustment
+                        -- Moveset attribute verification
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
                             local movesetInstance = char:FindFirstChild("Moveset")
@@ -341,17 +340,21 @@ function ESP.Init(State)
                             end
                             
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
-                            c.CachedMoveset = "<b><font color='#" .. hexColor .. "'>" .. tostring(movesetAttr) .. "</font></b>\n"
-                            c.TargetStrokeColor = DARK_MOVESETS[movesetAttr] and COLOR_WHITE or COLOR_BLACK
+                            
+                            -- Use the rich text <stroke> tag directly to wrap isolated outline colors natively 
+                            if DARK_MOVESETS[movesetAttr] then
+                                c.CachedMoveset = s_format("<b><stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke></b>\n", hexColor, tostring(movesetAttr))
+                            else
+                                c.CachedMoveset = s_format("<b><font color='#%s'>%s</font></b>\n", hexColor, tostring(movesetAttr))
+                            end
                         else
                             c.CachedMoveset = ""
-                            c.TargetStrokeColor = COLOR_BLACK
                         end
                     end
                     
                     local currentDist = c.LastDist
 
-                    -- 2D Line Line Calculations (Calculated dynamically every frame for updates)
+                    -- 2D Line Line Calculations
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
@@ -360,11 +363,8 @@ function ESP.Init(State)
                     c.Line.Size = ud2_new(0, mag, 0, 1)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
-                    
-                    -- Render frame structural mutations
-                    c.Stroke.Color = c.TargetStrokeColor
 
-                    -- Formatting via explicit layout instead of broken quote con-cats
+                    -- Output data using structured string formatter
                     c.Text.Text = s_format("%s%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>", 
                         c.UltDisplay, 
                         c.CachedMoveset, 
