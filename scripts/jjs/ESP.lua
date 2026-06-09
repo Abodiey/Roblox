@@ -1,113 +1,224 @@
 local ESP = {}
+
+-- Localize Services & Core API
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local workspace = cloneref(game:GetService("Workspace"))
 
+-- Localize Global Engine Functions
+local t_wait = task.wait
+local inst_new = Instance.new
+local type = type
+local v2_new = Vector2.new
+local v3_new = Vector3.new
+local ud2_new = UDim2.new
+local c3_new = Color3.new
+local m_clamp = math.clamp
+local m_floor = math.floor
+local m_deg = math.deg
+local m_atan2 = math.atan2
+local s_format = string.format
+
 local lp = Players.LocalPlayer
 
--- 1. Destroy previous ScreenGui if it exists
+-- Clean previous asset hierarchy
 while CoreGui:FindFirstChild("PlayerESP") do
     CoreGui.PlayerESP:Destroy()
-    task.wait()
+    t_wait()
 end
 
-local ScreenGui = Instance.new("ScreenGui")
+local ScreenGui = inst_new("ScreenGui")
 ScreenGui.Name = "PlayerESP"
-ScreenGui.IgnoreGuiInset = true -- 3. Ignore Gui Inset for perfect alignment
+ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = CoreGui
 
 local Cache = {}
+local FrameTick = 0 
 
-local function toHex(color)
-    return string.format("%02x%02x%02x", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
-end
+-- Cached static color bounds
+local COLOR_RED = c3_new(1, 0, 0)
+local COLOR_YELLOW = c3_new(1, 1, 0)
+local COLOR_GREEN = c3_new(0, 1, 0)
+local COLOR_WHITE = c3_new(1, 1, 1)
 
 local function getGradientColor(percent)
-    percent = math.clamp(percent, 0, 1)
+    percent = m_clamp(percent, 0, 1)
     if percent > 0.5 then
-        return Color3.new(1, 1, 0):Lerp(Color3.new(0, 1, 0), (percent - 0.5) * 2)
+        return COLOR_YELLOW:Lerp(COLOR_GREEN, (percent - 0.5) * 2)
     end
-    return Color3.new(1, 0, 0):Lerp(Color3.new(1, 1, 0), percent * 2)
+    return COLOR_RED:Lerp(COLOR_YELLOW, percent * 2)
 end
 
 local function formatVal(val)
-    return val >= 1000 and string.format("%.1fk", val / 1000) or tostring(val)
+    return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
 end
 
 local function CreateAssets(p)
     local assets = {}
     
-    -- Tracer
-    assets.Line = Instance.new("Frame", ScreenGui)
-    assets.Line.BorderSizePixel = 0
-    assets.Line.AnchorPoint = Vector2.new(0.5, 0.5)
+    -- Tracer Frame
+    local line = inst_new("Frame")
+    line.BorderSizePixel = 0
+    line.AnchorPoint = v2_new(0.5, 0.5)
+    line.Parent = ScreenGui
+    assets.Line = line
     
-    -- Main Info (Billboard)
-    assets.Bill = Instance.new("BillboardGui", ScreenGui)
-    assets.Bill.AlwaysOnTop = true
-    assets.Bill.Size = UDim2.new(0, 250, 0, 50)
-    assets.Bill.ExtentsOffset = Vector3.new(0, 3.5, 0)
+    -- Main Text Element Layout
+    local bill = inst_new("BillboardGui")
+    bill.AlwaysOnTop = true
+    bill.Size = ud2_new(0, 250, 0, 50)
+    bill.ExtentsOffset = v3_new(0, 3.5, 0)
+    bill.Parent = ScreenGui
+    assets.Bill = bill
     
-    assets.Text = Instance.new("TextLabel", assets.Bill)
-    assets.Text.Size = UDim2.new(1, 0, 1, 0)
-    assets.Text.BackgroundTransparency = 1
-    assets.Text.TextColor3 = Color3.new(1, 1, 1)
-    assets.Text.RichText = true
-    assets.Text.Font = Enum.Font.RobotoMono
-    assets.Text.TextSize = 15
-    Instance.new("UIStroke", assets.Text).Thickness = 0.5
+    local txt = inst_new("TextLabel")
+    txt.Size = ud2_new(1, 0, 1, 0)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = COLOR_WHITE
+    txt.RichText = true
+    txt.Font = Enum.Font.RobotoMono
+    txt.TextSize = 15
+    txt.Parent = bill
+    assets.Text = txt
     
-    -- 4. Health Bar (Billboard)
-    assets.HealthBill = Instance.new("BillboardGui", ScreenGui)
-    assets.HealthBill.AlwaysOnTop = true
-    assets.HealthBill.Size = UDim2.new(0, 4, 0, 40)
-    assets.HealthBill.ExtentsOffset = Vector3.new(-2.5, 0, 0) -- Positioned to the side
+    local stroke = inst_new("UIStroke")
+    stroke.Thickness = 0.5
+    stroke.Parent = txt
     
-    assets.HealthBack = Instance.new("Frame", assets.HealthBill)
-    assets.HealthBack.Size = UDim2.new(1, 0, 1, 0)
-    assets.HealthBack.BackgroundColor3 = Color3.new(0, 0, 0)
-    assets.HealthBack.BorderSizePixel = 0
+    -- Health Bar Element Layout
+    local hBill = inst_new("BillboardGui")
+    hBill.AlwaysOnTop = true
+    hBill.Size = ud2_new(0, 4, 0, 40)
+    hBill.ExtentsOffset = v3_new(-2.5, 0, 0)
+    hBill.Parent = ScreenGui
+    assets.HealthBill = hBill
     
-    assets.HealthFill = Instance.new("Frame", assets.HealthBack)
-    assets.HealthFill.Size = UDim2.new(1, 0, 1, 0)
-    assets.HealthFill.AnchorPoint = Vector2.new(0, 1)
-    assets.HealthFill.Position = UDim2.new(0, 0, 1, 0)
-    assets.HealthFill.BorderSizePixel = 0
+    local hBack = inst_new("Frame")
+    hBack.Size = ud2_new(1, 0, 1, 0)
+    hBack.BackgroundColor3 = c3_new(0, 0, 0)
+    hBack.BorderSizePixel = 0
+    hBack.Parent = hBill
+    
+    local hFill = inst_new("Frame")
+    hFill.Size = ud2_new(1, 0, 1, 0)
+    hFill.AnchorPoint = v2_new(0, 1)
+    hFill.Position = ud2_new(0, 0, 1, 0)
+    hFill.BorderSizePixel = 0
+    hFill.Parent = hBack
+    assets.HealthFill = hFill
+    
+    -- Clean connection trackers
+    assets.Connections = {}
+    
+    -- Dynamic variable caching
+    assets.LastDist = 0
+    assets.CachedKills = 0
+    assets.CachedMoveset = ""
+    assets.NameDisplay = ""
+    assets.LineColor = COLOR_GREEN
+    assets.HexKillColor = "ffffff"
+    assets.HexDistColor = "ffffff"
     
     return assets
 end
 
+local function CleanupCacheEntry(p, assets)
+    for _, conn in ipairs(assets.Connections) do
+        conn:Disconnect()
+    end
+    if assets.Line then assets.Line:Destroy() end
+    if assets.Bill then assets.Bill:Destroy() end
+    if assets.HealthBill then assets.HealthBill:Destroy() end
+    Cache[p] = nil
+end
+
+local function SetupEventSignals(p, assets, char, hum)
+    -- Clean up any lingering old connections first
+    for _, conn in ipairs(assets.Connections) do conn:Disconnect() end
+    table.clear(assets.Connections)
+
+    -- Health & MaxHealth Changed Signals
+    local function updateHealth()
+        if not hum or not assets.HealthFill then return end
+        local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
+        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
+        assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
+    end
+    
+    table.insert(assets.Connections, hum:GetPropertyChangedSignal("Health"):Connect(updateHealth))
+    table.insert(assets.Connections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
+    updateHealth()
+
+    -- Kills Property Changed Signal Listener Setup
+    local function watchKills(leaderstats)
+        local killsVal = leaderstats:FindFirstChild("Kills")
+        if killsVal then
+            local function updateKills()
+                assets.CachedKills = killsVal.Value
+                local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
+                assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
+            end
+            table.insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
+            updateKills()
+        end
+    end
+
+    local leaderstats = p:FindFirstChild("leaderstats")
+    if leaderstats then
+        watchKills(leaderstats)
+    else
+        local lConn
+        lConn = p.ChildAdded:Connect(function(child)
+            if child.Name == "leaderstats" then
+                watchKills(child)
+                lConn:Disconnect()
+            end
+        end)
+        table.insert(assets.Connections, lConn)
+    end
+end
+
 function ESP.Init(State)
     local conn = RunService.RenderStepped:Connect(function()
-        if not State.Toggles.Esp then ScreenGui.Enabled = false return end
+        if not State.Toggles.Esp then 
+            ScreenGui.Enabled = false 
+            return 
+        end
         ScreenGui.Enabled = true
 
         local cam = workspace.CurrentCamera
-        local myRoot = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+        local viewportSize = cam.ViewportSize
+        
+        local char_lp = lp.Character
+        local myRoot = char_lp and char_lp:FindFirstChild("HumanoidRootPart")
+        
+        FrameTick = FrameTick + 1
+        local shouldUpdateHeavy = (FrameTick % 2 == 0)
 
+        -- Clean stale player visual objects
         for p, assets in pairs(Cache) do
             if not p or not p.Parent or not p.Character then
-                assets.Line:Destroy()
-                assets.Bill:Destroy()
-                assets.HealthBill:Destroy()
-                Cache[p] = nil
+                CleanupCacheEntry(p, assets)
             end
         end
 
+        -- Main loop over game targets
         for _, p in pairs(Players:GetPlayers()) do
             if p == lp then continue end
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
             local root = char and char:FindFirstChild("HumanoidRootPart")
 
-            if root and hum and myRoot then
-                if not Cache[p] then Cache[p] = CreateAssets(p) end
+            if root and hum then
                 local c = Cache[p]
+                if not c then 
+                    c = CreateAssets(p)
+                    Cache[p] = c 
+                    SetupEventSignals(p, c, char, hum)
+                end
                 
-                local p1, _ = cam:WorldToViewportPoint(myRoot.Position)
                 local p2, vis2 = cam:WorldToViewportPoint(root.Position)
-                local dist = (myRoot.Position - root.Position).Magnitude
 
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
@@ -118,42 +229,54 @@ function ESP.Init(State)
                     c.Bill.Adornee = root
                     c.HealthBill.Adornee = root
 
-                    -- Tracer
-                    local startVec = Vector2.new(p1.X, p1.Y)
-                    local endVec = Vector2.new(p2.X, p2.Y)
-                    local diff = endVec - startVec
-                    c.Line.BackgroundColor3 = getGradientColor(dist / 600)
-                    c.Line.Size = UDim2.new(0, diff.Magnitude, 0, 1)
-                    c.Line.Position = UDim2.new(0, (startVec.X + endVec.X) / 2, 0, (startVec.Y + endVec.Y) / 2)
-                    c.Line.Rotation = math.deg(math.atan2(diff.Y, diff.X))
-
-                    -- Stats & 2. Username Hide Logic
-                    local kills = p:FindFirstChild("leaderstats") and p.leaderstats:FindFirstChild("Kills") and p.leaderstats.Kills.Value or 0
-                    local hpPerc = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
-                    
-                    local nameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
-                    local killCol = getGradientColor(1 - (kills / 1000))
-                    local distCol = getGradientColor(dist / 800)
-
-                    -- Fetch character moveset attribute and prepend it if it exists
-                    local movesetAttr = char:GetAttribute("Moveset")
-                    local movesetDisplay = ""
-                    if movesetAttr and movesetAttr ~= "" then
-                        if moveset:FindFirstChild("Custom") then movesetAttr = "Custom" end
-                        movesetDisplay = "<b><font color='#00FF80'>" .. tostring(movesetAttr) .. "</font></b>\n"
+                    -- Define the starting viewport coordinates (Origin point)
+                    local sX, sY
+                    if myRoot then
+                        local p1, _ = cam:WorldToViewportPoint(myRoot.Position)
+                        sX, sY = p1.X, p1.Y
+                    else
+                        sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
                     end
 
-                    c.Text.Text = string.format(
-                        "%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>",
-                        movesetDisplay,
-                        nameDisplay,
-                        toHex(killCol), formatVal(kills),
-                        toHex(distCol), formatVal(math.floor(dist))
-                    )
+                    -- Throttled calculations (Every 2 Frames)
+                    if shouldUpdateHeavy then
+                        local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
+                        local dist = (currentRootPos - root.Position).Magnitude
+                        c.LastDist = dist
+                        
+                        c.NameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
+                        
+                        local distCol = getGradientColor(dist / 800)
+                        c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
+                        c.LineColor = getGradientColor(dist / 600)
+                        
+                        -- Moveset attribute verification
+                        local movesetAttr = char:GetAttribute("Moveset")
+                        if movesetAttr and movesetAttr ~= "" then
+                            local movesetInstance = char:FindFirstChild("Moveset")
+                            if movesetInstance and movesetInstance:FindFirstChild("Custom") then 
+                                movesetAttr = "Custom" 
+                            end
+                            c.CachedMoveset = "<b><font color='#00FF80'>" .. tostring(movesetAttr) .. "</font></b>\n"
+                        else
+                            c.CachedMoveset = ""
+                        end
+                    end
+                    
+                    local currentDist = c.LastDist
 
-                    -- 4. Health Bar Update
-                    c.HealthFill.Size = UDim2.new(1, 0, hpPerc, 0)
-                    c.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
+                    -- 2D Line Line Calculations (Calculated dynamically every frame for updates)
+                    local eX, eY = p2.X, p2.Y
+                    local diffX, diffY = eX - sX, eY - sY
+                    local mag = (diffX * diffX + diffY * diffY) ^ 0.5
+                    
+                    c.Line.BackgroundColor3 = c.LineColor
+                    c.Line.Size = ud2_new(0, mag, 0, 1)
+                    c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
+                    c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
+
+                    -- Corrected Concatenation Layout
+                    c.Text.Text = c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. "]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
@@ -162,11 +285,12 @@ function ESP.Init(State)
                     c.HealthFill.Visible = false
                 end
             elseif Cache[p] then
-                Cache[p].Line.Visible = false
-                Cache[p].Bill.Enabled = false
-                Cache[p].HealthBill.Enabled = false
-                Cache[p].HealthFill.Visible = false
-                Cache[p].Text.Visible = true
+                local c = Cache[p]
+                c.Line.Visible = false
+                c.Bill.Enabled = false
+                c.HealthBill.Enabled = false
+                c.HealthFill.Visible = false
+                c.Text.Visible = true
             end
         end
     end)
