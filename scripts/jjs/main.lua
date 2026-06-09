@@ -1,14 +1,14 @@
 --[[ 
     CATSTAR PRO V6.2 | Main Loader
 ]]
-while not game or not game["GameId"] or game["GameId"] == 0 do task.wait() end
-if game["GameId"] ~= tonumber("3508" .. "322" .. "461") then return end
+repeat task.wait() until game and game.GameId and game.GameId ~= 0
+if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
 if getgenv().CatstarCleanup then getgenv().CatstarCleanup() end
 
 local Rayfield
-local baseUrl = "https://raw.github" .. "usercontent.com/" .. "Abo" .. "diey/" .. "Rob" .. "lox/refs/heads/main/scripts/" .. "j" .. "j" .. "s/"
+local baseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
 getgenv().CatstarState = {
     Connections = setmetatable({}, { __mode = "v" }), -- Weak values allow disconnected links to be garbage collected
@@ -29,6 +29,7 @@ getgenv().CatstarState = {
     TargetIdentifier = ""
 }
 
+getgenv().cloneref = cloneref or function(o) return o end
 local CoreGui = cloneref(game:GetService("CoreGui"))
 
 getgenv().CatstarCleanup = function()
@@ -47,7 +48,7 @@ local function Load(name)
     local url = baseUrl .. name .. ".lua"
 
     -- Check if the executor's global 'request' function exists
-    if type(request) == "function" then
+    if request then
         local reqSuccess, response = pcall(function()
             return request({
                 Url = url,
