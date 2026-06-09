@@ -110,6 +110,7 @@ local function CreateAssets(p)
     
     -- Clean connection trackers
     assets.Connections = {}
+    assets.CharacterConnections = {} -- Specifically handles life/death cycle signals
     
     -- Dynamic variable caching
     assets.LastDist = 0
@@ -124,33 +125,16 @@ local function CreateAssets(p)
 end
 
 local function CleanupCacheEntry(p, assets)
-    for _, conn in ipairs(assets.Connections) do
-        conn:Disconnect()
-    end
+    for _, conn in ipairs(assets.Connections) do conn:Disconnect() end
+    for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
     if assets.HealthBill then assets.HealthBill:Destroy() end
     Cache[p] = nil
 end
 
-local function SetupEventSignals(p, assets, char, hum)
-    -- Clean up any lingering old connections first
-    for _, conn in ipairs(assets.Connections) do conn:Disconnect() end
-    table.clear(assets.Connections)
-
-    -- Health & MaxHealth Changed Signals
-    local function updateHealth()
-        if not hum or not assets.HealthFill then return end
-        local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
-        assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
-    end
-    
-    table.insert(assets.Connections, hum:GetPropertyChangedSignal("Health"):Connect(updateHealth))
-    table.insert(assets.Connections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
-    updateHealth()
-
-    -- Kills Property Changed Signal Listener Setup
+-- Sets up connections that persist across respawns (like Kills tracking)
+local function SetupPlayerSignals(p, assets)
     local function watchKills(leaderstats)
         local killsVal = leaderstats:FindFirstChild("Kills")
         if killsVal then
@@ -179,6 +163,25 @@ local function SetupEventSignals(p, assets, char, hum)
     end
 end
 
+-- Sets up connections that must reset whenever they respawn
+local function SetupCharacterSignals(assets, char, hum)
+    for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
+    table.clear(assets.CharacterConnections)
+
+    if not hum then return end
+
+    local function updateHealth()
+        if not assets.HealthFill then return end
+        local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
+        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
+        assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
+    end
+    
+    table.insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("Health"):Connect(updateHealth))
+    table.insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateHealth))
+    updateHealth()
+end
+
 function ESP.Init(State)
     local conn = RunService.RenderStepped:Connect(function()
         if not State.Toggles.Esp then 
@@ -198,7 +201,7 @@ function ESP.Init(State)
 
         -- Clean stale player visual objects
         for p, assets in pairs(Cache) do
-            if not p or not p.Parent or not p.Character then
+            if not p or not p.Parent then
                 CleanupCacheEntry(p, assets)
             end
         end
@@ -215,7 +218,17 @@ function ESP.Init(State)
                 if not c then 
                     c = CreateAssets(p)
                     Cache[p] = c 
-                    SetupEventSignals(p, c, char, hum)
+                    SetupPlayerSignals(p, c)
+                    SetupCharacterSignals(c, char, hum)
+                    
+                    -- Track character respawning to refresh signals natively
+                    local respawnConn
+                    respawnConn = p.CharacterAdded:Connect(function(newChar)
+                        if not Cache[p] then respawnConn:Disconnect() return end
+                        local newHum = newChar:WaitForChild("Humanoid", 3)
+                        SetupCharacterSignals(Cache[p], newChar, newHum)
+                    end)
+                    table.insert(c.Connections, respawnConn)
                 end
                 
                 local p2, vis2 = cam:WorldToViewportPoint(root.Position)
@@ -275,7 +288,7 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Corrected Concatenation Layout
+                    -- Core Text Display update
                     c.Text.Text = c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. "]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
                 else
                     c.Line.Visible = false
