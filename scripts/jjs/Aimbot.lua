@@ -1,4 +1,3 @@
-getgenv().cloneref = cloneref or function(o) return o end
 local Aimbot = {}
 
 local Players = cloneref(game:GetService("Players"))
