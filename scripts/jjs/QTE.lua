@@ -17,7 +17,7 @@ function QTE.Init(State)
                             task.wait() task.wait()
                             VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game)
                         end
-                        task.wait(1/35)
+                        task.wait(1/10)
                     end
                 end)
             end
