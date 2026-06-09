@@ -62,29 +62,40 @@ local COLOR_RED = c3_new(1, 0, 0)
 local COLOR_YELLOW = c3_new(1, 1, 0)
 local COLOR_GREEN = c3_new(0, 1, 0)
 local COLOR_WHITE = c3_new(1, 1, 1)
+local COLOR_BLACK = c3_new(0, 0, 0)
 
--- JJK Character Moveset Color Map (Thematic Hex Codes)
+-- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
-    ["Gojo"]       = "A020F0", -- Hollow Purple
-    ["Itadori"]    = "FF4500", -- Divergent Fist / Black Flash Orange
-    ["Hakari"]     = "39FF14", -- Neon Jackpot Green
-    ["Megumi"]     = "104E8B", -- Shadow Deep Blue
-    ["Mahito"]     = "40E0D0", -- Idle Transfiguration Cyan
-    ["Choso"]      = "8B0000", -- Blood Manipulation Dark Red
-    ["Todo"]       = "FFD700", -- Boogie Woogie Gold
-    ["Hiromi"]     = "708090", -- Deadly Sentencing Slate/Gavel Grey
-    ["Yuta"]       = "E066FF", -- Cursed Energy Ring Pink
-    ["Mechamaru"]  = "CD7F32", -- Puppet Bronze
-    ["Naoya"]      = "EEEE00", -- Projection Sorcery Flash Yellow
-    ["Hanami"]     = "228B22", -- Disaster Plants Forest Green
-    ["Ryu"]        = "FF00FF", -- Granite Blast Magenta
-    ["Locust"]     = "556B2F", -- Locust Plague Dark Olive
-    ["Yuki"]       = "FF8C00", -- Star Rage Heavy Dark Orange
-    ["Charles"]    = "458B74", -- G-Pen Turquoise
-    ["Haruta"]     = "FFB90F", -- Miracle Yellow
-    ["MeiMei"]     = "1C1C1C", -- Bird Strike Crow Black / Dark Charcoal
-    ["Kurourushi"] = "4A2E1B", -- Insectoid Roachy Brown
-    ["Custom"]     = "00FF80", -- Default Fallback Color if "Custom" instance overrides
+    ["Gojo"]       = "55FFFF",
+    ["Itadori"]    = "FF0000",
+    ["Hakari"]     = "55FF7F",
+    ["Megumi"]     = "2D2D2D",
+    ["Mahito"]     = "AAAAFF",
+    ["Choso"]      = "820000",
+    ["Todo"]       = "86D7FF",
+    ["Hiromi"]     = "B3823D",
+    ["Yuta"]       = "FFAAFF",
+    ["Mechamaru"]  = "E10A4B",
+    ["Naoya"]      = "BCBCFF",
+    ["Nanami"]     = "83CBC7",
+    ["Hanami"]     = "ACCBA3",
+    ["Ryu"]        = "AAFFFF",
+    ["Locust"]     = "55AA00",
+    ["Yuki"]       = "000000",
+    ["Charles"]    = "9D8D6D",
+    ["Haruta"]     = "A77DCB",
+    ["MeiMei"]     = "232850",
+    ["Kurourushi"] = "65232C",
+    ["Custom"]     = "00FF80"
+}
+
+-- Dark Moveset Identification Table (Ensures precise white outline overrides)
+local DARK_MOVESETS = {
+    ["Megumi"]     = true,
+    ["Choso"]      = true,
+    ["Yuki"]       = true,
+    ["MeiMei"]     = true,
+    ["Kurourushi"] = true
 }
 
 local function getGradientColor(percent)
@@ -129,7 +140,9 @@ local function CreateAssets(p)
     
     local stroke = inst_new("UIStroke")
     stroke.Thickness = 0.5
+    stroke.Color = COLOR_BLACK
     stroke.Parent = txt
+    assets.Stroke = stroke
     
     -- Health Bar Element Layout
     local hBill = inst_new("BillboardGui")
@@ -141,7 +154,7 @@ local function CreateAssets(p)
     
     local hBack = inst_new("Frame")
     hBack.Size = ud2_new(1, 0, 1, 0)
-    hBack.BackgroundColor3 = c3_new(0, 0, 0)
+    hBack.BackgroundColor3 = COLOR_BLACK
     hBack.BorderSizePixel = 0
     hBack.Parent = hBill
     
@@ -166,6 +179,7 @@ local function CreateAssets(p)
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
+    assets.TargetStrokeColor = COLOR_BLACK
     
     return assets
 end
@@ -318,7 +332,7 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Moveset attribute verification & color translation lookup
+                        -- Moveset attribute verification & dynamic outline adjustment
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
                             local movesetInstance = char:FindFirstChild("Moveset")
@@ -326,10 +340,15 @@ function ESP.Init(State)
                                 movesetAttr = "Custom" 
                             end
                             
-                            local hexColor = MOVESET_COLORS[movesetAttr] or MOVESET_COLORS["Custom"]
+                            -- Exact mapping check with static fallback to full white (FFFFFF)
+                            local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
                             c.CachedMoveset = "<b><font color='#" .. hexColor .. "'>" .. tostring(movesetAttr) .. "</font></b>\n"
+                            
+                            -- Dynamic high-contrast stroke adjustment based on luminance mapping
+                            c.TargetStrokeColor = DARK_MOVESETS[movesetAttr] and COLOR_WHITE or COLOR_BLACK
                         else
                             c.CachedMoveset = ""
+                            c.TargetStrokeColor = COLOR_BLACK
                         end
                     end
                     
@@ -344,9 +363,12 @@ function ESP.Init(State)
                     c.Line.Size = ud2_new(0, mag, 0, 1)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
+                    
+                    -- Render frame structural mutations
+                    c.Stroke.Color = c.TargetStrokeColor
 
                     -- Consolidated Concatenation Render
-                    c.Text.Text = c.UltDisplay .. c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. "]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
+                    c.Text.Text = c.UltDisplay .. c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. ]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
