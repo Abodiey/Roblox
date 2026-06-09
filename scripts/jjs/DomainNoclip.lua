@@ -1,20 +1,19 @@
 local DomainNoclip = {}
 
-local domains = workspace:WaitForChild("Domains")
 local RunService = cloneref(game:GetService("RunService"))
+local Domains = workspace:WaitForChild("Domains")
 
 function DomainNoclip.Init(State)
-    local connection = RunService.Stepped:Connect(function()
-        local enabled = State.Toggles.DomainNoclip
-        if not enabled then return end 
+    local Connection = RunService.Stepped:Connect(function()
+        local Enabled = State.Toggles.DomainNoclip
         
-        for _, v in ipairs(domains:GetChildren()) do
+        for _, v in ipairs(Domains:GetChildren()) do
             if v:IsA("BasePart") then 
-                v.CanCollide = false 
+                v.CanCollide = Enabled 
             end
         end
     end)
-    table.insert(State.Connections, connection)
+    table.insert(State.Connections, Connection)
 end
 
 return DomainNoclip
