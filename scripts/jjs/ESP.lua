@@ -89,7 +89,7 @@ local MOVESET_COLORS = {
     ["Custom"]     = "00FF80"
 }
 
--- Dark Moveset Identification Table (Ensures precise white outline overrides)
+-- Dark Moveset Identification Table
 local DARK_MOVESETS = {
     ["Megumi"]     = true,
     ["Choso"]      = true,
@@ -340,11 +340,8 @@ function ESP.Init(State)
                                 movesetAttr = "Custom" 
                             end
                             
-                            -- Exact mapping check with static fallback to full white (FFFFFF)
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
                             c.CachedMoveset = "<b><font color='#" .. hexColor .. "'>" .. tostring(movesetAttr) .. "</font></b>\n"
-                            
-                            -- Dynamic high-contrast stroke adjustment based on luminance mapping
                             c.TargetStrokeColor = DARK_MOVESETS[movesetAttr] and COLOR_WHITE or COLOR_BLACK
                         else
                             c.CachedMoveset = ""
@@ -367,8 +364,16 @@ function ESP.Init(State)
                     -- Render frame structural mutations
                     c.Stroke.Color = c.TargetStrokeColor
 
-                    -- Consolidated Concatenation Render
-                    c.Text.Text = c.UltDisplay .. c.CachedMoveset .. c.NameDisplay .. "<font color='#" .. c.HexKillColor .. "'>[" .. formatVal(c.CachedKills) .. ]</font> <font color='#" .. c.HexDistColor .. "'>" .. formatVal(m_floor(currentDist)) .. "m</font>"
+                    -- Formatting via explicit layout instead of broken quote con-cats
+                    c.Text.Text = s_format("%s%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>", 
+                        c.UltDisplay, 
+                        c.CachedMoveset, 
+                        c.NameDisplay, 
+                        c.HexKillColor, 
+                        formatVal(c.CachedKills), 
+                        c.HexDistColor, 
+                        tostring(m_floor(currentDist))
+                    )
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
