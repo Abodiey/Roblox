@@ -1,3 +1,4 @@
+getgenv().cloneref = cloneref or function(o) return o end
 local Aimbot = {}
 
 local Players = cloneref(game:GetService("Players"))
@@ -7,14 +8,12 @@ local UserInputService = cloneref(game:GetService("UserInputService"))
 local GuiService = cloneref(game:GetService("GuiService"))
 
 local Player = Players.LocalPlayer
+local workspace = cloneref(game:GetService("Workspace"))
 local Camera = workspace.CurrentCamera
 
-while not Player or not Player.Parent or not Camera or not Camera.Parent do
+while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
-
-local Characters = workspace:WaitForChild("Characters")
-
 
 while CoreGui:FindFirstChild("AimbotHighlight") do 
     CoreGui.AimbotHighlight:Destroy() 
@@ -95,9 +94,10 @@ function Aimbot.Init(State)
                 local inset = GuiService:GetGuiInset()
                 local mousePos = UserInputService:GetMouseLocation() - inset
                 local myTeam = Player.Team
+                local characterFolder = workspace:FindFirstChild("Characters") or workspace
                 Camera = workspace.CurrentCamera
 
-                for _, obj in ipairs(Characters:GetChildren()) do
+                for _, obj in ipairs(characterFolder:GetChildren()) do
                     if obj == Player.Character then continue end
                     if obj:GetAttribute("Dead") then continue end
                     
