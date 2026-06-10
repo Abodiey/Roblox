@@ -5,8 +5,10 @@ local Chat = cloneref(game:GetService("Chat"))
 local RunService = cloneref(game:GetService("RunService"))
 local Players = cloneref(game:GetService("Players"))
 
-local LRM = "\226\128\142" -- Left-to-Right Mark
-local RLM = "\226\128\143" -- Right-to-Left Mark
+-- Using modern Luau Unicode escapes for directional formatting
+local LRI = "\u{2066}" -- Left-to-Right Isolate
+local RLI = "\u{2067}" -- Right-to-Left Isolate
+local PDI = "\u{2069}" -- Pop Directional Isolate
 
 local lastMsg = {}
 local localPlayer = Players.LocalPlayer
@@ -15,7 +17,7 @@ local lastCheck = 0
 
 local function isRTL(text)
     for _, codePoint in utf8.codes(text) do
-        -- FIXED: Removed the space in the hex literal (0xFB50)
+        -- Captures Arabic, Hebrew, Persian, Syriac, Thaana, etc.
         if (codePoint >= 0x0590 and codePoint <= 0x08FF) or (codePoint >= 0xFB50 and codePoint <= 0xFDFF) then
             return true
         end
@@ -28,6 +30,7 @@ function Aura.Init(State)
     BubbleConfig.MaxDistance = 500 
     BubbleConfig.MinimizeDistance = 400
     BubbleConfig.TextSize = 20
+    
     local conn = RunService.Heartbeat:Connect(function(deltaTime)
         lastCheck = lastCheck + deltaTime
         if lastCheck < CHECK_INTERVAL then return end
@@ -56,12 +59,12 @@ function Aura.Init(State)
             lastMsg[charName] = rawMsg
             
             task.spawn(function()
-                local directionalMsg = rawMsg
-                if isRTL(rawMsg) then
-                    directionalMsg = RLM .. rawMsg .. RLM
-                end
+                -- Isolate the specific direction of the message content
+                local directionMarker = isRTL(rawMsg) and RLI or LRI
+                local isolatedMsg = directionMarker .. rawMsg .. PDI
 
-                local formattedChat = string.format("%s[<b>%s</b>]: %s", LRM, charName, directionalMsg)
+                -- Force the structural wrapper ([Name]: ) to always read Left-to-Right
+                local formattedChat = string.format("%s[<b>%s</b>]: %s%s", LRI, charName, isolatedMsg, PDI)
                 
                 generalChannel:DisplaySystemMessage(formattedChat)
                 
