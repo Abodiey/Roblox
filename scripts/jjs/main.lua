@@ -132,15 +132,15 @@ local tabs = {
 }
 
 local UI_Map = {
-    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
-    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
-    Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Noclip = v end}},
-    DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DomainNoclip = v end}},
-    QTE          = {tabs.Combat, "Toggle",  {Name = "Auto QTE", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.QTE = v end}},
-    Aura         = {tabs.Visuals, "Toggle", {Name = "Message Aura", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.MsgAura = v end}},
-    ItemESP      = {tabs.Visuals, "Toggle", {Name = "Item ESP", CurrentValue = false, Callback = function(v) getgenv().CatstarState.Toggles.ItemEsp = v end}},
-    ESP          = {tabs.Visuals, "Toggle", {Name = "Player ESP", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.Esp = v end}},
-    DummyESP     = {tabs.Visuals, "Toggle", {Name = "Dummy ESP", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.DummyESP = v end}},
+    BlackFlash   = {tabs.Combat, "Toggle",  {Name = "Enable BlackFlash", CurrentValue = getgenv().CatstarState.Toggles.BlackFlash, Callback = function(v) getgenv().CatstarState.Toggles.BlackFlash = v end}},
+    Ratio        = {tabs.Combat, "Toggle",  {Name = "Enable Ratio", CurrentValue = getgenv().CatstarState.Toggles.Ratio, Callback = function(v) getgenv().CatstarState.Toggles.Ratio = v end}},
+    Noclip       = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Players", CurrentValue = getgenv().CatstarState.Toggles.Noclip, Callback = function(v) getgenv().CatstarState.Toggles.Noclip = v end}},
+    DomainNoclip = {tabs.Combat, "Toggle",  {Name = "Enable Noclip through Domains", CurrentValue = getgenv().CatstarState.Toggles.DomainNoclip, Callback = function(v) getgenv().CatstarState.Toggles.DomainNoclip = v end}},
+    QTE          = {tabs.Combat, "Toggle",  {Name = "Auto QTE", CurrentValue = getgenv().CatstarState.Toggles.QTE, Callback = function(v) getgenv().CatstarState.Toggles.QTE = v end}},
+    Aura         = {tabs.Visuals, "Toggle", {Name = "Message Aura", CurrentValue = getgenv().CatstarState.Toggles.MsgAura, Callback = function(v) getgenv().CatstarState.Toggles.MsgAura = v end}},
+    ItemESP      = {tabs.Visuals, "Toggle", {Name = "Item ESP", CurrentValue = getgenv().CatstarState.Toggles.ItemEsp, Callback = function(v) getgenv().CatstarState.Toggles.ItemEsp = v end}},
+    ESP          = {tabs.Visuals, "Toggle", {Name = "Player ESP", CurrentValue = getgenv().CatstarState.Toggles.Esp, Callback = function(v) getgenv().CatstarState.Toggles.Esp = v end}},
+    DummyESP     = {tabs.Visuals, "Toggle", {Name = "Dummy ESP", CurrentValue = getgenv().CatstarState.Toggles.DummyESP, Callback = function(v) getgenv().CatstarState.Toggles.DummyESP = v end}},
     Train        = {tabs.Combat, "Button",  {Name = "Spawn Train", Callback = function() modules.Train.Init() end}}
 }
 
@@ -154,7 +154,7 @@ end
 
 if modules.Aimbot then
     tabs.Combat:CreateKeybind({Name = "Aimbot", CurrentKeybind = "C", Callback = function() modules.Aimbot.Toggle(getgenv().CatstarState) end})
-    tabs.Combat:CreateToggle({Name = "Team Check", CurrentValue = true, Callback = function(v) getgenv().CatstarState.Toggles.TeamCheck = v end})
+    tabs.Combat:CreateToggle({Name = "Team Check", CurrentValue = getgenv().CatstarState.Toggles.TeamCheck, Callback = function(v) getgenv().CatstarState.Toggles.TeamCheck = v end})
     modules.Aimbot.Init(getgenv().CatstarState)
 end
 
@@ -177,9 +177,9 @@ if Effects then
                 if success and result then
                     toclipboard(tostring(result))
                 else
-                    warn("Failed to decompile object: " .. tostring(descendant))
+                    warn("Failed to decompile object: " .. descendant:GetFullName() .. "[" .. descendant.ClassName .. "]")
                 end
-                warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName())
+                warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName() .. "[" .. descendant.ClassName .. "]")
             end
         end
         task.delay(60, function() if c and c.Parent then c:Destroy() end end)
