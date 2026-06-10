@@ -1,7 +1,7 @@
 --[[ 
     CATSTAR PRO V6.2 | Main Loader
 ]]
-repeat task.wait() until game and game.GameId and game.GameId ~= 0
+while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
