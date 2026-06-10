@@ -15,7 +15,7 @@ function QTE.Init(State)
                     local healthBar = child.Health.Bar1
 
                     if healthBar.Size.X.Scale > 0.75 then
-                        task.wait(0.1)
+                        task.wait()
                         continue
                     end
 
