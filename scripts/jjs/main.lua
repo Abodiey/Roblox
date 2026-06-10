@@ -149,6 +149,7 @@ for modName, setup in pairs(UI_Map) do
     if mod then
         setup[1]["Create" .. setup[2]](setup[1], setup[3])
         if modName ~= "Train" then mod.Init(getgenv().CatstarState) end
+        task.wait()
     end
 end
 
