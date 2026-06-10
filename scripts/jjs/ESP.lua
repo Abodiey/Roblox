@@ -140,7 +140,7 @@ local function CreateAssets(p)
     
     local stroke = inst_new("UIStroke")
     stroke.Thickness = 0.5
-    stroke.Color = COLOR_BLACK -- Stays globally black for uniform fallback readability
+    stroke.Color = COLOR_BLACK
     stroke.Parent = txt
     assets.Stroke = stroke
     
@@ -313,9 +313,10 @@ function ESP.Init(State)
                         local dist = (currentRootPos - root.Position).Magnitude
                         c.LastDist = dist
                         
-                        -- Attribute Checks: InUlt & Dead
+                        -- Attribute Checks: InUlt, Dead, Evade
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
+                        local evadeValue = char:GetAttribute("Evade")
                         
                         -- Ult Text Handler
                         c.UltDisplay = inUlt and "<b><font color='#FF007F'>[Ult]</font></b>\n" or ""
@@ -331,6 +332,9 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
+                        -- Evade tag configuration ([EV] in hot magenta side-by-side with moveset name)
+                        local evadeTag = (evadeValue == 50) and " <font color='#FF00FF'>[EV]</font>" or ""
+                        
                         -- Moveset attribute verification
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
@@ -341,14 +345,15 @@ function ESP.Init(State)
                             
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
                             
-                            -- Use the rich text <stroke> tag directly to wrap isolated outline colors natively 
+                            -- Isolated stroke tagging based on background brightness requirements
                             if DARK_MOVESETS[movesetAttr] then
-                                c.CachedMoveset = s_format("<b><stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke></b>\n", hexColor, tostring(movesetAttr))
+                                c.CachedMoveset = s_format("<b><stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke>%s</b>\n", hexColor, tostring(movesetAttr), evadeTag)
                             else
-                                c.CachedMoveset = s_format("<b><font color='#%s'>%s</font></b>\n", hexColor, tostring(movesetAttr))
+                                c.CachedMoveset = s_format("<b><font color='#%s'>%s</font>%s</b>\n", hexColor, tostring(movesetAttr), evadeTag)
                             end
                         else
-                            c.CachedMoveset = ""
+                            -- Show standalone [EV] next to a blank space if character has no current moveset
+                            c.CachedMoveset = (evadeTag ~= "") and "<b>" .. evadeTag .. "</b>\n" or ""
                         end
                     end
                     
@@ -364,7 +369,7 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Output data using structured string formatter
+                    -- Output structured data block string formatting
                     c.Text.Text = s_format("%s%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>", 
                         c.UltDisplay, 
                         c.CachedMoveset, 
