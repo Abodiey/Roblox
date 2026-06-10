@@ -24,18 +24,50 @@ local Highlight = Instance.new("Highlight")
 Highlight.Name = "AimbotHighlight"
 Highlight.Parent = CoreGui
 
--- Performance Trackers
-local CurrentTargetPart = nil
-local FrameCounter = 0
-local FRAME_SKIP_INTERVAL = 2 -- Runs the heavy scan every X frames
-
 function Aimbot.Toggle(State)
-    if not State.Toggles.Aim then return end
+    -- Early Return: If already aiming, turn it off and exit
+    if State.Toggles.Aim then 
+        State.Toggles.Aim = false
+        State.LockedTarget = nil
+        Highlight.Adornee = nil
+        return 
+    end
+
+    local nearest, dist = nil, math.huge
+    local inset = GuiService:GetGuiInset()
+    local mousePos = UserInputService:GetMouseLocation() - inset
+    local myTeam = Player.Team
+    local characterFolder = workspace:FindFirstChild("Characters") or workspace
+    Camera = workspace.CurrentCamera
+
+    for _, obj in ipairs(characterFolder:GetChildren()) do
+        -- Early Continues: Filter out invalid targets instantly
+        if obj == Player.Character then continue end
+        if obj:GetAttribute("Dead") then continue end
+        
+        local hrp = obj:FindFirstChild("HumanoidRootPart")
+        if not hrp then continue end
+        
+        -- Team Check Guard
+        local targetPlayer = Players:GetPlayerFromCharacter(obj)
+        if State.Toggles.TeamCheck and myTeam and targetPlayer and targetPlayer.Team == myTeam then 
+            continue 
+        end
+
+        local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+        if not onScreen then continue end
+
+        local mDist = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+        if mDist >= dist then continue end
+
+        dist = mDist
+        nearest = obj 
+    end
+
+    if not nearest then return end
     
-    State.Toggles.Aim = false
-    State.LockedTarget = nil
-    CurrentTargetPart = nil
-    Highlight.Adornee = nil
+    State.LockedTarget = nearest
+    State.Toggles.Aim = true
 end
 
 function Aimbot.Init(State)
@@ -51,97 +83,37 @@ function Aimbot.Init(State)
         if State.LockedTarget.Name ~= p.Name then return end
         
         State.LockedTarget = nil
-        CurrentTargetPart = nil
         Highlight.Adornee = nil
     end)
     table.insert(State.Connections, removeConn)
 
-    -- Connection: Handles both fast camera tracking and frame-skipped target acquisition
-    local mainConn = RunService.Heartbeat:Connect(function()
-        if not State.Toggles.Aim then 
-            Highlight.Adornee = nil 
-            return 
-        end
-
-        FrameCounter = FrameCounter + 1
-
-        ---------------------------------------------------------
-        -- SECTION 1: THROTTLED LOOP (Runs every X frames)
-        ---------------------------------------------------------
-        if FrameCounter >= FRAME_SKIP_INTERVAL then
-            FrameCounter = 0 -- Reset counter
-            local currentTarget = State.LockedTarget
-
-            -- Sub-Routine: Validate current target lock status
-            if currentTarget then
-                if not currentTarget.Parent or currentTarget:GetAttribute("Dead") then
-                    State.LockedTarget = nil
-                    CurrentTargetPart = nil
-                else
-                    local hrp = currentTarget:FindFirstChild("HumanoidRootPart")
-                    if not hrp then
-                        State.LockedTarget = nil
-                        CurrentTargetPart = nil
-                    else
-                        CurrentTargetPart = hrp
-                    end
-                end
-            end
-
-            -- Sub-Routine: Find new target if currently idle
-            if not State.LockedTarget then
-                local nearest, targetPart, dist = nil, nil, math.huge
-                local inset = GuiService:GetGuiInset()
-                local mousePos = UserInputService:GetMouseLocation() - inset
-                local myTeam = Player.Team
-                local characterFolder = workspace:FindFirstChild("Characters") or workspace
-                Camera = workspace.CurrentCamera
-
-                for _, obj in ipairs(characterFolder:GetChildren()) do
-                    if obj == Player.Character then continue end
-                    if obj:GetAttribute("Dead") then continue end
-                    
-                    local hrp = obj:FindFirstChild("HumanoidRootPart")
-                    if not hrp then continue end
-                    
-                    local targetPlayer = Players:GetPlayerFromCharacter(obj)
-                    if State.Toggles.TeamCheck and myTeam and targetPlayer and targetPlayer.Team == myTeam then 
-                        continue 
-                    end
-
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if not onScreen then continue end
-
-                    local mDist = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                    if mDist >= dist then continue end
-
-                    dist = mDist
-                    nearest = obj 
-                    targetPart = hrp
-                end
-
-                if nearest then
-                    State.LockedTarget = nearest
-                    CurrentTargetPart = targetPart
-                end
-            end
-        end
-
-        ---------------------------------------------------------
-        -- SECTION 2: FAST LOOP (Runs every single frame)
-        ---------------------------------------------------------
-        local target = State.LockedTarget
-        local targetPart = CurrentTargetPart
+    local updateConn = RunService.Heartbeat:Connect(function()
+        -- Early Return: System is idle or has no target
+        if not State.Toggles.Aim then Highlight.Adornee = nil return end
         
-        if not target or not targetPart then 
-            Highlight.Adornee = nil 
-            return 
+        local target = State.LockedTarget
+        if not target or not target.Parent then Highlight.Adornee = nil return end
+        
+        -- Early Return: Reset target if they are flagged dead
+        if target:GetAttribute("Dead") then
+            State.LockedTarget = nil
+            Highlight.Adornee = nil
+            return
         end
 
+        -- Early Return: Reset target if tracking part is missing
+        local targetPart = target:FindFirstChild("HumanoidRootPart")
+        if not targetPart then
+            State.LockedTarget = nil
+            Highlight.Adornee = nil
+            return
+        end
+
+        -- Main execution path (fully flattened, no nesting)
         Highlight.Adornee = target
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
     end)
-    table.insert(State.Connections, mainConn)
+    table.insert(State.Connections, updateConn)
 end
 
 return Aimbot
