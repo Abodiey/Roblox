@@ -9,7 +9,7 @@ function DomainNoclip.Init(State)
         
         for _, v in ipairs(Domains:GetChildren()) do
             if v:IsA("BasePart") then 
-                v.CanCollide = Enabled 
+                v.CanCollide = not Enabled 
             end
         end
     end)
