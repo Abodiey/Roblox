@@ -3,10 +3,9 @@
 ]]
 while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
-getgenv().cloneref = cloneref or function(O) return O end
 print("Catstar Running")
 
-cloneref(game:GetService("StarterGui")):SetCore("SendNotification", {
+game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Catstar Pro",
     Text = "Successfully loaded!",
     Duration = 5
@@ -33,6 +32,8 @@ getgenv().CatstarState = {
     LockedTarget = nil,
     TargetIdentifier = ""
 }
+
+getgenv().cloneref = cloneref or function(O) return O end
 
 local function Load(Name)
     local Success, RawCode
@@ -117,7 +118,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Enable Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Enable Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
-    {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
+    {Type = "Paragraph", Module = "Train",       Args = {Title = "Spawn Train", Content = "Train Status: Checking...", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
     {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot", CurrentKeybind = "C", Callback = function() Modules.Aimbot.Toggle(CatstarState) end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
     
@@ -143,15 +144,19 @@ for _, Element in ipairs(UiLayout) do
     else
         local Mod = Modules[Element.Module]
         if Mod then
-            MainTab["Create" .. Element.Type](MainTab, Element.Args)
+            local Component = MainTab["Create" .. Element.Type](MainTab, Element.Args)
             
             if not InitializedModules[Element.Module] then
                 InitializedModules[Element.Module] = true
-                if Element.Module == "Train" then
-                    local TrainLabel = MainTab:CreateLabel("Train Status: Checking...")
-                    Mod.Init(TrainLabel)
+                
+                if type(Mod) == "table" and type(Mod.Init) == "function" then
+                    if Element.Module == "Train" then
+                        Mod.Init(Component)
+                    else
+                        Mod.Init(CatstarState)
+                    end
                 else
-                    Mod.Init(CatstarState)
+                    print(Element.Module .. " does not have an .Init function")
                 end
             end
             task.wait()
