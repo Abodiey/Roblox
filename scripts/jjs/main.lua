@@ -3,9 +3,10 @@
 ]]
 while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
+getgenv().cloneref = cloneref or function(O) return O end
 print("Catstar Running")
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
+cloneref(game:GetService("StarterGui")):SetCore("SendNotification", {
     Title = "Catstar Pro",
     Text = "Successfully loaded!",
     Duration = 5
@@ -32,8 +33,6 @@ getgenv().CatstarState = {
     LockedTarget = nil,
     TargetIdentifier = ""
 }
-
-getgenv().cloneref = cloneref or function(O) return O end
 
 local function Load(Name)
     local Success, RawCode
