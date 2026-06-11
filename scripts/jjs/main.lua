@@ -164,6 +164,8 @@ if modules.Targeting then
     tabs.Target:CreateButton({Name = "Spectate", Callback = function() modules.Targeting.Spectate(getgenv().CatstarState.TargetIdentifier) end})
 end
 
+loadstring(baseUrl .. "fixes.lua")()
+
 --updateRikaTransparency fix (lazy jjs devs)
 local LTM = "LocalTransparencyModifier"
 local oldIndex
@@ -183,6 +185,18 @@ oldIndex = hookmetamethod(game, "__newindex", function(self, prop, val)
     end
     -- 3. If it's already a number, let it through with zero overhead
     return oldIndex(self, prop, val)
+end)
+
+--BloodyZee fix (lazy jjs devs)
+task.spawn(function()
+    local effects = workspace:WaitForChild("Effects", 30)
+    if not effects then return end
+    local bloodyzee = game.ReplicatedStorage.Modules:WaitForChild("BloodyZee", 30)
+    if not bloodyzee then return end
+    if effects:FindFirstChild("Blood") then return end
+    local blood = Instance.new("Folder")
+    blood.Name = "Blood"
+    blood.Parent = effects
 end)
 
 --fix weird visual stuff staying
