@@ -88,9 +88,8 @@ local function Load(Name)
     return Result
 end
 
-task.spawn(function()
-    Load("fixes")
-end)
+-- Run game fixes before iterating over feature modules
+Load("fixes")
 
 local Modules = {}
 for _, Name in {"BlackFlash", "Ratio", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
@@ -131,7 +130,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Enable Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Enable Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
-    {Type = "Paragraph", Module = "Train",       Args = {Title = "Spawn Train", Content = "Train Status: Checking...", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
+    {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
     {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot", CurrentKeybind = "C", Callback = function() Modules.Aimbot.Toggle(CatstarState) end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
     
