@@ -1,13 +1,11 @@
 local Train = {}
 
 function Train.Init()
-    local Map = workspace:FindFirstChild("Map")
-    if Map then
-        local Remote = Map:FindFirstChild("Train", true)
-        if Remote and Remote:IsA("RemoteEvent") then
-            Remote:FireServer()
-        end
-    end
+    local main = workspace.Map.Destructible.Model.StationControl
+    local prompt = main.ButtonTrain.Button.Button
+    if not prompt or not prompt.Enabled then return end
+    local Event = main.Handle.Train
+    Event:FireServer()
 end
 
 return Train
