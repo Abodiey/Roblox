@@ -23,9 +23,9 @@ end)
 local Effects = workspace:WaitForChild("Effects")
 local Beams = workspace:WaitForChild("Beams")
 local Modules = ReplicatedStorage:WaitForChild("Modules")
-local Bloodyzee = Modules:FindFirstChild("BloodyZee")
+local BloodyZee = Modules:FindFirstChild("BloodyZee")
 
-if Effects and Bloodyzee and not Effects:FindFirstChild("Blood") then
+if Effects and BloodyZee and not Effects:FindFirstChild("Blood") then
     local Blood = Instance.new("Folder")
     Blood.Name = "Blood"
     Blood.Parent = Effects
