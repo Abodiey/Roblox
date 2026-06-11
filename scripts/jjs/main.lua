@@ -1,12 +1,3 @@
---[[ 
-    CATSTAR PRO V6.2 | Main Loader
-]]
-while not game.GameId or game.GameId == 0 do task.wait() end
-if game.GameId ~= 3508322461 then return end
-print("Catstar Running")
-
-if getgenv().CatstarCleanup then getgenv().CatstarCleanup() end
-
 local Rayfield
 local BaseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
@@ -78,7 +69,7 @@ local function Load(Name)
         return nil 
     end
     
-    local RuntimeSuccess, Result = xpcall(chunk, debug.traceback)
+    local RuntimeSuccess, Result = xpcall(Chunk, debug.traceback)
     if not RuntimeSuccess then 
         warn("Runtime error in " .. Name .. ":\n" .. tostring(Result)) 
         return nil 
@@ -130,7 +121,7 @@ local UI_Map = {
     ItemESP      = {Tabs.Visuals, "Toggle", {Name = "Item ESP", CurrentValue = getgenv().CatstarState.Toggles.ItemEsp, Callback = function(V) getgenv().CatstarState.Toggles.ItemEsp = V end}},
     ESP          = {Tabs.Visuals, "Toggle", {Name = "Player ESP", CurrentValue = getgenv().CatstarState.Toggles.Esp, Callback = function(V) getgenv().CatstarState.Toggles.Esp = V end}},
     DummyESP     = {Tabs.Visuals, "Toggle", {Name = "Dummy ESP", CurrentValue = getgenv().CatstarState.Toggles.DummyESP, Callback = function(V) getgenv().CatstarState.Toggles.DummyESP = V end}},
-    Train        = {Tabs.Combat, "Button",  {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Init() end end}}
+    Train        = {Tabs.Combat, "Button",  {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}}
 }
 
 for ModName, Setup in pairs(UI_Map) do
@@ -140,7 +131,6 @@ for ModName, Setup in pairs(UI_Map) do
         if ModName ~= "Train" then 
             Mod.Init(getgenv().CatstarState) 
         else
-            -- Create the automated Train Status Label below the button
             local TrainLabel = Tabs.Combat:CreateLabel("Train Status: Checking...")
             Mod.Init(TrainLabel)
         end
