@@ -88,6 +88,10 @@ local function Load(Name)
     return Result
 end
 
+task.spawn(function()
+    Load("fixes")
+end)
+
 local Modules = {}
 for _, Name in {"BlackFlash", "Ratio", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
     Modules[Name] = Load(Name)
@@ -172,5 +176,3 @@ for _, Element in ipairs(UiLayout) do
         end
     end
 end
-
-loadstring(BaseUrl .. "fixes.lua")()
