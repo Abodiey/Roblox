@@ -4,7 +4,7 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
-local Event = ReplicatedStorage.Knit.Knit.Services.FinalJudgementService.RE.Effects
+local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 
 QTE.InitialDelay = 1
 QTE.MinimumDelay = 0.1
