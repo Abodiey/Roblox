@@ -2,44 +2,44 @@ local Debris = cloneref(game:GetService("Debris"))
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LTM = "LocalTransparencyModifier"
-local oldIndex
+local OldIndex
 
-oldIndex = hookmetamethod(game, "__newindex", function(self, prop, val)
-    if prop ~= LTM then 
-        return oldIndex(self, prop, val) 
+OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
+    if Prop ~= LTM then 
+        return OldIndex(Self, Prop, Val) 
     end
 
-    if val == false then
-        return oldIndex(self, prop, 0)
-    elseif val == true then
-        if self:IsA("BasePart") or self:IsA("ParticleEmitter") then
-            return oldIndex(self, prop, 0.7)
+    if Val == false then
+        return OldIndex(Self, Prop, 0)
+    elseif Val == true then
+        if Self:IsA("BasePart") or Self:IsA("ParticleEmitter") then
+            return OldIndex(Self, Prop, 0.7)
         end
     end
 
-    return oldIndex(self, prop, val)
+    return OldIndex(Self, Prop, Val)
 end)
 
-local effects = workspace:WaitForChild("Effects")
-local beams = workspace:WaitForChild("Beams")
-local modules = ReplicatedStorage:WaitForChild("Modules")
-local bloodyzee = modules and modules:FindFirstChild("BloodyZee")
+local Effects = workspace:WaitForChild("Effects")
+local Beams = workspace:WaitForChild("Beams")
+local Modules = ReplicatedStorage:WaitForChild("Modules")
+local Bloodyzee = Modules:FindFirstChild("BloodyZee")
 
-if effects and bloodyzee and not effects:FindFirstChild("Blood") then
-    local blood = Instance.new("Folder")
-    blood.Name = "Blood"
-    blood.Parent = effects
+if Effects and Bloodyzee and not Effects:FindFirstChild("Blood") then
+    local Blood = Instance.new("Folder")
+    Blood.Name = "Blood"
+    Blood.Parent = Effects
 end
 
-for _, folder in ipairs({effects, beams}) do
-    if folder then
+for _, Folder in ipairs({Effects, Beams}) do
+    if Folder then
         task.spawn(function()
-            for _, child in ipairs(folder:GetChildren()) do
-                Debris:AddItem(child, 60)
+            for _, Child in ipairs(Folder:GetChildren()) do
+                Debris:AddItem(Child, 60)
             end
             
-            folder.ChildAdded:Connect(function(child)
-                Debris:AddItem(child, 60)
+            Folder.ChildAdded:Connect(function(Child)
+                Debris:AddItem(Child, 60)
             end)
         end)
     end
