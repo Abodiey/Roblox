@@ -14,24 +14,24 @@ function QTE.Init(State)
     local remoteTarget = nil
 
     local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent)
+        print("QTE1")
         if mode ~= "QTE" then return end
         if typeof(targetEvent) ~= "Instance" then return end
         if not targetEvent:IsA("RemoteEvent") then return end
-        
+        print("QTE2")
         local character = Player.Character
         if not character then return end
         if not targetEvent:IsDescendantOf(character) then return end
 
         remoteTarget = targetEvent
-
+        print("QTE3")
         local child = PlayerGui:WaitForChild("QTE", 5)
         if not child then return end
         if not State.Toggles.QTE then return end
-
         task.spawn(function()
             local currentDelay = QTE.InitialDelay
             local startTime = os.clock()
-
+            print("QTE4")
             while true do
                 if not State.Toggles.QTE then break end
                 if child.Parent ~= PlayerGui then break end
