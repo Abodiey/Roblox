@@ -38,7 +38,7 @@ function Train.Init(StatusParagraph)
         else
             StatusParagraph:Set({
                 Title = "Spawn Train",
-                Content = "Train Status: Unknown Cooldown"
+                Content = "Train Status: Not Ready"
             })
         end
     end
