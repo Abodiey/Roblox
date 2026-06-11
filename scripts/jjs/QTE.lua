@@ -3,6 +3,7 @@ local VIM = cloneref(game:GetService("VirtualInputManager"))
 local Players = cloneref(game:GetService("Players"))
 local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
+local maxWaitTime = 10
 
 function QTE.Init(State)
     local conn = PlayerGui.ChildAdded:Connect(function(child)
@@ -11,6 +12,7 @@ function QTE.Init(State)
             if not label then return end
 
             task.spawn(function()
+                local waitTime = 1
                 while State.Toggles.QTE and child.Parent == PlayerGui do
                     local healthBar = child.Health.Bar1
 
@@ -26,7 +28,8 @@ function QTE.Init(State)
                         task.wait()
                         VIM:SendKeyEvent(false, keyCode, false, game)
                     end
-                    task.wait(0.1)
+                    task.wait(1/waitTime)
+                    waitTime = waitTime < maxWaitTime and waitTime+1 or maxWaitTime
                 end
             end)
         end
