@@ -5,6 +5,7 @@ function Train.Init()
     local prompt = main.ButtonTrain.Button.Button
     if not prompt or not prompt.Enabled then return end
     local Event = main.Handle.Train
+    local TrainReady = prompt.Enabled
     Event:FireServer()
 end
 
