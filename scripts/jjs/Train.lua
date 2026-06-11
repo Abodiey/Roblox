@@ -12,16 +12,34 @@ Prompt = Prompt:WaitForChild("Button")
 local Event = Main:WaitForChild("Handle")
 Event = Event:WaitForChild("Train")
 
-function Train.Init(StatusLabel)
+local CurrentThread
+
+function Train.Init(StatusParagraph)
     if not Main or not Prompt then
-        if StatusLabel then StatusLabel:Set("Train Status: Map Error") end
+        if StatusParagraph then 
+            StatusParagraph:Set({Title = "Spawn Train", Content = "Train Status: Map Error"}) 
+        end
         return
     end
 
     local function UpdateLabel()
-        if StatusLabel then
-            local Ready = Prompt.Enabled
-            StatusLabel:Set("Train Status: " .. (Ready and "Ready to Spawn" or "On Cooldown"))
+        if CurrentThread then
+            task.cancel(CurrentThread)
+            CurrentThread = nil
+        end
+
+        if not StatusParagraph then return end
+
+        if Prompt.Enabled then
+            StatusParagraph:Set({
+                Title = "Spawn Train",
+                Content = "Train Status: Ready"
+            })
+        else
+            StatusParagraph:Set({
+                Title = "Spawn Train",
+                Content = "Train Status: Unknown Cooldown"
+            })
         end
     end
 
@@ -29,6 +47,28 @@ function Train.Init(StatusLabel)
     
     local Connection = Prompt:GetPropertyChangedSignal("Enabled"):Connect(UpdateLabel)
     table.insert(getgenv().CatstarState.Connections, Connection)
+
+    local DisableConnection = Prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+        if not Prompt.Enabled and StatusParagraph then
+            if CurrentThread then task.cancel(CurrentThread) end
+            
+            CurrentThread = task.spawn(function()
+                local Duration = 180
+                while Duration > 0 and not Prompt.Enabled do
+                    local Minutes = math.floor(Duration / 60)
+                    local Seconds = Duration % 60
+                    StatusParagraph:Set({
+                        Title = "Spawn Train",
+                        Content = string.format("Train Status: Cooldown (%dm %02ds)", Minutes, Seconds)
+                    })
+                    task.wait(1)
+                    Duration = Duration - 1
+                end
+                UpdateLabel()
+            end)
+        end
+    end)
+    table.insert(getgenv().CatstarState.Connections, DisableConnection)
 end
 
 function Train.Spawn()
