@@ -5,11 +5,22 @@ while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Catstar Pro",
-    Text = "Successfully loaded!",
-    Duration = 5
-})
+getgenv().cloneref = cloneref or function(O) return O end
+local StarterGui = cloneref(game:GetService("StarterGui"))
+
+task.spawn(function()
+    local Success = false
+    while not Success do
+        Success = pcall(function()
+            StarterGui:SetCore("SendNotification", {
+                Title = "Catstar Pro",
+                Text = "Successfully loaded!",
+                Duration = 5
+            })
+        end)
+        if not Success then task.wait(0.5) end
+    end
+end)
 
 local Rayfield
 local BaseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
@@ -32,8 +43,6 @@ getgenv().CatstarState = {
     LockedTarget = nil,
     TargetIdentifier = ""
 }
-
-getgenv().cloneref = cloneref or function(O) return O end
 
 local function Load(Name)
     local Success, RawCode
