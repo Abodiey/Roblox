@@ -3,7 +3,7 @@ local workspace = cloneref(game:GetService("Workspace"))
 local Players = cloneref(game:GetService("Players"))
 local LocalPlayer = Players.LocalPlayer
 
-function Targeting.Spectate(name)
+function Targeting.Init(name)
     local Camera = workspace.CurrentCamera
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
 
