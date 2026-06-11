@@ -333,14 +333,16 @@ function ESP.Init(State)
                         c.LineColor = getGradientColor(dist / 600)
                         
                         -- Evade tag configuration ([EV] in hot magenta side-by-side with moveset name)
-                        local evadeTag = (evadeValue == 50) and " <font color='#FF00FF'>[EV]</font>" or ""
+                        local evadeTag = (evadeValue >= 50) and " <font color='#FF00FF'>[EV]</font>" or ""
                         
                         -- Moveset attribute verification
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
                             local movesetInstance = char:FindFirstChild("Moveset")
-                            if movesetInstance and movesetInstance:FindFirstChild("Custom") then 
-                                movesetAttr = "Custom" 
+                            if movesetAttr == "Custom" and movesetInstance and not movesetInstance:FindFirstChild("Custom") then
+                                movesetAttr = movesetInstance:GetChildren()[1].Name
+                            elseif movesetInstance and movesetInstance:FindFirstChild("Custom") then 
+                                movesetAttr = "Custom!"
                             end
                             
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
