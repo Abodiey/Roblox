@@ -6,8 +6,8 @@ local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
 local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 
-QTE.InitialDelay = 1
-QTE.MinimumDelay = 0.1
+QTE.InitialDelay = 0.15
+QTE.MinimumDelay = 0.05
 QTE.RampSpeed = 0.08
 
 function QTE.Init(State)
@@ -40,7 +40,7 @@ function QTE.Init(State)
                 local healthBar = child.Health.Bar1
                 print(healthBar.Size.X.Scale, os.clock() - startTime)
 
-                if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.55 then
+                if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.6 then
                     remoteTarget:FireServer(true)
                     task.wait()
                     continue
