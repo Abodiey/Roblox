@@ -164,32 +164,42 @@ if modules.Targeting then
     tabs.Target:CreateButton({Name = "Spectate", Callback = function() modules.Targeting.Spectate(getgenv().CatstarState.TargetIdentifier) end})
 end
 
-local Effects = workspace:WaitForChild("Effects", 30)
-if Effects then
-    Effects.ChildAdded:Connect(function(c)
-        if c and c.Name == "Rika" then
-            local descendant = c:FindFirstChild("Client")
-            if descendant and descendant:IsA("BaseScript") then
-                descendant.Disabled = true
-                local success, result = pcall(function()
-                    return decompile(descendant)
-                end)
-
-                if success and result then
-                    toclipboard(tostring(result))
-                else
-                    warn("Failed to decompile object: " .. descendant:GetFullName() .. "[" .. descendant.ClassName .. "]")
-                end
-                warn("[Fix] Disabled broken Rika script: " .. descendant:GetFullName() .. "[" .. descendant.ClassName .. "]")
-            end
+--updateRikaTransparency fix (lazy jjs devs)
+local LTM = "LocalTransparencyModifier"
+local oldIndex
+oldIndex = hookmetamethod(game, "__newindex", function(self, prop, val)
+    -- 1. Instantly drop out if the property isn't ours
+    if prop ~= LTM then 
+        return oldIndex(self, prop, val) 
+    end
+    -- 2. Fast-path check: If it's a boolean, intercept it immediately
+    if val == false then
+        return oldIndex(self, prop, 0)
+    elseif val == true then
+        -- We only do the costly IsA check IF a boolean actually slips through
+        if self:IsA("BasePart") or self:IsA("ParticleEmitter") then
+            return oldIndex(self, prop, 0.7)
         end
-        task.delay(60, function() if c and c.Parent then c:Destroy() end end)
-    end)
-end
+    end
+    -- 3. If it's already a number, let it through with zero overhead
+    return oldIndex(self, prop, val)
+end)
 
-local Beams = workspace:WaitForChild("Beams", 30)
-if Beams then
-    Beams.ChildAdded:Connect(function(c)
-        task.delay(60, function() if c and c.Parent then c:Destroy() end end)
+--fix weird visual stuff staying
+local Debris = cloneref(game:GetService("Debris"))
+for _, folderName in {"Effects", "Beams"} do
+    task.spawn(function()
+        local folder = workspace:WaitForChild(folderName, 30)
+        if not folder then return end
+        
+        -- Init: Clean up everything already in the folder
+        for _, child in folder:GetChildren() do
+            Debris:AddItem(child, 60)
+        end
+        
+        -- Future: Clean up anything added later
+        folder.ChildAdded:Connect(function(child)
+            Debris:AddItem(child, 60)
+        end)
     end)
 end
