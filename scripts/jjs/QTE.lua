@@ -1,40 +1,64 @@
 local QTE = {}
-local VIM = cloneref(game:GetService("VirtualInputManager"))
 local Players = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+
 local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
-local maxWaitTime = 10
+local Event = ReplicatedStorage.Knit.Knit.Services.FinalJudgementService.RE.Effects
+
+QTE.InitialDelay = 1
+QTE.MinimumDelay = 0.1
+QTE.RampSpeed = 0.08
 
 function QTE.Init(State)
-    local conn = PlayerGui.ChildAdded:Connect(function(child)
-        if State.Toggles.QTE and child.Name == "QTE" then
-            local label = child:FindFirstChild("QTE_PC")
-            if not label then return end
+    local remoteTarget = nil
 
-            task.spawn(function()
-                local waitTime = 1
-                while State.Toggles.QTE and child.Parent == PlayerGui do
-                    local healthBar = child.Health.Bar1
+    local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent)
+        if mode ~= "QTE" then return end
+        if typeof(targetEvent) ~= "Instance" then return end
+        if not targetEvent:IsA("RemoteEvent") then return end
+        
+        local character = Player.Character
+        if not character then return end
+        if not targetEvent:IsDescendantOf(character) then return end
 
-                    if healthBar.Size.X.Scale > 0.75 then
-                        task.wait()
-                        continue
-                    end
+        remoteTarget = targetEvent
 
-                    local key = label.Text:match("%a")
-                    if key then
-                        local keyCode = Enum.KeyCode[key:upper()]
-                        VIM:SendKeyEvent(true, keyCode, false, game)
-                        task.wait()
-                        VIM:SendKeyEvent(false, keyCode, false, game)
-                    end
-                    task.wait(1/waitTime)
-                    waitTime = waitTime < maxWaitTime and waitTime+1 or maxWaitTime
+        local child = PlayerGui:WaitForChild("QTE", 5)
+        if not child then return end
+        if not State.Toggles.QTE then return end
+
+        task.spawn(function()
+            local currentDelay = QTE.InitialDelay
+            local startTime = os.clock()
+
+            while true do
+                if not State.Toggles.QTE then break end
+                if child.Parent ~= PlayerGui then break end
+                if not remoteTarget then break end
+                if not remoteTarget.Parent then break end
+
+                local healthBar = child.Health.Bar1
+
+                if healthBar.Size.X.Scale > 0.75 then
+                    task.wait()
+                    continue
                 end
-            end)
-        end
+
+                if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.55 then
+                    remoteTarget:FireServer(true)
+                    task.wait()
+                    continue
+                end
+
+                remoteTarget:FireServer(true)
+                
+                task.wait(currentDelay)
+                currentDelay = math.max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
+            end
+        end)
     end)
-    table.insert(State.Connections, conn)
+    table.insert(State.Connections, conn1)
 end
 
 return QTE
