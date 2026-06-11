@@ -130,7 +130,7 @@ local UiLayout = {
     
     {Type = "Section",  Name = "Targeting"},
     {Type = "Input",    Module = "Targeting",    Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.TargetIdentifier = T end}},
-    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() Modules.Targeting.Init(CatstarState.TargetIdentifier) end}}
+    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() Modules.Targeting.Spectate(CatstarState.TargetIdentifier) end}}
 }
 
 -- ==========================================
