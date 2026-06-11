@@ -1,5 +1,5 @@
 local Debris = cloneref(game:GetService("Debris"))
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 
 local LTM = "LocalTransparencyModifier"
 local OldIndex
@@ -23,23 +23,42 @@ end)
 local Effects = workspace:WaitForChild("Effects")
 local Beams = workspace:WaitForChild("Beams")
 local Modules = ReplicatedStorage:WaitForChild("Modules")
-local BloodyZee = Modules:FindFirstChild("BloodyZee")
+local Bloodyzee = Modules and Modules:FindFirstChild("BloodyZee")
 
-if Effects and BloodyZee and not Effects:FindFirstChild("Blood") then
+local BloodName = "Blood"
+
+local function CreateBlood()
+    if not Effects or not Bloodyzee then return end
+    
     local Blood = Instance.new("Folder")
-    Blood.Name = "Blood"
+    Blood.Name = BloodName
+    
+    Blood.Destroying:Connect(function()
+        task.defer(CreateBlood)
+    end)
+    
     Blood.Parent = Effects
+end
+
+if Effects and Bloodyzee and not Effects:FindFirstChild(BloodName) then
+    CreateBlood()
 end
 
 for _, Folder in ipairs({Effects, Beams}) do
     if Folder then
         task.spawn(function()
+            local AddItem = Debris.AddItem
+            
             for _, Child in ipairs(Folder:GetChildren()) do
-                Debris:AddItem(Child, 60)
+                if Child.Name ~= BloodName then
+                    AddItem(Debris, Child, 60)
+                end
             end
             
             Folder.ChildAdded:Connect(function(Child)
-                Debris:AddItem(Child, 60)
+                if Child.Name ~= BloodName then
+                    AddItem(Debris, Child, 60)
+                end
             end)
         end)
     end
