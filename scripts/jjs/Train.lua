@@ -14,42 +14,36 @@ Event = Event:WaitForChild("Train")
 
 local CurrentThread
 
-function Train.Init(StatusParagraph)
+function Train.Init(ButtonComponent)
     if not Main or not Prompt then
-        if StatusParagraph then 
-            StatusParagraph:Set({Title = "Spawn Train", Content = "Train Status: Map Error"}) 
+        if ButtonComponent then 
+            ButtonComponent:Set("Spawn Train (Map Error)") 
         end
         return
     end
 
-    local function UpdateLabel()
+    local function UpdateButtonText()
         if CurrentThread then
             task.cancel(CurrentThread)
             CurrentThread = nil
         end
 
-        if not StatusParagraph then return end
+        if not ButtonComponent then return end
 
         if Prompt.Enabled then
-            StatusParagraph:Set({
-                Title = "Spawn Train",
-                Content = "Train Status: Ready"
-            })
+            ButtonComponent:Set("Spawn Train (Ready)")
         else
-            StatusParagraph:Set({
-                Title = "Spawn Train",
-                Content = "Train Status: Not Ready"
-            })
+            ButtonComponent:Set("Spawn Train (Unknown Cooldown)")
         end
     end
 
-    UpdateLabel()
+    UpdateButtonText()
     
-    local Connection = Prompt:GetPropertyChangedSignal("Enabled"):Connect(UpdateLabel)
+    local Connection = Prompt:GetPropertyChangedSignal("Enabled"):Connect(UpdateButtonText)
     table.insert(getgenv().CatstarState.Connections, Connection)
 
     local DisableConnection = Prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
-        if not Prompt.Enabled and StatusParagraph then
+        if not Prompt.Enabled and ButtonComponent then
             if CurrentThread then task.cancel(CurrentThread) end
             
             CurrentThread = task.spawn(function()
@@ -57,14 +51,11 @@ function Train.Init(StatusParagraph)
                 while Duration > 0 and not Prompt.Enabled do
                     local Minutes = math.floor(Duration / 60)
                     local Seconds = Duration % 60
-                    StatusParagraph:Set({
-                        Title = "Spawn Train",
-                        Content = string.format("Train Status: Cooldown (%dm %02ds)", Minutes, Seconds)
-                    })
+                    ButtonComponent:Set(string.format("Spawn Train (%dm %02ds)", Minutes, Seconds))
                     task.wait(1)
                     Duration = Duration - 1
                 end
-                UpdateLabel()
+                UpdateButtonText()
             end)
         end
     end)
