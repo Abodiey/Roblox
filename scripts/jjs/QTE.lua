@@ -14,12 +14,13 @@ function QTE.Init(State)
     local remoteTarget = nil
 
     local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent, ...)
-        --print(mode, targetEvent, ...)
+        if typeof(targetEvent) ~= "Instance" then return end
+        if not targetEvent:IsA("RemoteEvent") then return end
+            
+        print(mode, targetEvent, ...)
 
         if typeof(mode) ~= "string" then return end
         if not string.find(mode, "QTE") then return end
-        if typeof(targetEvent) ~= "Instance" then return end
-        if not targetEvent:IsA("RemoteEvent") then return end
         
         local character = Player.Character
         if not character then return end
