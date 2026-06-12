@@ -6,10 +6,6 @@ local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
 local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 
-QTE.InitialDelay = 0.15
-QTE.MinimumDelay = 0.05
-QTE.RampSpeed = 0.08
-
 function QTE.Init(State)
     local remoteTarget = nil
 
@@ -25,31 +21,18 @@ function QTE.Init(State)
 
         remoteTarget = targetEvent
 
-        local child = PlayerGui:WaitForChild("QTE", 5)
-        if not child then return end
         if not State.Toggles.QTE then return end
         task.spawn(function()
             local currentDelay = QTE.InitialDelay
             local startTime = os.clock()
             while true do
                 if not State.Toggles.QTE then break end
-                if child.Parent ~= PlayerGui then break end
                 if not remoteTarget then break end
                 if not remoteTarget.Parent then break end
 
-                local healthBar = child.Health.Bar1
-                print(healthBar.Size.X.Scale, os.clock() - startTime)
-
-                if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.6 then
-                    remoteTarget:FireServer(true)
-                    task.wait()
-                    continue
-                end
-
                 remoteTarget:FireServer(true)
                 
-                task.wait(currentDelay)
-                currentDelay = math.max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
+                task.wait()
             end
         end)
     end)
