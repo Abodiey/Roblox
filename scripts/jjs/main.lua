@@ -29,7 +29,8 @@ getgenv().CatstarState = {
     Connections = setmetatable({}, { __mode = "v" }),
     Toggles = { 
         BlackFlash = false, 
-        Ratio = false, 
+        Ratio = false,
+        AntiVoid = false,
         Noclip = true, 
         DomainNoclip = true, 
         QTE = true, 
@@ -92,7 +93,7 @@ end
 Load("fixes")
 
 local Modules = {}
-for _, Name in {"BlackFlash", "Ratio", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
+for _, Name in {"BlackFlash", "Ratio", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
     Modules[Name] = Load(Name)
 end
 
@@ -127,6 +128,7 @@ local UiLayout = {
     {Type = "Section",  Name = "Combat & QTE"},
     {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Enable BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash, Callback = function(V) CatstarState.Toggles.BlackFlash = V end}},
     {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Enable Ratio", CurrentValue = CatstarState.Toggles.Ratio, Callback = function(V) CatstarState.Toggles.Ratio = V end}},
+    {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Enable Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Enable Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Enable Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
@@ -168,7 +170,7 @@ for _, Element in ipairs(UiLayout) do
                         Mod.Init(CatstarState)
                     end
                 else
-                    print(Element.Module .. " does not have an .Init function")
+                    if not Mod.Spectate then warn(Element.Module .. " does not have an .Init function") end
                 end
             end
             task.wait()
