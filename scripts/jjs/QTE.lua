@@ -16,7 +16,8 @@ function QTE.Init(State)
     local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent, ...)
         print(mode, targetEvent, ...)
 
-        if mode ~= "QTE" then return end
+        if typeof(mode) ~= "string" then return end
+        if not string.find(mode, "QTE") then return end
         if typeof(targetEvent) ~= "Instance" then return end
         if not targetEvent:IsA("RemoteEvent") then return end
         
