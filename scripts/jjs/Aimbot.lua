@@ -7,7 +7,6 @@ local UserInputService = cloneref(game:GetService("UserInputService"))
 local GuiService = cloneref(game:GetService("GuiService"))
 
 local Player = Players.LocalPlayer
-local workspace = cloneref(game:GetService("Workspace"))
 local Camera = workspace.CurrentCamera
 
 while not Player or not Player.Parent or not CoreGui or not Camera do
