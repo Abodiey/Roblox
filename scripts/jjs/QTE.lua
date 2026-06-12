@@ -14,7 +14,7 @@ function QTE.Init(State)
     local remoteTarget = nil
 
     local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent, ...)
-        print(mode, targetEvent, ...)
+        --print(mode, targetEvent, ...)
 
         if typeof(mode) ~= "string" then return end
         if not string.find(mode, "QTE") then return end
