@@ -16,11 +16,9 @@ function QTE.Init(State)
     local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent, ...)
         if typeof(targetEvent) ~= "Instance" then return end
         if not targetEvent:IsA("RemoteEvent") then return end
-            
-        print(mode, targetEvent, ...)
 
         if typeof(mode) ~= "string" then return end
-        if not string.find(mode, "QTE") then return end
+        if not mode ~= "QTE" then return end
         
         local character = Player.Character
         if not character then return end
@@ -51,12 +49,14 @@ function QTE.Init(State)
 
                 if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.55 then
                     remoteTarget:FireServer(true)
+                    print("Fired")
                     task.wait()
                     continue
                 end
 
                 remoteTarget:FireServer(true)
-                
+                print("Fired")
+                        
                 task.wait(currentDelay)
                 currentDelay = math.max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
             end
