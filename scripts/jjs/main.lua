@@ -14,7 +14,7 @@ task.spawn(function()
         Success = pcall(function()
             StarterGui:SetCore("SendNotification", {
                 Title = "Catstar Pro",
-                Text = "Successfully loaded!",
+                Text = "Loading...",
                 Duration = 5
             })
         end)
@@ -30,6 +30,7 @@ getgenv().CatstarState = {
     Toggles = { 
         BlackFlash = false, 
         Ratio = false,
+        AutoBurst = true,
         AntiVoid = false,
         Noclip = true, 
         DomainNoclip = true, 
@@ -93,7 +94,7 @@ end
 Load("fixes")
 
 local Modules = {}
-for _, Name in {"BlackFlash", "Ratio", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
+for _, Name in {"BlackFlash", "Ratio", "AutoBurst", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
     Modules[Name] = Load(Name)
 end
 
@@ -126,14 +127,15 @@ local MainTab = Window:CreateTab("Main", 4483362458)
 -- ==========================================
 local UiLayout = {
     {Type = "Section",  Name = "Combat & QTE"},
-    {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Enable BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash, Callback = function(V) CatstarState.Toggles.BlackFlash = V end}},
-    {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Enable Ratio", CurrentValue = CatstarState.Toggles.Ratio, Callback = function(V) CatstarState.Toggles.Ratio = V end}},
-    {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Enable Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
-    {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Enable Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
-    {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Enable Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
+    {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Auto BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash, Callback = function(V) CatstarState.Toggles.BlackFlash = V end}},
+    {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Auto Nanami Ratio", CurrentValue = CatstarState.Toggles.Ratio, Callback = function(V) CatstarState.Toggles.Ratio = V end}},
+    {Type = "Toggle",   Module = "AutoBurst",    Args = {Name = "Auto Burst", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
+    {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
+    {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
+    {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
     {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
-    {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot", CurrentKeybind = "C", Callback = function() Modules.Aimbot.Toggle(CatstarState) end}},
+    {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() Modules.Aimbot.Toggle(CatstarState) end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
     
     {Type = "Section",  Name = "Visuals"},
@@ -177,3 +179,9 @@ for _, Element in ipairs(UiLayout) do
         end
     end
 end
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Catstar Pro",
+    Text = "Successfully loaded!",
+    Duration = 5
+})
