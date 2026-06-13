@@ -193,17 +193,31 @@ local function CleanupCacheEntry(p, assets)
 end
 
 local function SetupPlayerSignals(p, assets)
+    -- Abstract tracker logic so it can be safely fired at any point
+    local function trackValueInstance(killsVal)
+        local function updateKills()
+            assets.CachedKills = tonumber(killsVal.Value) or 0
+            local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
+            assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
+        end
+        table_insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
+        updateKills()
+    end
+
     local function watchKills(leaderstats)
         local killsVal = leaderstats:FindFirstChild("Kills")
         if killsVal then
-            local function updateKills()
-                -- Non-blocking inline assignment: Use value if valid number, otherwise default to 0
-                assets.CachedKills = tonumber(killsVal.Value) or 0
-                local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
-                assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
-            end
-            table_insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
-            updateKills()
+            trackValueInstance(killsVal)
+        else
+            -- FIXED: If folder is here but "Kills" hasn't replicated yet, listen for it non-blockingly
+            local kConn
+            kConn = leaderstats.ChildAdded:Connect(function(child)
+                if child.Name == "Kills" then
+                    trackValueInstance(child)
+                    kConn:Disconnect()
+                end
+            end)
+            table_insert(assets.Connections, kConn)
         end
     end
 
