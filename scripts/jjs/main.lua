@@ -129,7 +129,7 @@ local UiLayout = {
     {Type = "Section",  Name = "Combat & QTE"},
     {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Auto BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash, Callback = function(V) CatstarState.Toggles.BlackFlash = V end}},
     {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Auto Nanami Ratio", CurrentValue = CatstarState.Toggles.Ratio, Callback = function(V) CatstarState.Toggles.Ratio = V end}},
-    {Type = "Toggle",   Module = "AutoBurst",    Args = {Name = "Auto Burst", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
+    {Type = "Toggle",   Module = "AutoBurst",    Args = {Name = "Auto Burst", CurrentValue = CatstarState.Toggles.AutoBurst, Callback = function(V) CatstarState.Toggles.AutoBurst = V end}},
     {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
