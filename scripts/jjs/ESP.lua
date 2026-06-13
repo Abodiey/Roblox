@@ -197,6 +197,7 @@ local function SetupPlayerSignals(p, assets)
         local killsVal = leaderstats:FindFirstChild("Kills")
         if killsVal then
             local function updateKills()
+                -- Non-blocking inline assignment: Use value if valid number, otherwise default to 0
                 assets.CachedKills = tonumber(killsVal.Value) or 0
                 local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
                 assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
@@ -316,7 +317,10 @@ function ESP.Init(State)
                         -- Attribute Checks: InUlt, Dead, Evade
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
-                        local evadeValue = char:GetAttribute("Evade")
+                        
+                        -- Inline non-blocking validation: set if valid number, else default to 0
+                        local rawEvade = char:GetAttribute("Evade")
+                        local evadeValue = type(rawEvade) == "number" and rawEvade or 0
                         
                         -- Ult Text Handler
                         c.UltDisplay = inUlt and "<b><font color='#FF007F'>[Ult]</font></b>\n" or ""
@@ -361,7 +365,7 @@ function ESP.Init(State)
                     
                     local currentDist = c.LastDist
 
-                    -- 2D Line Line Calculations
+                    -- 2D Line Calculations
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
