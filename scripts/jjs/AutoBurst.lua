@@ -10,7 +10,19 @@ local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 
 local LocalPlayer = Players.LocalPlayer
-local MovementService = Knit.GetService("MovementService")
+local MovementService
+pcall(function()
+    MovementService = Knit.GetService("MovementService")
+end)
+
+task.spawn(function()
+    while not MovementService do
+        pcall(function()
+            MovementService = Knit.GetService("MovementService")
+        end)
+        task.wait(1)
+    end
+end)
 
 -- Optimizations
 local getAttribute = game.GetAttribute
@@ -21,7 +33,8 @@ function AutoBurst.Init(State)
     local HeartbeatConnection = RunService.Heartbeat:Connect(function()
         -- Directly check the toggle state
         if not State.Toggles.AutoBurst then return end
-
+        if not MovementService then return end
+            
         local character = LocalPlayer.Character
         if not character then return end
 
