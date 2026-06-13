@@ -5,6 +5,7 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local Player = Players.LocalPlayer
 local PlayerGui = Player.PlayerGui
 local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
+local CharactersFolder = workspace:WaitForChild("Characters", 99)
 
 QTE.InitialDelay = 1
 QTE.MinimumDelay = 0.1
@@ -13,16 +14,12 @@ QTE.RampSpeed = 0.08
 function QTE.Init(State)
     local remoteTarget = nil
 
-    local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent, ...)
+    local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent)
+        if typeof(mode) ~= "string" then return end
+        if mode ~= "QTE" then return end
         if typeof(targetEvent) ~= "Instance" then return end
         if not targetEvent:IsA("RemoteEvent") then return end
-
-        if typeof(mode) ~= "string" then return end
-        if not mode ~= "QTE" then return end
-        
-        local character = Player.Character
-        if not character then return end
-        if not targetEvent:IsDescendantOf(character) then return end
+        if not targetEvent:IsDescendantOf(CharactersFolder) then return end
 
         remoteTarget = targetEvent
 
@@ -49,14 +46,12 @@ function QTE.Init(State)
 
                 if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.55 then
                     remoteTarget:FireServer(true)
-                    print("Fired")
                     task.wait()
                     continue
                 end
 
                 remoteTarget:FireServer(true)
-                print("Fired")
-                        
+                
                 task.wait(currentDelay)
                 currentDelay = math.max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
             end
