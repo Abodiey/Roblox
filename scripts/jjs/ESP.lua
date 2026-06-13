@@ -197,7 +197,7 @@ local function SetupPlayerSignals(p, assets)
         local killsVal = leaderstats:FindFirstChild("Kills")
         if killsVal then
             local function updateKills()
-                assets.CachedKills = killsVal.Value
+                assets.CachedKills = tonumber(killsVal.Value) or 0
                 local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
                 assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
             end
