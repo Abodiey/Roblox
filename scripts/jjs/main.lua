@@ -94,7 +94,7 @@ end
 Load("fixes")
 
 local Modules = {}
-for _, Name in {"BlackFlash", "Ratio", "AutoBurst", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting"} do
+for _, Name in {"BlackFlash", "Ratio", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting", "AutoBurst"} do
     Modules[Name] = Load(Name)
 end
 
