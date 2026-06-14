@@ -1,70 +1,77 @@
 local AntiVoid = {}
 
+local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
+
+local LocalPlayer = Players.LocalPlayer
 
 -- [CONFIGURATION CONSTANTS]
 local CENTER_POINT = Vector3.zero
 local MAP_RADIUS = 350
-local WALL_HEIGHT = 999
-local WALL_THICKNESS = 5
+local TELEPORT_THRESHOLD = 100 -- Maximum valid distance a player can travel in one frame (prevents rubberbanding on map teleports)
 
-local FINAL_Y = CENTER_POINT.Y + (WALL_HEIGHT / 2)
-local FULL_SIDE_LENGTH = (MAP_RADIUS * 2) + WALL_THICKNESS
+-- Calculate the bounding box based on the center and radius
+local MIN_X = CENTER_POINT.X - MAP_RADIUS
+local MAX_X = CENTER_POINT.X + MAP_RADIUS
+local MIN_Z = CENTER_POINT.Z - MAP_RADIUS
+local MAX_Z = CENTER_POINT.Z + MAP_RADIUS
 
--- [DIRECTIONAL BLUEPRINTS]
-local WALL_BLUEPRINTS = {
-    {Offset = Vector3.new(0, 0, 1),  Size = Vector3.new(FULL_SIDE_LENGTH, WALL_HEIGHT, WALL_THICKNESS)}, -- Front
-    {Offset = Vector3.new(0, 0, -1), Size = Vector3.new(FULL_SIDE_LENGTH, WALL_HEIGHT, WALL_THICKNESS)}, -- Back
-    {Offset = Vector3.new(1, 0, 0),  Size = Vector3.new(WALL_THICKNESS, WALL_HEIGHT, FULL_SIDE_LENGTH)}, -- Right
-    {Offset = Vector3.new(-1, 0, 0), Size = Vector3.new(WALL_THICKNESS, WALL_HEIGHT, FULL_SIDE_LENGTH)}  -- Left
-}
-
-local activeBarriers = {}
-
--- [HELPER FUNCTIONS]
-local function destroyBarriers()
-    for _, barrier in ipairs(activeBarriers) do
-        if barrier then barrier:Destroy() end
-    end
-    table.clear(activeBarriers)
-end
-
-local function createBarriers()
-    for _, blueprint in ipairs(WALL_BLUEPRINTS) do
-        local barrier = Instance.new("Part")
-        local wallPosition = Vector3.new(
-            CENTER_POINT.X + (blueprint.Offset.X * MAP_RADIUS),
-            FINAL_Y,
-            CENTER_POINT.Z + (blueprint.Offset.Z * MAP_RADIUS)
-        )
-        
-        barrier.Size = blueprint.Size
-        barrier.CFrame = CFrame.new(wallPosition)
-        barrier.Anchored = true
-        barrier.CanCollide = true
-        barrier.CanTouch = false
-        barrier.CanQuery = false
-        barrier.Transparency = 1
-        barrier.CastShadow = false
-        
-        barrier.Parent = workspace
-        table.insert(activeBarriers, barrier)
-    end
-end
+local lastPosition = nil
 
 -- [MAIN INITIALIZATION]
 function AntiVoid.Init(State)
-    local Connection = RunService.Stepped:Connect(function()
+    local Connection = RunService.Heartbeat:Connect(function()
         local Enabled = State.Toggles.AntiVoid
         
-        if Enabled then
-            if #activeBarriers == 0 then
-                createBarriers()
+        if not Enabled then 
+            lastPosition = nil
+            return 
+        end
+        
+        -- Ensure the character and RootPart exist and are valid
+        local Character = LocalPlayer.Character
+        if not Character then 
+            lastPosition = nil
+            return 
+        end
+        
+        local RootPart = Character:FindFirstChild("HumanoidRootPart")
+        if not RootPart then 
+            lastPosition = nil
+            return 
+        end
+        
+        local currentPosition = RootPart.Position
+        
+        -- If we have a recorded last position, check if the movement looks like a massive teleport
+        if lastPosition then
+            local distanceMoved = (currentPosition - lastPosition).Magnitude
+            if distanceMoved > TELEPORT_THRESHOLD then
+                -- Player was intentionally teleported far away; accept the new position and don't clamp
+                lastPosition = currentPosition
+                return
             end
+        end
+        
+        -- Check if the player is outside the boundary box
+        if currentPosition.X < MIN_X or currentPosition.X > MAX_X or currentPosition.Z < MIN_Z or currentPosition.Z > MAX_Z then
+            
+            -- Clamp the coordinates mathematically so they cannot exceed the radius
+            local clampedX = math.clamp(currentPosition.X, MIN_X, MAX_X)
+            local clampedZ = math.clamp(currentPosition.Z, MIN_Z, MAX_Z)
+            
+            -- Update the RootPart CFrame while preserving AssemblyLinearVelocity
+            local currentVelocity = RootPart.AssemblyLinearVelocity
+            
+            local targetPosition = Vector3.new(clampedX, currentPosition.Y, clampedZ)
+            RootPart.CFrame = CFrame.new(targetPosition) * RootPart.CFrame.Rotation
+            RootPart.AssemblyLinearVelocity = currentVelocity
+            
+            -- Track the clamped position as the last valid position
+            lastPosition = targetPosition
         else
-            if #activeBarriers > 0 then
-                destroyBarriers()
-            end
+            -- Track the normal walking position
+            lastPosition = currentPosition
         end
     end)
     
