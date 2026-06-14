@@ -6,72 +6,62 @@ local RunService = cloneref(game:GetService("RunService"))
 local LocalPlayer = Players.LocalPlayer
 
 -- [CONFIGURATION CONSTANTS]
-local CENTER_POINT = Vector3.zero
+local MAIN_CENTER = Vector3.zero
 local MAP_RADIUS = 350
-local TELEPORT_THRESHOLD = 100 -- Maximum valid distance a player can travel in one frame (prevents rubberbanding on map teleports)
+local DOMAIN_DETECTION_RADIUS = 600 -- Beyond this, it assumes you are in a domain/different map section
 
--- Calculate the bounding box based on the center and radius
-local MIN_X = CENTER_POINT.X - MAP_RADIUS
-local MAX_X = CENTER_POINT.X + MAP_RADIUS
-local MIN_Z = CENTER_POINT.Z - MAP_RADIUS
-local MAX_Z = CENTER_POINT.Z + MAP_RADIUS
-
-local lastPosition = nil
+-- [DYNAMIC VARIATION DATA]
+local currentCenter = MAIN_CENTER
 
 -- [MAIN INITIALIZATION]
 function AntiVoid.Init(State)
     local Connection = RunService.Heartbeat:Connect(function()
         local Enabled = State.Toggles.AntiVoid
         
-        if not Enabled then 
-            lastPosition = nil
-            return 
-        end
+        if not Enabled then return end
         
         -- Ensure the character and RootPart exist and are valid
         local Character = LocalPlayer.Character
-        if not Character then 
-            lastPosition = nil
-            return 
-        end
+        if not Character then return end
         
         local RootPart = Character:FindFirstChild("HumanoidRootPart")
-        if not RootPart then 
-            lastPosition = nil
-            return 
-        end
+        if not RootPart then return end
         
         local currentPosition = RootPart.Position
         
-        -- If we have a recorded last position, check if the movement looks like a massive teleport
-        if lastPosition then
-            local distanceMoved = (currentPosition - lastPosition).Magnitude
-            if distanceMoved > TELEPORT_THRESHOLD then
-                -- Player was intentionally teleported far away; accept the new position and don't clamp
-                lastPosition = currentPosition
-                return
-            end
+        -- [DYNAMIC DOMAIN DETECTION]
+        -- If player is way further than the main map boundaries, shift center to their general domain area
+        local distanceFromMain = (Vector3.new(currentPosition.X, MAIN_CENTER.Y, currentPosition.Z) - MAIN_CENTER).Magnitude
+        
+        if distanceFromMain > DOMAIN_DETECTION_RADIUS then
+            -- Snap our tracking center to the domain's local center area (rounded to increments to maintain stability)
+            currentCenter = Vector3.new(
+                math.round(currentPosition.X / 500) * 500,
+                currentPosition.Y,
+                math.round(currentPosition.Z / 500) * 500
+            )
+        else
+            -- Back in the main arena
+            currentCenter = MAIN_CENTER
         end
         
-        -- Check if the player is outside the boundary box
+        -- Recalculate dynamic bounding boxes based on the current active zone
+        local MIN_X = currentCenter.X - MAP_RADIUS
+        local MAX_X = currentCenter.X + MAP_RADIUS
+        local MIN_Z = currentCenter.Z - MAP_RADIUS
+        local MAX_Z = currentCenter.Z + MAP_RADIUS
+        
+        -- [CLAMP LOGIC]
         if currentPosition.X < MIN_X or currentPosition.X > MAX_X or currentPosition.Z < MIN_Z or currentPosition.Z > MAX_Z then
             
-            -- Clamp the coordinates mathematically so they cannot exceed the radius
+            -- Clamp coordinates based on the dynamically selected center zone
             local clampedX = math.clamp(currentPosition.X, MIN_X, MAX_X)
             local clampedZ = math.clamp(currentPosition.Z, MIN_Z, MAX_Z)
             
-            -- Update the RootPart CFrame while preserving AssemblyLinearVelocity
             local currentVelocity = RootPart.AssemblyLinearVelocity
             
-            local targetPosition = Vector3.new(clampedX, currentPosition.Y, clampedZ)
-            RootPart.CFrame = CFrame.new(targetPosition) * RootPart.CFrame.Rotation
+            RootPart.CFrame = CFrame.new(Vector3.new(clampedX, currentPosition.Y, clampedZ)) * RootPart.CFrame.Rotation
             RootPart.AssemblyLinearVelocity = currentVelocity
-            
-            -- Track the clamped position as the last valid position
-            lastPosition = targetPosition
-        else
-            -- Track the normal walking position
-            lastPosition = currentPosition
         end
     end)
     
