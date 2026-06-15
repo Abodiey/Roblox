@@ -63,6 +63,8 @@ local COLOR_YELLOW = c3_new(1, 1, 0)
 local COLOR_GREEN = c3_new(0, 1, 0)
 local COLOR_WHITE = c3_new(1, 1, 1)
 local COLOR_BLACK = c3_new(0, 0, 0)
+local COLOR_CYAN = c3_new(0, 1, 1)
+local COLOR_MAGENTA = c3_new(1, 0, 1)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -123,8 +125,8 @@ local function CreateAssets(p)
     -- Main Text Element Layout
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 250, 0, 65)
-    bill.ExtentsOffset = v3_new(0, 3.5, 0)
+    bill.Size = ud2_new(0, 250, 0, 75)
+    bill.ExtentsOffset = v3_new(0, 4.0, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
@@ -134,7 +136,7 @@ local function CreateAssets(p)
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
     txt.Font = Enum.Font.RobotoMono
-    txt.TextSize = 15
+    txt.TextSize = 14
     txt.Parent = bill
     assets.Text = txt
     
@@ -144,11 +146,11 @@ local function CreateAssets(p)
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- Health Bar Element Layout
+    -- Health Bar Element Layout (Left Wing Side)
     local hBill = inst_new("BillboardGui")
     hBill.AlwaysOnTop = true
-    hBill.Size = ud2_new(0, 4, 0, 40)
-    hBill.ExtentsOffset = v3_new(-2.5, 0, 0)
+    hBill.Size = ud2_new(0, 4, 0, 45)
+    hBill.ExtentsOffset = v3_new(-3.0, 0, 0)
     hBill.Parent = ScreenGui
     assets.HealthBill = hBill
     
@@ -165,6 +167,28 @@ local function CreateAssets(p)
     hFill.BorderSizePixel = 0
     hFill.Parent = hBack
     assets.HealthFill = hFill
+
+    -- Evade Bar Element Layout (Right Wing Side)
+    local eBill = inst_new("BillboardGui")
+    eBill.AlwaysOnTop = true
+    eBill.Size = ud2_new(0, 4, 0, 45)
+    eBill.ExtentsOffset = v3_new(3.0, 0, 0)
+    eBill.Parent = ScreenGui
+    assets.EvadeBill = eBill
+    
+    local eBack = inst_new("Frame")
+    eBack.Size = ud2_new(1, 0, 1, 0)
+    eBack.BackgroundColor3 = COLOR_BLACK
+    eBack.BorderSizePixel = 0
+    eBack.Parent = eBill
+    
+    local eFill = inst_new("Frame")
+    eFill.Size = ud2_new(1, 0, 1, 0)
+    eFill.AnchorPoint = v2_new(0, 1)
+    eFill.Position = ud2_new(0, 0, 1, 0)
+    eFill.BorderSizePixel = 0
+    eFill.Parent = eBack
+    assets.EvadeFill = eFill
     
     -- Connection trackers
     assets.Connections = {}
@@ -180,7 +204,7 @@ local function CreateAssets(p)
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
-    assets.IsHidingKills = false -- Tag cache variable to track flag layout state
+    assets.IsHidingKills = false
     
     return assets
 end
@@ -192,6 +216,7 @@ local function CleanupCacheEntry(p, assets)
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
     if assets.HealthBill then assets.HealthBill:Destroy() end
+    if assets.EvadeBill then assets.EvadeBill:Destroy() end
     Cache[p] = nil
 end
 
@@ -214,7 +239,7 @@ local function SetupPlayerSignals(p, assets)
     local function watchKills(leaderstats)
         local function evaluateSource()
             local isHidden = leaderstats:GetAttribute("HiddenKills")
-            assets.IsHidingKills = not (not isHidden) -- Dynamic binary synchronization
+            assets.IsHidingKills = not (not isHidden)
 
             if isHidden then
                 local hiddenFolder = leaderstats:FindFirstChild("Hidden")
@@ -350,10 +375,14 @@ function ESP.Init(State)
                     c.Line.Visible = true
                     c.Bill.Enabled = true
                     c.HealthBill.Enabled = true
+                    c.EvadeBill.Enabled = true
                     c.Text.Visible = true
                     c.HealthFill.Visible = true
+                    c.EvadeFill.Visible = true
+                    
                     c.Bill.Adornee = root
                     c.HealthBill.Adornee = root
+                    c.EvadeBill.Adornee = root
 
                     -- Define the starting viewport coordinates (Origin point)
                     local sX, sY
@@ -374,26 +403,32 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- Inline non-blocking validation: set if valid number, else default to 0
+                        -- Process Evade values non-blockingly
                         local rawEvade = char:GetAttribute("Evade")
                         local evadeValue = type(rawEvade) == "number" and rawEvade or 0
+                        local evadePerc = m_clamp(evadeValue / 50, 0, 1)
+                        
+                        -- Update Evade side bar elements
+                        c.EvadeFill.Size = ud2_new(1, 0, evadePerc, 0)
+                        if evadePerc >= 1 then
+                            c.EvadeFill.BackgroundColor3 = COLOR_MAGENTA
+                        else
+                            c.EvadeFill.BackgroundColor3 = COLOR_CYAN:Lerp(COLOR_MAGENTA, evadePerc)
+                        end
                         
                         -- Ult Text Handler
-                        c.UltDisplay = inUlt and "<b><font color='#FF007F'>[Ult]</font></b>\n" or ""
+                        c.UltDisplay = inUlt and "<b><font color='#FF007F'>⚡ OVERDRIVE ⚡</font></b>\n" or ""
                         
                         -- Name Formatting with Dead color fallback
                         if isDead then
-                            c.NameDisplay = "<b><font color='#FF0000'>" .. p.Name .. "</font></b> "
+                            c.NameDisplay = "<b><font color='#FF0000'>☠️ " .. p.Name .. "</font></b>"
                         else
-                            c.NameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b> "
+                            c.NameDisplay = (dist < 50) and "" or "<b>" .. p.Name .. "</b>"
                         end
                         
                         local distCol = getGradientColor(dist / 800)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
-                        
-                        -- Evade tag configuration ([EV] in hot magenta side-by-side with moveset name)
-                        local evadeTag = (evadeValue >= 50) and " <font color='#FF00FF'>[EV]</font>" or ""
                         
                         -- Moveset attribute verification
                         local movesetAttr = char:GetAttribute("Moveset")
@@ -407,15 +442,13 @@ function ESP.Init(State)
                             
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
                             
-                            -- Isolated stroke tagging based on background brightness requirements
                             if DARK_MOVESETS[movesetAttr] then
-                                c.CachedMoveset = s_format("<b><stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke>%s</b>\n", hexColor, tostring(movesetAttr), evadeTag)
+                                c.CachedMoveset = s_format("🛡️ <stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke>\n", hexColor, tostring(movesetAttr))
                             else
-                                c.CachedMoveset = s_format("<b><font color='#%s'>%s</font>%s</b>\n", hexColor, tostring(movesetAttr), evadeTag)
+                                c.CachedMoveset = s_format("⚔️ <font color='#%s'>%s</font>\n", hexColor, tostring(movesetAttr))
                             end
                         else
-                            -- Show standalone [EV] next to a blank space if character has no current moveset
-                            c.CachedMoveset = (evadeTag ~= "") and "<b>" .. evadeTag .. "</b>\n" or ""
+                            c.CachedMoveset = ""
                         end
                     end
                     
@@ -431,17 +464,14 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Build swappable text blocks detailing visibility bypasses
+                    -- Reworked Text Block Composition Layout
                     local killString = formatVal(c.CachedKills)
                     if c.IsHidingKills then
-                        -- Appends a yellow visibility warning tag and stylized angled brackets
-                        killString = s_format("⟨%s <font color='#FFFF00'>👁️</font>⟩", killString)
-                    else
-                        killString = s_format("[%s]", killString)
+                        killString = s_format("%s <font color='#FFFF00'>⚠️</font>", killString)
                     end
 
-                    -- Output structured data block string formatting
-                    c.Text.Text = s_format("%s%s%s<font color='#%s'>%s</font> <font color='#%s'>%sm</font>", 
+                    -- Clean line structural assignments 
+                    c.Text.Text = s_format("%s%s%s\n<font color='#%s'>Kills: %s</font> | <font color='#%s'>Dist: %sm</font>", 
                         c.UltDisplay, 
                         c.CachedMoveset, 
                         c.NameDisplay, 
@@ -454,15 +484,19 @@ function ESP.Init(State)
                     c.Line.Visible = false
                     c.Bill.Enabled = false
                     c.HealthBill.Enabled = false
+                    c.EvadeBill.Enabled = false
                     c.Text.Visible = false
                     c.HealthFill.Visible = false
+                    c.EvadeFill.Visible = false
                 end
             elseif Cache[p] then
                 local c = Cache[p]
                 c.Line.Visible = false
                 c.Bill.Enabled = false
                 c.HealthBill.Enabled = false
+                c.EvadeBill.Enabled = false
                 c.HealthFill.Visible = false
+                c.EvadeFill.Visible = false
                 c.Text.Visible = true
             end
         end
