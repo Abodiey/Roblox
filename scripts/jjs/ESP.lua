@@ -169,6 +169,7 @@ local function CreateAssets(p)
     -- Connection trackers
     assets.Connections = {}
     assets.CharacterConnections = {} 
+    assets.KillValueConnections = {} 
     
     -- Dynamic variable caching
     assets.LastDist = 0
@@ -179,6 +180,7 @@ local function CreateAssets(p)
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
+    assets.IsHidingKills = false -- Tag cache variable to track flag layout state
     
     return assets
 end
@@ -186,6 +188,7 @@ end
 local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.Connections) do conn:Disconnect() end
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
+    for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
     if assets.HealthBill then assets.HealthBill:Destroy() end
@@ -193,32 +196,71 @@ local function CleanupCacheEntry(p, assets)
 end
 
 local function SetupPlayerSignals(p, assets)
-    -- Abstract tracker logic so it can be safely fired at any point
     local function trackValueInstance(killsVal)
+        for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
+        table_clear(assets.KillValueConnections)
+
+        if not killsVal then return end
+
         local function updateKills()
             assets.CachedKills = tonumber(killsVal.Value) or 0
             local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
             assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
         end
-        table_insert(assets.Connections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
+        table_insert(assets.KillValueConnections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
         updateKills()
     end
 
     local function watchKills(leaderstats)
-        local killsVal = leaderstats:FindFirstChild("Kills")
-        if killsVal then
-            trackValueInstance(killsVal)
-        else
-            -- FIXED: If folder is here but "Kills" hasn't replicated yet, listen for it non-blockingly
-            local kConn
-            kConn = leaderstats.ChildAdded:Connect(function(child)
-                if child.Name == "Kills" then
-                    trackValueInstance(child)
-                    kConn:Disconnect()
+        local function evaluateSource()
+            local isHidden = leaderstats:GetAttribute("HiddenKills")
+            assets.IsHidingKills = not (not isHidden) -- Dynamic binary synchronization
+
+            if isHidden then
+                local hiddenFolder = leaderstats:FindFirstChild("Hidden")
+                if hiddenFolder then
+                    local killsVal = hiddenFolder:FindFirstChild("Kills")
+                    if killsVal then
+                        trackValueInstance(killsVal)
+                    else
+                        local hConn
+                        hConn = hiddenFolder.ChildAdded:Connect(function(child)
+                            if child.Name == "Kills" and leaderstats:GetAttribute("HiddenKills") then
+                                trackValueInstance(child)
+                                hConn:Disconnect()
+                            end
+                        end)
+                        table_insert(assets.KillValueConnections, hConn)
+                    end
+                else
+                    local folderConn
+                    folderConn = leaderstats.ChildAdded:Connect(function(child)
+                        if child.Name == "Hidden" then
+                            evaluateSource()
+                            folderConn:Disconnect()
+                        end
+                    end)
+                    table_insert(assets.KillValueConnections, folderConn)
                 end
-            end)
-            table_insert(assets.Connections, kConn)
+            else
+                local killsVal = leaderstats:FindFirstChild("Kills")
+                if killsVal then
+                    trackValueInstance(killsVal)
+                else
+                    local kConn
+                    kConn = leaderstats.ChildAdded:Connect(function(child)
+                        if child.Name == "Kills" and not leaderstats:GetAttribute("HiddenKills") then
+                            trackValueInstance(child)
+                            kConn:Disconnect()
+                        end
+                    end)
+                    table_insert(assets.KillValueConnections, kConn)
+                end
+            end
         end
+
+        table_insert(assets.Connections, leaderstats:GetAttributeChangedSignal("HiddenKills"):Connect(evaluateSource))
+        evaluateSource()
     end
 
     local leaderstats = p:FindFirstChild("leaderstats")
@@ -389,13 +431,22 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
+                    -- Build swappable text blocks detailing visibility bypasses
+                    local killString = formatVal(c.CachedKills)
+                    if c.IsHidingKills then
+                        -- Appends a yellow visibility warning tag and stylized angled brackets
+                        killString = s_format("⟨%s <font color='#FFFF00'>👁️</font>⟩", killString)
+                    else
+                        killString = s_format("[%s]", killString)
+                    end
+
                     -- Output structured data block string formatting
-                    c.Text.Text = s_format("%s%s%s<font color='#%s'>[%s]</font> <font color='#%s'>%sm</font>", 
+                    c.Text.Text = s_format("%s%s%s<font color='#%s'>%s</font> <font color='#%s'>%sm</font>", 
                         c.UltDisplay, 
                         c.CachedMoveset, 
                         c.NameDisplay, 
                         c.HexKillColor, 
-                        formatVal(c.CachedKills), 
+                        killString, 
                         c.HexDistColor, 
                         tostring(m_floor(currentDist))
                     )
