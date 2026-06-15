@@ -9,9 +9,9 @@ OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
         return OldIndex(Self, Prop, Val) 
     end
 
-    if Val == false then
+    if Val == true then
         return OldIndex(Self, Prop, 0)
-    elseif Val == true then
+    elseif Val == false then
         if Self:IsA("BasePart") or Self:IsA("ParticleEmitter") then
             return OldIndex(Self, Prop, 0.7)
         end
@@ -23,12 +23,12 @@ end)
 local Effects = workspace:WaitForChild("Effects")
 local Beams = workspace:WaitForChild("Beams")
 local Modules = ReplicatedStorage:WaitForChild("Modules")
-local Bloodyzee = Modules and Modules:FindFirstChild("BloodyZee")
+local BloodyZee = Modules and Modules:FindFirstChild("BloodyZee")
 
 local BloodName = "Blood"
 
 local function CreateBlood()
-    if not Effects or not Bloodyzee then return end
+    if not Effects or not BloodyZee then return end
     
     local Blood = Instance.new("Folder")
     Blood.Name = BloodName
@@ -40,7 +40,7 @@ local function CreateBlood()
     Blood.Parent = Effects
 end
 
-if Effects and Bloodyzee and not Effects:FindFirstChild(BloodName) then
+if Effects and BloodyZee and not Effects:FindFirstChild(BloodName) then
     CreateBlood()
 end
 
