@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- [CONFIGURATION CONSTANTS]
 local CENTER_POINT = Vector3.zero
-local MAP_RADIUS = 350
+local MAP_RADIUS = 346
 local TELEPORT_THRESHOLD = 100 -- Maximum valid distance a player can travel in one frame
 
 -- Calculate the bounding box based on the center and radius
