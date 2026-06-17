@@ -31,14 +31,14 @@ local Whitelist = {
 if not Effects then return end
 local AddItem = Debris.AddItem
             
-for _, Child in ipairs(Folder:GetChildren()) do
+for _, Child in ipairs(Effects:GetChildren()) do
     local Name = Child.Name
     if Name ~= BloodName and Whitelist[Name] then
         AddItem(Debris, Child, 60)
     end
 end
             
-Folder.ChildAdded:Connect(function(Child)
+Effects.ChildAdded:Connect(function(Child)
     local Name = Child.Name
     if Name ~= BloodName and Whitelist[Name] then
         AddItem(Debris, Child, 60)
