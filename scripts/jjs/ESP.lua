@@ -113,16 +113,18 @@ local function formatVal(val)
     return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
 end
 
--- Optimized structure checks for custom asset directories
+-- Strictly checks if a folder is fully custom (all items named "Custom")
 local function isCustom(movesetFolder)
     if not movesetFolder then return false end
-    if movesetFolder:FindFirstChild("Custom") then return true end
-    for _, move in pairs(movesetFolder:GetChildren()) do
+    local children = movesetFolder:GetChildren()
+    if #children == 0 then return false end
+    
+    for _, move in ipairs(children) do
         if move.Name ~= "Custom" then 
             return false 
         end
     end
-    return false
+    return true
 end
 
 local function CreateAssets(p)
@@ -515,27 +517,36 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Optimized Dynamic Moveset Evaluation Engine
+                        -- Evaluates Character Moveset Mapping with Strict Custom-Only Matching
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
                         local movesetFolder = char:FindFirstChild("Moveset")
                         
-                        local hasCustomObj = isCustom(movesetFolder)
+                        local fullyCustom = isCustom(movesetFolder)
+                        
+                        if cm == "Custom" or fullyCustom then
+                            if fullyCustom then
+                                local ultAttr = char:GetAttribute("CustomUlt")
+                                local customChild = movesetFolder:FindFirstChild("Custom")
+                                local tagAttr = customChild and customChild:GetAttribute("Tag")
+                                
+                                if type(ultAttr) == "string" and ultAttr:find("%a") then
+                                    movesetName = ultAttr
+                                elseif tagAttr then
+                                    movesetName = tagAttr
+                                else
+                                    movesetName = "Custom"
+                                end
+                            else
+                                movesetName = pm or "Custom"
+                            end
+                        else
+                            movesetName = cm or pm or ""
+                        end
                         
                         if cm == pm and not (movesetFolder and movesetFolder:FindFirstChild("Custom")) then
                             movesetName = pm or ""
-                        elseif hasCustomObj then
-                            local ultAttr = char:GetAttribute("CustomUlt")
-                            local tagAttr = movesetFolder.Custom:GetAttribute("Tag")
-                            
-                            if type(ultAttr) == "string" and ultAttr:find("%a") then
-                                movesetName = ultAttr
-                            elseif tagAttr then
-                                movesetName = tagAttr
-                            end
-                        else
-                            movesetName = (cm == "Custom") and pm or cm
                         end
                         
                         if movesetName and movesetName ~= "" then
