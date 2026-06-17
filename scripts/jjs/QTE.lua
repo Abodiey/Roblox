@@ -8,8 +8,8 @@ local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99
 local CharactersFolder = workspace:WaitForChild("Characters", 99)
 
 QTE.InitialDelay = 1
-QTE.MinimumDelay = 0.1
-QTE.RampSpeed = 0.08
+QTE.MinimumDelay = 0.05
+QTE.RampSpeed = 0.28
 
 function QTE.Init(State)
     local remoteTarget = nil
