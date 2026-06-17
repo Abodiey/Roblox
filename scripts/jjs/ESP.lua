@@ -65,6 +65,8 @@ local COLOR_WHITE = c3_new(1, 1, 1)
 local COLOR_BLACK = c3_new(0, 0, 0)
 local COLOR_CYAN = c3_new(0, 1, 1)
 local COLOR_MAGENTA = c3_new(1, 0, 1)
+local COLOR_ORANGE = c3_new(1, 0.4, 0)
+local COLOR_GOLD = c3_new(1, 0.8, 0)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -125,8 +127,8 @@ local function CreateAssets(p)
     -- Main Text Element Layout
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 200, 0, 50)
-    bill.ExtentsOffset = v3_new(0, 3.0, 0)
+    bill.Size = ud2_new(0, 240, 0, 50)
+    bill.ExtentsOffset = v3_new(0, 3.2, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
@@ -146,19 +148,25 @@ local function CreateAssets(p)
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- Health Bar Element Layout (Left Side)
-    local hBill = inst_new("BillboardGui")
-    hBill.AlwaysOnTop = true
-    hBill.Size = ud2_new(0, 3, 0, 32)
-    hBill.ExtentsOffset = v3_new(-2.0, -0.2, 0)
-    hBill.Parent = ScreenGui
-    assets.HealthBill = hBill
+    -- LEFT SIDEBAR FRAME (Health & Ultimate Stack)
+    local leftBill = inst_new("BillboardGui")
+    leftBill.AlwaysOnTop = true
+    leftBill.Size = ud2_new(0, 3, 0, 36)
+    leftBill.ExtentsOffset = v3_new(-2.2, -0.1, 0)
+    leftBill.Parent = ScreenGui
+    assets.LeftBill = leftBill
     
+    local leftContainer = inst_new("Frame")
+    leftContainer.Size = ud2_new(1, 0, 1, 0)
+    leftContainer.BackgroundTransparency = 1
+    leftContainer.Parent = leftBill
+    
+    -- Health (Top 50% of Left Sidebar)
     local hBack = inst_new("Frame")
-    hBack.Size = ud2_new(1, 0, 1, 0)
+    hBack.Size = ud2_new(1, 0, 0.48, 0)
     hBack.BackgroundColor3 = COLOR_BLACK
     hBack.BorderSizePixel = 0
-    hBack.Parent = hBill
+    hBack.Parent = leftContainer
     
     local hFill = inst_new("Frame")
     hFill.Size = ud2_new(1, 0, 1, 0)
@@ -168,19 +176,41 @@ local function CreateAssets(p)
     hFill.Parent = hBack
     assets.HealthFill = hFill
 
-    -- Evade Bar Element Layout (Right Side)
-    local eBill = inst_new("BillboardGui")
-    eBill.AlwaysOnTop = true
-    eBill.Size = ud2_new(0, 3, 0, 32)
-    eBill.ExtentsOffset = v3_new(2.0, -0.2, 0)
-    eBill.Parent = ScreenGui
-    assets.EvadeBill = eBill
+    -- Ultimate (Bottom 50% of Left Sidebar)
+    local uBack = inst_new("Frame")
+    uBack.Size = ud2_new(1, 0, 0.48, 0)
+    uBack.Position = ud2_new(0, 0, 0.52, 0)
+    uBack.BackgroundColor3 = COLOR_BLACK
+    uBack.BorderSizePixel = 0
+    uBack.Parent = leftContainer
     
+    local uFill = inst_new("Frame")
+    uFill.Size = ud2_new(1, 0, 1, 0)
+    uFill.AnchorPoint = v2_new(0, 1)
+    uFill.Position = ud2_new(0, 0, 1, 0)
+    uFill.BorderSizePixel = 0
+    uFill.Parent = uBack
+    assets.UltFill = uFill
+
+    -- RIGHT SIDEBAR FRAME (Evade & Jackpot Stack)
+    local rightBill = inst_new("BillboardGui")
+    rightBill.AlwaysOnTop = true
+    rightBill.Size = ud2_new(0, 3, 0, 36)
+    rightBill.ExtentsOffset = v3_new(2.2, -0.1, 0)
+    rightBill.Parent = ScreenGui
+    assets.RightBill = rightBill
+    
+    local rightContainer = inst_new("Frame")
+    rightContainer.Size = ud2_new(1, 0, 1, 0)
+    rightContainer.BackgroundTransparency = 1
+    rightContainer.Parent = rightBill
+    
+    -- Evade (Top 50% of Right Sidebar)
     local eBack = inst_new("Frame")
-    eBack.Size = ud2_new(1, 0, 1, 0)
+    eBack.Size = ud2_new(1, 0, 0.48, 0)
     eBack.BackgroundColor3 = COLOR_BLACK
     eBack.BorderSizePixel = 0
-    eBack.Parent = eBill
+    eBack.Parent = rightContainer
     
     local eFill = inst_new("Frame")
     eFill.Size = ud2_new(1, 0, 1, 0)
@@ -189,6 +219,23 @@ local function CreateAssets(p)
     eFill.BorderSizePixel = 0
     eFill.Parent = eBack
     assets.EvadeFill = eFill
+
+    -- Jackpot (Bottom 50% of Right Sidebar)
+    local jBack = inst_new("Frame")
+    jBack.Size = ud2_new(1, 0, 0.48, 0)
+    jBack.Position = ud2_new(0, 0, 0.52, 0)
+    jBack.BackgroundColor3 = COLOR_BLACK
+    jBack.BorderSizePixel = 0
+    jBack.Parent = rightContainer
+    assets.JackpotBack = jBack
+    
+    local jFill = inst_new("Frame")
+    jFill.Size = ud2_new(1, 0, 1, 0)
+    jFill.AnchorPoint = v2_new(0, 1)
+    jFill.Position = ud2_new(0, 0, 1, 0)
+    jFill.BorderSizePixel = 0
+    jFill.Parent = jBack
+    assets.JackpotFill = jFill
     
     -- Connection trackers
     assets.Connections = {}
@@ -215,8 +262,8 @@ local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
-    if assets.HealthBill then assets.HealthBill:Destroy() end
-    if assets.EvadeBill then assets.EvadeBill:Destroy() end
+    if assets.LeftBill then assets.LeftBill:Destroy() end
+    if assets.RightBill then assets.RightBill:Destroy() end
     Cache[p] = nil
 end
 
@@ -374,15 +421,13 @@ function ESP.Init(State)
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
                     c.Bill.Enabled = true
-                    c.HealthBill.Enabled = true
-                    c.EvadeBill.Enabled = true
+                    c.LeftBill.Enabled = true
+                    c.RightBill.Enabled = true
                     c.Text.Visible = true
-                    c.HealthFill.Visible = true
-                    c.EvadeFill.Visible = true
                     
                     c.Bill.Adornee = root
-                    c.HealthBill.Adornee = root
-                    c.EvadeBill.Adornee = root
+                    c.LeftBill.Adornee = root
+                    c.RightBill.Adornee = root
 
                     -- Define the starting viewport coordinates (Origin point)
                     local sX, sY
@@ -399,38 +444,67 @@ function ESP.Init(State)
                         local dist = (currentRootPos - root.Position).Magnitude
                         c.LastDist = dist
                         
-                        -- Attribute Checks: InUlt, Dead, Evade
+                        -- Core Validation Attributes
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- Process Evade values with the 50% max capacity scaling boundary
+                        -- 1. Ultimate Capacity Calculations (0 - 100)
+                        local rawUlt = char:GetAttribute("Ultimate")
+                        local ultValue = type(rawUlt) == "number" and rawUlt or 0
+                        local ultPerc = m_clamp(ultValue / 100, 0, 1)
+                        c.UltFill.Size = ud2_new(1, 0, ultPerc, 0)
+                        c.UltFill.BackgroundColor3 = (ultPerc >= 1) and COLOR_ORANGE or COLOR_YELLOW
+
+                        -- 2. Evade Capacity Calculations (0 - 50 Max)
                         local rawEvade = char:GetAttribute("Evade")
                         local evadeValue = type(rawEvade) == "number" and rawEvade or 0
-                        local evadePerc = m_clamp(evadeValue / 50, 0, 1)
-                        
-                        -- Update Evade bar layout elements
+                        local evadePerc = m_clamp(rawEvade and (evadeValue / 50) or 0, 0, 1)
                         c.EvadeFill.Size = ud2_new(1, 0, evadePerc, 0)
-                        if evadePerc >= 1 then
-                            c.EvadeFill.BackgroundColor3 = COLOR_MAGENTA
+                        c.EvadeFill.BackgroundColor3 = (evadePerc >= 1) and COLOR_MAGENTA or COLOR_CYAN:Lerp(COLOR_MAGENTA, evadePerc)
+
+                        -- 3. Optional Attributes Parsing (Jackpots, Cash, Permissions)
+                        local rawCash = char:GetAttribute("Cash")
+                        local cashValue = type(rawCash) == "number" and rawCash or 0
+                        
+                        local rawJackpot = char:GetAttribute("JackpotInRow")
+                        local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
+                        
+                        -- Handle dynamic Jackpot sidebar tracking
+                        if jackpotCount > 0 then
+                            c.JackpotBack.Visible = true
+                            local jPerc = m_clamp(jackpotCount / 7, 0, 1) -- Visual cap relative scale
+                            c.JackpotFill.Size = ud2_new(1, 0, jPerc, 0)
+                            c.JackpotFill.BackgroundColor3 = COLOR_GOLD
                         else
-                            c.EvadeFill.BackgroundColor3 = COLOR_CYAN:Lerp(COLOR_MAGENTA, evadePerc)
+                            c.JackpotBack.Visible = false
                         end
+
+                        -- Server Access Badge Compiling
+                        local permBadges = ""
+                        if char:GetAttribute("PS_Owner") == true then
+                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
+                        elseif char:GetAttribute("PS_Perms") == true then
+                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
+                        end
+                        if char:GetAttribute("Workshop") == true then
+                            permBadges = permBadges .. "<font color='#00FF80'>[🛠️ Workshop]</font> "
+                        end
+
+                        -- Top-Line Tag Assembly
+                        local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
+                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#FFD700'>[%sx JP]</font> ", jackpotCount) or ""
                         
-                        -- Minimal Ult Marker
-                        c.UltDisplay = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
-                        
-                        -- Name Formatting with Dead styling fallback
                         if isDead then
-                            c.NameDisplay = "<font color='#FF0000'>[DEAD] " .. p.Name .. "</font>"
+                            c.NameDisplay = s_format("%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, permBadges, p.Name)
                         else
-                            c.NameDisplay = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
+                            c.NameDisplay = s_format("%s%s%s%s", leftTag, jackpotTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
                         end
                         
                         local distCol = getGradientColor(dist / 800)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Moveset attribute verification
+                        -- Moveset String Processing
                         local movesetAttr = char:GetAttribute("Moveset")
                         if movesetAttr and movesetAttr ~= "" then
                             local movesetInstance = char:FindFirstChild("Moveset")
@@ -441,7 +515,6 @@ function ESP.Init(State)
                             end
                             
                             local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
-                            
                             if DARK_MOVESETS[movesetAttr] then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetAttr))
                             else
@@ -450,6 +523,9 @@ function ESP.Init(State)
                         else
                             c.CachedMoveset = ""
                         end
+                        
+                        -- Cash Text Builder
+                        c.UltDisplay = (cashValue > 0) and s_format("<font color='#85bb65'>$%s</font> | ", formatVal(cashValue)) or ""
                     end
                     
                     local currentDist = c.LastDist
@@ -464,17 +540,17 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Clean Minimal Information String
+                    -- Build Kill Metadata String Bypasses
                     local killString = formatVal(c.CachedKills)
                     if c.IsHidingKills then
                         killString = s_format("%s<font color='#FFFF00'>*</font>", killString)
                     end
 
-                    -- Combined flat scannable output
-                    c.Text.Text = s_format("%s%s\n%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
-                        c.UltDisplay,
+                    -- Final Structured Output Generation
+                    c.Text.Text = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
                         c.NameDisplay, 
                         c.CachedMoveset,
+                        c.UltDisplay,
                         c.HexKillColor, 
                         killString, 
                         c.HexDistColor, 
@@ -483,20 +559,16 @@ function ESP.Init(State)
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
-                    c.HealthBill.Enabled = false
-                    c.EvadeBill.Enabled = false
+                    c.LeftBill.Enabled = false
+                    c.RightBill.Enabled = false
                     c.Text.Visible = false
-                    c.HealthFill.Visible = false
-                    c.EvadeFill.Visible = false
                 end
             elseif Cache[p] then
                 local c = Cache[p]
                 c.Line.Visible = false
                 c.Bill.Enabled = false
-                c.HealthBill.Enabled = false
-                c.EvadeBill.Enabled = false
-                c.HealthFill.Visible = false
-                c.EvadeFill.Visible = false
+                c.LeftBill.Enabled = false
+                c.RightBill.Enabled = false
                 c.Text.Visible = true
             end
         end
