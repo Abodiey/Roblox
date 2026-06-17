@@ -66,7 +66,6 @@ local COLOR_BLACK = c3_new(0, 0, 0)
 local COLOR_CYAN = c3_new(0, 1, 1)
 local COLOR_MAGENTA = c3_new(1, 0, 1)
 local COLOR_ORANGE = c3_new(1, 0.4, 0)
-local COLOR_GOLD = c3_new(1, 0.8, 0)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -112,6 +111,18 @@ end
 
 local function formatVal(val)
     return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
+end
+
+-- Optimized structure checks for custom asset directories
+local function isCustom(movesetFolder)
+    if not movesetFolder then return false end
+    if movesetFolder:FindFirstChild("Custom") then return true end
+    for _, move in pairs(movesetFolder:GetChildren()) do
+        if move.Name ~= "Custom" then 
+            return false 
+        end
+    end
+    return false
 end
 
 local function CreateAssets(p)
@@ -161,7 +172,7 @@ local function CreateAssets(p)
     leftContainer.BackgroundTransparency = 1
     leftContainer.Parent = leftBill
     
-    -- Health (Top 50% of Left Sidebar)
+    -- Health (Top half of Left Sidebar)
     local hBack = inst_new("Frame")
     hBack.Size = ud2_new(1, 0, 0.48, 0)
     hBack.BackgroundColor3 = COLOR_BLACK
@@ -176,7 +187,7 @@ local function CreateAssets(p)
     hFill.Parent = hBack
     assets.HealthFill = hFill
 
-    -- Ultimate (Bottom 50% of Left Sidebar)
+    -- Ultimate (Bottom half of Left Sidebar)
     local uBack = inst_new("Frame")
     uBack.Size = ud2_new(1, 0, 0.48, 0)
     uBack.Position = ud2_new(0, 0, 0.52, 0)
@@ -205,7 +216,7 @@ local function CreateAssets(p)
     rightContainer.BackgroundTransparency = 1
     rightContainer.Parent = rightBill
     
-    -- Evade (Top 50% of Right Sidebar)
+    -- Evade (Top half of Right Sidebar)
     local eBack = inst_new("Frame")
     eBack.Size = ud2_new(1, 0, 0.48, 0)
     eBack.BackgroundColor3 = COLOR_BLACK
@@ -220,7 +231,7 @@ local function CreateAssets(p)
     eFill.Parent = eBack
     assets.EvadeFill = eFill
 
-    -- Jackpot (Bottom 50% of Right Sidebar)
+    -- Jackpot (Bottom half of Right Sidebar)
     local jBack = inst_new("Frame")
     jBack.Size = ud2_new(1, 0, 0.48, 0)
     jBack.Position = ud2_new(0, 0, 0.52, 0)
@@ -469,12 +480,12 @@ function ESP.Init(State)
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         
-                        -- Handle dynamic Jackpot sidebar tracking
+                        -- Handle dynamic Jackpot green sidebar tracking
                         if jackpotCount > 0 then
                             c.JackpotBack.Visible = true
-                            local jPerc = m_clamp(jackpotCount / 7, 0, 1) -- Visual cap relative scale
+                            local jPerc = m_clamp(jackpotCount / 7, 0, 1)
                             c.JackpotFill.Size = ud2_new(1, 0, jPerc, 0)
-                            c.JackpotFill.BackgroundColor3 = COLOR_GOLD
+                            c.JackpotFill.BackgroundColor3 = COLOR_GREEN
                         else
                             c.JackpotBack.Visible = false
                         end
@@ -492,7 +503,7 @@ function ESP.Init(State)
 
                         -- Top-Line Tag Assembly
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
-                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#FFD700'>[%sx JP]</font> ", jackpotCount) or ""
+                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#55FF7F'>[%sx JP]</font> ", jackpotCount) or ""
                         
                         if isDead then
                             c.NameDisplay = s_format("%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, permBadges, p.Name)
@@ -504,21 +515,35 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Moveset String Processing
-                        local movesetAttr = char:GetAttribute("Moveset")
-                        if movesetAttr and movesetAttr ~= "" then
-                            local movesetInstance = char:FindFirstChild("Moveset")
-                            if movesetAttr == "Custom" and movesetInstance and not movesetInstance:FindFirstChild("Custom") then
-                                movesetAttr = movesetInstance:GetChildren()[1].Name
-                            elseif movesetInstance and movesetInstance:FindFirstChild("Custom") then 
-                                movesetAttr = "Custom!"
-                            end
+                        -- Optimized Dynamic Moveset Evaluation Engine
+                        local movesetName = "Custom"
+                        local cm = char:GetAttribute("Moveset")
+                        local pm = p:GetAttribute("Moveset")
+                        local movesetFolder = char:FindFirstChild("Moveset")
+                        
+                        local hasCustomObj = isCustom(movesetFolder)
+                        
+                        if cm == pm and not (movesetFolder and movesetFolder:FindFirstChild("Custom")) then
+                            movesetName = pm or ""
+                        elseif hasCustomObj then
+                            local ultAttr = char:GetAttribute("CustomUlt")
+                            local tagAttr = movesetFolder.Custom:GetAttribute("Tag")
                             
-                            local hexColor = MOVESET_COLORS[movesetAttr] or "FFFFFF"
-                            if DARK_MOVESETS[movesetAttr] then
-                                c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetAttr))
+                            if type(ultAttr) == "string" and ultAttr:find("%a") then
+                                movesetName = ultAttr
+                            elseif tagAttr then
+                                movesetName = tagAttr
+                            end
+                        else
+                            movesetName = (cm == "Custom") and pm or cm
+                        end
+                        
+                        if movesetName and movesetName ~= "" then
+                            local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
+                            if DARK_MOVESETS[movesetName] then
+                                c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
                             else
-                                c.CachedMoveset = s_format("<font color='#%s'>%s</font> | ", hexColor, tostring(movesetAttr))
+                                c.CachedMoveset = s_format("<font color='#%s'>%s</font> | ", hexColor, tostring(movesetName))
                             end
                         else
                             c.CachedMoveset = ""
