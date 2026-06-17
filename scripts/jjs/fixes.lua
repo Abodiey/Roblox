@@ -9,9 +9,9 @@ OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
         return OldIndex(Self, Prop, Val) 
     end
 
-    if Val == true then
+    if Val == false then
         return OldIndex(Self, Prop, 0)
-    elseif Val == false then
+    elseif Val == true then
         if Self:IsA("BasePart") or Self:IsA("ParticleEmitter") then
             return OldIndex(Self, Prop, 0.7)
         end
@@ -21,45 +21,26 @@ OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
 end)
 
 local Effects = workspace:WaitForChild("Effects")
-local Beams = workspace:WaitForChild("Beams")
-local Modules = ReplicatedStorage:WaitForChild("Modules")
-local BloodyZee = Modules and Modules:FindFirstChild("BloodyZee")
 
-local BloodName = "Blood"
+local Whitelist = {
+    ["FinalBeam"] = true,
+    ["Beam"] = true,
+    ["PlasmaWave"] = true,
+}
 
-local function CreateBlood()
-    if not Effects or not BloodyZee then return end
-    
-    local Blood = Instance.new("Folder")
-    Blood.Name = BloodName
-    
-    Blood.Destroying:Connect(function()
-        task.defer(CreateBlood)
-    end)
-    
-    Blood.Parent = Effects
-end
-
-if Effects and BloodyZee and not Effects:FindFirstChild(BloodName) then
-    CreateBlood()
-end
-
-for _, Folder in ipairs({Effects, Beams}) do
-    if Folder then
-        task.spawn(function()
-            local AddItem = Debris.AddItem
+if not Effects then return end
+local AddItem = Debris.AddItem
             
-            for _, Child in ipairs(Folder:GetChildren()) do
-                if Child.Name ~= BloodName then
-                    AddItem(Debris, Child, 60)
-                end
-            end
-            
-            Folder.ChildAdded:Connect(function(Child)
-                if Child.Name ~= BloodName then
-                    AddItem(Debris, Child, 60)
-                end
-            end)
-        end)
+for _, Child in ipairs(Folder:GetChildren()) do
+    local Name = Child.Name
+    if Name ~= BloodName and Whitelist[Name] then
+        AddItem(Debris, Child, 60)
     end
 end
+            
+Folder.ChildAdded:Connect(function(Child)
+    local Name = Child.Name
+    if Name ~= BloodName and Whitelist[Name] then
+        AddItem(Debris, Child, 60)
+    end
+end)
