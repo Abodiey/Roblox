@@ -38,10 +38,12 @@ local v3_new = Vector3.new
 local UDim2 = UDim2
 local ud2_new = UDim2.new
 local Color3 = Color3
+local c3_fromHex = Color3.fromHex
 local c3_new = Color3.new
 local Enum = Enum
 
 local lp = Players.LocalPlayer
+local TARGET_GROUP = 16357742
 
 -- Clean previous asset hierarchy
 while CoreGui:FindFirstChild("PlayerESP") do
@@ -137,117 +139,117 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- Main Text Element Layout
+    -- Master Container Billboard
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 240, 0, 50)
-    bill.ExtentsOffset = v3_new(0, 3.2, 0)
+    bill.Size = ud2_new(0, 200, 0, 75)
+    bill.ExtentsOffset = v3_new(0, 3.5, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
+    local mainFrame = inst_new("Frame")
+    mainFrame.Size = ud2_new(1, 0, 1, 0)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.Parent = bill
+    
+    local layout = inst_new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 3)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.Parent = mainFrame
+
+    -- TOP BAR: Ultimate (Thick Brawlhalla Style, Horizontal Fill)
+    local ultBack = inst_new("Frame")
+    ultBack.Size = ud2_new(1, 0, 0, 7)
+    ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+    ultBack.BorderColor3 = COLOR_BLACK
+    ultBack.BorderSizePixel = 1
+    ultBack.LayoutOrder = 1
+    ultBack.Parent = mainFrame
+    assets.UltBack = ultBack
+    
+    local ultFill = inst_new("Frame")
+    ultFill.Size = ud2_new(0, 0, 1, 0)
+    ultFill.BorderSizePixel = 0
+    ultFill.BackgroundColor3 = COLOR_ORANGE
+    ultFill.Parent = ultBack
+    assets.UltFill = ultFill
+
+    -- CENTRAL CONTENT: Info Text
     local txt = inst_new("TextLabel")
-    txt.Size = ud2_new(1, 0, 1, 0)
+    txt.Size = ud2_new(1, 0, 0, 32)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
     txt.Font = Enum.Font.RobotoMono
-    txt.TextSize = 13
-    txt.Parent = bill
+    txt.TextSize = 12
+    txt.LayoutOrder = 2
+    txt.Parent = mainFrame
     assets.Text = txt
     
     local stroke = inst_new("UIStroke")
-    stroke.Thickness = 0.5
+    stroke.Thickness = 1
     stroke.Color = COLOR_BLACK
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- LEFT SIDEBAR FRAME (Health & Ultimate Stack)
-    local leftBill = inst_new("BillboardGui")
-    leftBill.AlwaysOnTop = true
-    leftBill.Size = ud2_new(0, 3, 0, 36)
-    leftBill.ExtentsOffset = v3_new(-2.2, -0.1, 0)
-    leftBill.Parent = ScreenGui
-    assets.LeftBill = leftBill
-    
-    local leftContainer = inst_new("Frame")
-    leftContainer.Size = ud2_new(1, 0, 1, 0)
-    leftContainer.BackgroundTransparency = 1
-    leftContainer.Parent = leftBill
-    
-    -- Health (Top half of Left Sidebar)
+    -- BOTTOM BARS: Combined Horizontal row for Health and Evade
+    local lowerRow = inst_new("Frame")
+    lowerRow.Size = ud2_new(1, 0, 0, 8)
+    lowerRow.BackgroundTransparency = 1
+    lowerRow.LayoutOrder = 3
+    lowerRow.Parent = mainFrame
+
+    local rowLayout = inst_new("UIListLayout")
+    rowLayout.FillDirection = Enum.FillDirection.Horizontal
+    rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    rowLayout.Padding = UDim.new(0, 4)
+    rowLayout.Parent = lowerRow
+
+    -- Left Bottom Bar: Health
     local hBack = inst_new("Frame")
-    hBack.Size = ud2_new(1, 0, 0.48, 0)
-    hBack.BackgroundColor3 = COLOR_BLACK
-    hBack.BorderSizePixel = 0
-    hBack.Parent = leftContainer
+    hBack.Size = ud2_new(0.5, -2, 1, 0)
+    hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+    hBack.BorderColor3 = COLOR_BLACK
+    hBack.BorderSizePixel = 1
+    hBack.LayoutOrder = 1
+    hBack.Parent = lowerRow
     
     local hFill = inst_new("Frame")
     hFill.Size = ud2_new(1, 0, 1, 0)
-    hFill.AnchorPoint = v2_new(0, 1)
-    hFill.Position = ud2_new(0, 0, 1, 0)
     hFill.BorderSizePixel = 0
+    hFill.BackgroundColor3 = COLOR_GREEN
     hFill.Parent = hBack
     assets.HealthFill = hFill
 
-    -- Ultimate (Bottom half of Left Sidebar)
-    local uBack = inst_new("Frame")
-    uBack.Size = ud2_new(1, 0, 0.48, 0)
-    uBack.Position = ud2_new(0, 0, 0.52, 0)
-    uBack.BackgroundColor3 = COLOR_BLACK
-    uBack.BorderSizePixel = 0
-    uBack.Parent = leftContainer
-    
-    local uFill = inst_new("Frame")
-    uFill.Size = ud2_new(1, 0, 1, 0)
-    uFill.AnchorPoint = v2_new(0, 1)
-    uFill.Position = ud2_new(0, 0, 1, 0)
-    uFill.BorderSizePixel = 0
-    uFill.Parent = uBack
-    assets.UltFill = uFill
-
-    -- RIGHT SIDEBAR FRAME (Evade & Jackpot Stack)
-    local rightBill = inst_new("BillboardGui")
-    rightBill.AlwaysOnTop = true
-    rightBill.Size = ud2_new(0, 3, 0, 36)
-    rightBill.ExtentsOffset = v3_new(2.2, -0.1, 0)
-    rightBill.Parent = ScreenGui
-    assets.RightBill = rightBill
-    
+    -- Right Bottom Bar: Evade / Jackpot Container
     local rightContainer = inst_new("Frame")
-    rightContainer.Size = ud2_new(1, 0, 1, 0)
+    rightContainer.Size = ud2_new(0.5, -2, 1, 0)
     rightContainer.BackgroundTransparency = 1
-    rightContainer.Parent = rightBill
-    
-    -- Evade (Top half of Right Sidebar)
+    rightContainer.LayoutOrder = 2
+    rightContainer.Parent = lowerRow
+
     local eBack = inst_new("Frame")
-    eBack.Size = ud2_new(1, 0, 0.48, 0)
-    eBack.BackgroundColor3 = COLOR_BLACK
-    eBack.BorderSizePixel = 0
+    eBack.Size = ud2_new(1, 0, 1, 0)
+    eBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+    eBack.BorderColor3 = COLOR_BLACK
+    eBack.BorderSizePixel = 1
     eBack.Parent = rightContainer
     
     local eFill = inst_new("Frame")
-    eFill.Size = ud2_new(1, 0, 1, 0)
-    eFill.AnchorPoint = v2_new(0, 1)
-    eFill.Position = ud2_new(0, 0, 1, 0)
+    eFill.Size = ud2_new(0, 0, 1, 0)
     eFill.BorderSizePixel = 0
+    eFill.BackgroundColor3 = COLOR_MAGENTA
     eFill.Parent = eBack
     assets.EvadeFill = eFill
 
-    -- Jackpot (Bottom half of Right Sidebar)
-    local jBack = inst_new("Frame")
-    jBack.Size = ud2_new(1, 0, 0.48, 0)
-    jBack.Position = ud2_new(0, 0, 0.52, 0)
-    jBack.BackgroundColor3 = COLOR_BLACK
-    jBack.BorderSizePixel = 0
-    jBack.Parent = rightContainer
-    assets.JackpotBack = jBack
-    
+    -- Overlaid Jackpot indicator on Evade panel
     local jFill = inst_new("Frame")
     jFill.Size = ud2_new(1, 0, 1, 0)
-    jFill.AnchorPoint = v2_new(0, 1)
-    jFill.Position = ud2_new(0, 0, 1, 0)
     jFill.BorderSizePixel = 0
-    jFill.Parent = jBack
+    jFill.BackgroundColor3 = COLOR_GREEN
+    jFill.Visible = false
+    jFill.Parent = eBack
     assets.JackpotFill = jFill
     
     -- Connection trackers
@@ -260,7 +262,8 @@ local function CreateAssets(p)
     assets.CachedKills = 0
     assets.CachedMoveset = ""
     assets.NameDisplay = ""
-    assets.UltDisplay = ""
+    assets.CashDisplay = ""
+    assets.GroupRoleTag = ""
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
@@ -275,12 +278,18 @@ local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
-    if assets.LeftBill then assets.LeftBill:Destroy() end
-    if assets.RightBill then assets.RightBill:Destroy() end
     Cache[p] = nil
 end
 
 local function SetupPlayerSignals(p, assets)
+    -- Group Rank Evaluation Hook
+    task.spawn(function()
+        local success, role = pcall(function() return p:GetRoleInGroup(TARGET_GROUP) end)
+        if success and role and role ~= "Guest" and role ~= "Member" then
+            assets.GroupRoleTag = s_format("<font color='#00AAFF'>[%s]</font> ", role)
+        end
+    end)
+
     local function trackValueInstance(killsVal)
         for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
         table_clear(assets.KillValueConnections)
@@ -305,42 +314,11 @@ local function SetupPlayerSignals(p, assets)
                 local hiddenFolder = leaderstats:FindFirstChild("Hidden")
                 if hiddenFolder then
                     local killsVal = hiddenFolder:FindFirstChild("Kills")
-                    if killsVal then
-                        trackValueInstance(killsVal)
-                    else
-                        local hConn
-                        hConn = hiddenFolder.ChildAdded:Connect(function(child)
-                            if child.Name == "Kills" and leaderstats:GetAttribute("HiddenKills") then
-                                trackValueInstance(child)
-                                hConn:Disconnect()
-                            end
-                        end)
-                        table_insert(assets.KillValueConnections, hConn)
-                    end
-                else
-                    local folderConn
-                    folderConn = leaderstats.ChildAdded:Connect(function(child)
-                        if child.Name == "Hidden" then
-                            evaluateSource()
-                            folderConn:Disconnect()
-                        end
-                    end)
-                    table_insert(assets.KillValueConnections, folderConn)
+                    if killsVal then trackValueInstance(killsVal) end
                 end
             else
                 local killsVal = leaderstats:FindFirstChild("Kills")
-                if killsVal then
-                    trackValueInstance(killsVal)
-                else
-                    local kConn
-                    kConn = leaderstats.ChildAdded:Connect(function(child)
-                        if child.Name == "Kills" and not leaderstats:GetAttribute("HiddenKills") then
-                            trackValueInstance(child)
-                            kConn:Disconnect()
-                        end
-                    end)
-                    table_insert(assets.KillValueConnections, kConn)
-                end
+                if killsVal then trackValueInstance(killsVal) end
             end
         end
 
@@ -349,18 +327,7 @@ local function SetupPlayerSignals(p, assets)
     end
 
     local leaderstats = p:FindFirstChild("leaderstats")
-    if leaderstats then
-        watchKills(leaderstats)
-    else
-        local lConn
-        lConn = p.ChildAdded:Connect(function(child)
-            if child.Name == "leaderstats" then
-                watchKills(child)
-                lConn:Disconnect()
-            end
-        end)
-        table_insert(assets.Connections, lConn)
-    end
+    if leaderstats then watchKills(leaderstats) end
 end
 
 local function SetupCharacterSignals(assets, char, hum)
@@ -372,7 +339,7 @@ local function SetupCharacterSignals(assets, char, hum)
     local function updateHealth()
         if not assets.HealthFill then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
+        assets.HealthFill.Size = ud2_new(hpPerc, 0, 1, 0)
         assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
     end
     
@@ -398,14 +365,10 @@ function ESP.Init(State)
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
 
-        -- Clean stale player visual objects
         for p, assets in pairs(Cache) do
-            if not p or not p.Parent then
-                CleanupCacheEntry(p, assets)
-            end
+            if not p or not p.Parent then CleanupCacheEntry(p, assets) end
         end
 
-        -- Main loop over game targets
         for _, p in pairs(Players:GetPlayers()) do
             if p == lp then continue end
             local char = p.Character
@@ -419,14 +382,6 @@ function ESP.Init(State)
                     Cache[p] = c 
                     SetupPlayerSignals(p, c)
                     SetupCharacterSignals(c, char, hum)
-                    
-                    local respawnConn
-                    respawnConn = p.CharacterAdded:Connect(function(newChar)
-                        if not Cache[p] then respawnConn:Disconnect() return end
-                        local newHum = newChar:WaitForChild("Humanoid", 3)
-                        SetupCharacterSignals(Cache[p], newChar, newHum)
-                    end)
-                    table_insert(c.Connections, respawnConn)
                 end
                 
                 local p2, vis2 = cam:WorldToViewportPoint(root.Position)
@@ -434,15 +389,9 @@ function ESP.Init(State)
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
                     c.Bill.Enabled = true
-                    c.LeftBill.Enabled = true
-                    c.RightBill.Enabled = true
                     c.Text.Visible = true
-                    
                     c.Bill.Adornee = root
-                    c.LeftBill.Adornee = root
-                    c.RightBill.Adornee = root
 
-                    -- Define the starting viewport coordinates (Origin point)
                     local sX, sY
                     if myRoot then
                         local p1, _ = cam:WorldToViewportPoint(myRoot.Position)
@@ -451,73 +400,15 @@ function ESP.Init(State)
                         sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
                     end
 
-                    -- Throttled calculations (Every 2 Frames)
                     if shouldUpdateHeavy then
                         local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
                         local dist = (currentRootPos - root.Position).Magnitude
                         c.LastDist = dist
                         
-                        -- Core Validation Attributes
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- 1. Ultimate Capacity Calculations (0 - 100)
-                        local rawUlt = char:GetAttribute("Ultimate")
-                        local ultValue = type(rawUlt) == "number" and rawUlt or 0
-                        local ultPerc = m_clamp(ultValue / 100, 0, 1)
-                        c.UltFill.Size = ud2_new(1, 0, ultPerc, 0)
-                        c.UltFill.BackgroundColor3 = (ultPerc >= 1) and COLOR_ORANGE or COLOR_YELLOW
-
-                        -- 2. Evade Capacity Calculations (0 - 50 Max)
-                        local rawEvade = char:GetAttribute("Evade")
-                        local evadeValue = type(rawEvade) == "number" and rawEvade or 0
-                        local evadePerc = m_clamp(rawEvade and (evadeValue / 50) or 0, 0, 1)
-                        c.EvadeFill.Size = ud2_new(1, 0, evadePerc, 0)
-                        c.EvadeFill.BackgroundColor3 = (evadePerc >= 1) and COLOR_MAGENTA or COLOR_CYAN:Lerp(COLOR_MAGENTA, evadePerc)
-
-                        -- 3. Optional Attributes Parsing (Jackpots, Cash, Permissions)
-                        local rawCash = char:GetAttribute("Cash")
-                        local cashValue = type(rawCash) == "number" and rawCash or 0
-                        
-                        local rawJackpot = char:GetAttribute("JackpotInRow")
-                        local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
-                        
-                        -- Handle dynamic Jackpot green sidebar tracking
-                        if jackpotCount > 0 then
-                            c.JackpotBack.Visible = true
-                            local jPerc = m_clamp(jackpotCount / 7, 0, 1)
-                            c.JackpotFill.Size = ud2_new(1, 0, jPerc, 0)
-                            c.JackpotFill.BackgroundColor3 = COLOR_GREEN
-                        else
-                            c.JackpotBack.Visible = false
-                        end
-
-                        -- Server Access Badge Compiling
-                        local permBadges = ""
-                        if char:GetAttribute("PS_Owner") == true then
-                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
-                        elseif char:GetAttribute("PS_Perms") == true then
-                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
-                        end
-                        if char:GetAttribute("Workshop") == true then
-                            permBadges = permBadges .. "<font color='#00FF80'>[🛠️ Workshop]</font> "
-                        end
-
-                        -- Top-Line Tag Assembly
-                        local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
-                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#55FF7F'>[%sx JP]</font> ", jackpotCount) or ""
-                        
-                        if isDead then
-                            c.NameDisplay = s_format("%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, permBadges, p.Name)
-                        else
-                            c.NameDisplay = s_format("%s%s%s%s", leftTag, jackpotTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
-                        end
-                        
-                        local distCol = getGradientColor(dist / 800)
-                        c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
-                        c.LineColor = getGradientColor(dist / 600)
-                        
-                        -- Evaluates Character Moveset Mapping with Strict Custom-Only Matching
+                        -- 1. Optimized Dynamic Moveset Evaluation Engine
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
@@ -548,9 +439,57 @@ function ESP.Init(State)
                         if cm == pm and not (movesetFolder and movesetFolder:FindFirstChild("Custom")) then
                             movesetName = pm or ""
                         end
+
+                        -- Resolve Hex Color mapping
+                        local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
+                        c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
+
+                        -- 2. Ultimate Bar Horizontal Tracking
+                        local rawUlt = char:GetAttribute("Ultimate")
+                        local ultValue = type(rawUlt) == "number" and rawUlt or 0
+                        c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
+
+                        -- 3. Evade / Jackpot Dynamic Right-Bar Tracking
+                        local rawJackpot = char:GetAttribute("JackpotInRow")
+                        local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
+                        
+                        if jackpotCount > 0 then
+                            c.JackpotFill.Visible = true
+                            c.JackpotFill.Size = ud2_new(m_clamp(jackpotCount / 7, 0, 1), 0, 1, 0)
+                        else
+                            c.JackpotFill.Visible = false
+                            local rawEvade = char:GetAttribute("Evade")
+                            local evadeValue = type(rawEvade) == "number" and rawEvade or 0
+                            c.EvadeFill.Size = ud2_new(m_clamp(evadeValue / 50, 0, 1), 0, 1, 0)
+                        end
+
+                        -- 4. Cash Parsing Metrics
+                        local rawCash = char:GetAttribute("Cash")
+                        local cashValue = type(rawCash) == "number" and rawCash or 0
+                        c.CashDisplay = (cashValue > 0) and s_format("<font color='#85bb65'>$%s</font> | ", formatVal(cashValue)) or ""
+
+                        -- Permissions Badging
+                        local permBadges = ""
+                        if char:GetAttribute("PS_Owner") == true then
+                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
+                        elseif char:GetAttribute("PS_Perms") == true then
+                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
+                        end
+
+                        local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
+                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#55FF7F'>[%sx JP]</font> ", jackpotCount) or ""
+                        
+                        if isDead then
+                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, c.GroupRoleTag, permBadges, p.Name)
+                        else
+                            c.NameDisplay = s_format("%s%s%s%s%s", leftTag, jackpotTag, c.GroupRoleTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
+                        end
+                        
+                        local distCol = getGradientColor(dist / 800)
+                        c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
+                        c.LineColor = getGradientColor(dist / 600)
                         
                         if movesetName and movesetName ~= "" then
-                            local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                             if DARK_MOVESETS[movesetName] then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
                             else
@@ -559,14 +498,11 @@ function ESP.Init(State)
                         else
                             c.CachedMoveset = ""
                         end
-                        
-                        -- Cash Text Builder
-                        c.UltDisplay = (cashValue > 0) and s_format("<font color='#85bb65'>$%s</font> | ", formatVal(cashValue)) or ""
                     end
                     
                     local currentDist = c.LastDist
 
-                    -- 2D Line Calculations
+                    -- Tracer Mechanics
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
@@ -576,17 +512,16 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Build Kill Metadata String Bypasses
                     local killString = formatVal(c.CachedKills)
                     if c.IsHidingKills then
                         killString = s_format("%s<font color='#FFFF00'>*</font>", killString)
                     end
 
-                    -- Final Structured Output Generation
+                    -- Master Output Compilation
                     c.Text.Text = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
                         c.NameDisplay, 
                         c.CachedMoveset,
-                        c.UltDisplay,
+                        c.CashDisplay,
                         c.HexKillColor, 
                         killString, 
                         c.HexDistColor, 
@@ -595,17 +530,11 @@ function ESP.Init(State)
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
-                    c.LeftBill.Enabled = false
-                    c.RightBill.Enabled = false
                     c.Text.Visible = false
                 end
             elseif Cache[p] then
-                local c = Cache[p]
-                c.Line.Visible = false
-                c.Bill.Enabled = false
-                c.LeftBill.Enabled = false
-                c.RightBill.Enabled = false
-                c.Text.Visible = true
+                Cache[p].Line.Visible = false
+                Cache[p].Bill.Enabled = false
             end
         end
     end)
