@@ -67,7 +67,6 @@ local COLOR_WHITE = c3_new(1, 1, 1)
 local COLOR_BLACK = c3_new(0, 0, 0)
 local COLOR_CYAN = c3_new(0, 1, 1)
 local COLOR_MAGENTA = c3_new(1, 0, 1)
-local COLOR_ORANGE = c3_new(1, 0.4, 0)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -129,6 +128,37 @@ local function isCustom(movesetFolder)
     return true
 end
 
+-- Helper logic to create 10 distinct marker slots over a bar container frame
+local function buildBarSegments(container, fillDirection)
+    local linesWrap = inst_new("Frame")
+    linesWrap.Size = ud2_new(1, 0, 1, 0)
+    linesWrap.BackgroundTransparency = 1
+    linesWrap.ZIndex = 4
+    linesWrap.Parent = container
+
+    local grid = inst_new("UIGridLayout")
+    grid.SortOrder = Enum.SortOrder.LayoutOrder
+    grid.CellPadding = ud2_new(0, 0, 0, 0)
+    grid.Parent = linesWrap
+
+    if fillDirection == "Vertical" then
+        grid.FillDirection = Enum.FillDirection.Horizontal
+        grid.CellSize = ud2_new(1, 0, 0.1, -1)
+    else
+        grid.FillDirection = Enum.FillDirection.Horizontal
+        grid.CellSize = ud2_new(0.1, -1, 1, 0)
+    end
+
+    for idx = 1, 9 do
+        local line = inst_new("Frame")
+        line.BackgroundColor3 = COLOR_BLACK
+        line.BackgroundTransparency = 0.5
+        line.BorderSizePixel = 0
+        line.LayoutOrder = idx
+        line.Parent = linesWrap
+    end
+end
+
 local function CreateAssets(p)
     local assets = {}
     
@@ -139,11 +169,11 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- Master Container Billboard
+    -- Compacted Master Container Billboard
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 200, 0, 75)
-    bill.ExtentsOffset = v3_new(0, 3.5, 0)
+    bill.Size = ud2_new(0, 240, 0, 48)
+    bill.ExtentsOffset = v3_new(0, 3.2, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
@@ -152,39 +182,60 @@ local function CreateAssets(p)
     mainFrame.BackgroundTransparency = 1
     mainFrame.Parent = bill
     
-    local layout = inst_new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 3)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.Parent = mainFrame
+    -- Split Row Container for Sidebar placement
+    local rowWrapper = inst_new("Frame")
+    rowWrapper.Size = ud2_new(1, 0, 1, -6)
+    rowWrapper.BackgroundTransparency = 1
+    rowWrapper.Parent = mainFrame
 
-    -- TOP BAR: Ultimate (Thick Brawlhalla Style, Horizontal Fill)
-    local ultBack = inst_new("Frame")
-    ultBack.Size = ud2_new(1, 0, 0, 7)
-    ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
-    ultBack.BorderColor3 = COLOR_BLACK
-    ultBack.BorderSizePixel = 1
-    ultBack.LayoutOrder = 1
-    ultBack.Parent = mainFrame
-    assets.UltBack = ultBack
+    local sideLayout = inst_new("UIListLayout")
+    sideLayout.FillDirection = Enum.FillDirection.Horizontal
+    sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    sideLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    sideLayout.Padding = UDim.new(0, 5)
+    sideLayout.Parent = rowWrapper
+
+    -- LEFT VERTICAL SIDEBAR: Health
+    local hBack = inst_new("Frame")
+    hBack.Size = ud2_new(0, 5, 1, 0)
+    hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+    hBack.BorderColor3 = COLOR_BLACK
+    hBack.BorderSizePixel = 1
+    hBack.LayoutOrder = 1
+    hBack.Parent = rowWrapper
     
-    local ultFill = inst_new("Frame")
-    ultFill.Size = ud2_new(0, 0, 1, 0)
-    ultFill.BorderSizePixel = 0
-    ultFill.BackgroundColor3 = COLOR_ORANGE
-    ultFill.Parent = ultBack
-    assets.UltFill = ultFill
+    local hFill = inst_new("Frame")
+    hFill.Size = ud2_new(1, 0, 1, 0)
+    hFill.AnchorPoint = v2_new(0, 1)
+    hFill.Position = ud2_new(0, 0, 1, 0)
+    hFill.BorderSizePixel = 0
+    hFill.BackgroundColor3 = COLOR_GREEN
+    hFill.Parent = hBack
+    assets.HealthFill = hFill
+    buildBarSegments(hBack, "Vertical")
 
-    -- CENTRAL CONTENT: Info Text
+    -- CENTRAL CONTENT: Info Text and Ultimate layout block
+    local centerBlock = inst_new("Frame")
+    centerBlock.Size = ud2_new(1, -20, 1, 0)
+    centerBlock.BackgroundTransparency = 1
+    centerBlock.LayoutOrder = 2
+    centerBlock.Parent = rowWrapper
+
+    local blockLayout = inst_new("UIListLayout")
+    blockLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    blockLayout.Padding = UDim.new(0, 2)
+    blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    blockLayout.Parent = centerBlock
+
     local txt = inst_new("TextLabel")
-    txt.Size = ud2_new(1, 0, 0, 32)
+    txt.Size = ud2_new(1, 0, 1, -7)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
     txt.Font = Enum.Font.RobotoMono
     txt.TextSize = 12
-    txt.LayoutOrder = 2
-    txt.Parent = mainFrame
+    txt.LayoutOrder = 1
+    txt.Parent = centerBlock
     assets.Text = txt
     
     local stroke = inst_new("UIStroke")
@@ -193,64 +244,42 @@ local function CreateAssets(p)
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- BOTTOM BARS: Combined Horizontal row for Health and Evade
-    local lowerRow = inst_new("Frame")
-    lowerRow.Size = ud2_new(1, 0, 0, 8)
-    lowerRow.BackgroundTransparency = 1
-    lowerRow.LayoutOrder = 3
-    lowerRow.Parent = mainFrame
-
-    local rowLayout = inst_new("UIListLayout")
-    rowLayout.FillDirection = Enum.FillDirection.Horizontal
-    rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    rowLayout.Padding = UDim.new(0, 4)
-    rowLayout.Parent = lowerRow
-
-    -- Left Bottom Bar: Health
-    local hBack = inst_new("Frame")
-    hBack.Size = ud2_new(0.5, -2, 1, 0)
-    hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
-    hBack.BorderColor3 = COLOR_BLACK
-    hBack.BorderSizePixel = 1
-    hBack.LayoutOrder = 1
-    hBack.Parent = lowerRow
+    -- SUB-TEXT HORIZONTAL BAR: Ultimate (Slim Brawlhalla Style under text)
+    local ultBack = inst_new("Frame")
+    ultBack.Size = ud2_new(1, 0, 0, 5)
+    ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+    ultBack.BorderColor3 = COLOR_BLACK
+    ultBack.BorderSizePixel = 1
+    ultBack.LayoutOrder = 2
+    ultBack.Parent = centerBlock
+    assets.UltBack = ultBack
     
-    local hFill = inst_new("Frame")
-    hFill.Size = ud2_new(1, 0, 1, 0)
-    hFill.BorderSizePixel = 0
-    hFill.BackgroundColor3 = COLOR_GREEN
-    hFill.Parent = hBack
-    assets.HealthFill = hFill
+    local ultFill = inst_new("Frame")
+    ultFill.Size = ud2_new(0, 0, 1, 0)
+    ultFill.BorderSizePixel = 0
+    ultFill.BackgroundColor3 = COLOR_GREEN
+    ultFill.Parent = ultBack
+    assets.UltFill = ultFill
+    buildBarSegments(ultBack, "Horizontal")
 
-    -- Right Bottom Bar: Evade / Jackpot Container
-    local rightContainer = inst_new("Frame")
-    rightContainer.Size = ud2_new(0.5, -2, 1, 0)
-    rightContainer.BackgroundTransparency = 1
-    rightContainer.LayoutOrder = 2
-    rightContainer.Parent = lowerRow
-
+    -- RIGHT VERTICAL SIDEBAR: Evade
     local eBack = inst_new("Frame")
-    eBack.Size = ud2_new(1, 0, 1, 0)
+    eBack.Size = ud2_new(0, 5, 1, 0)
     eBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     eBack.BorderColor3 = COLOR_BLACK
     eBack.BorderSizePixel = 1
-    eBack.Parent = rightContainer
+    eBack.LayoutOrder = 3
+    eBack.Parent = rowWrapper
     
     local eFill = inst_new("Frame")
-    eFill.Size = ud2_new(0, 0, 1, 0)
+    eFill.Size = ud2_new(1, 0, 0, 0)
+    eFill.AnchorPoint = v2_new(0, 1)
+    eFill.Position = ud2_new(0, 0, 1, 0)
     eFill.BorderSizePixel = 0
-    eFill.BackgroundColor3 = COLOR_MAGENTA
+    eFill.BackgroundColor3 = COLOR_CYAN
     eFill.Parent = eBack
     assets.EvadeFill = eFill
-
-    -- Overlaid Jackpot indicator on Evade panel
-    local jFill = inst_new("Frame")
-    jFill.Size = ud2_new(1, 0, 1, 0)
-    jFill.BorderSizePixel = 0
-    jFill.BackgroundColor3 = COLOR_GREEN
-    jFill.Visible = false
-    jFill.Parent = eBack
-    assets.JackpotFill = jFill
+    buildBarSegments(eBack, "Vertical")
     
     -- Connection trackers
     assets.Connections = {}
@@ -263,6 +292,7 @@ local function CreateAssets(p)
     assets.CachedMoveset = ""
     assets.NameDisplay = ""
     assets.CashDisplay = ""
+    assets.JackpotDisplay = ""
     assets.GroupRoleTag = ""
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
@@ -338,8 +368,12 @@ local function SetupCharacterSignals(assets, char, hum)
 
     local function updateHealth()
         if not assets.HealthFill then return end
-        local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-        assets.HealthFill.Size = ud2_new(hpPerc, 0, 1, 0)
+        local maxHp = hum.MaxHealth
+        local currentHp = hum.Health
+        
+        -- Secure fallback scale calculation step to prevent empty rendering limits
+        local hpPerc = (maxHp > 0) and m_clamp(currentHp / maxHp, 0, 1) or 1
+        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
         assets.HealthFill.BackgroundColor3 = getGradientColor(hpPerc)
     end
     
@@ -408,6 +442,12 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
+                        -- Redundant health recovery validation logic to fix rare initial empty-bar frames
+                        local currentMaxHp = hum.MaxHealth
+                        local safetyHpPerc = (currentMaxHp > 0) and m_clamp(hum.Health / currentMaxHp, 0, 1) or 1
+                        c.HealthFill.Size = ud2_new(1, 0, safetyHpPerc, 0)
+                        c.HealthFill.BackgroundColor3 = getGradientColor(safetyHpPerc)
+
                         -- 1. Optimized Dynamic Moveset Evaluation Engine
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
@@ -440,31 +480,27 @@ function ESP.Init(State)
                             movesetName = pm or ""
                         end
 
-                        -- Resolve Hex Color mapping
+                        -- Resolve Hex Color mapping and assign to the underlying horizontal bar structure
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
 
-                        -- 2. Ultimate Bar Horizontal Tracking
-                        local rawUlt = char:GetAttribute("Ultimate")
+                        -- 2. Ultimate Bar Horizontal Tracking (Player Level Attributes)
+                        local rawUlt = p:GetAttribute("Ultimate")
                         local ultValue = type(rawUlt) == "number" and rawUlt or 0
                         c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
 
-                        -- 3. Evade / Jackpot Dynamic Right-Bar Tracking
+                        -- 3. Evade Tracking (Re-separated out cleanly from any Jackpot overrides)
+                        local rawEvade = char:GetAttribute("Evade")
+                        local evadeValue = type(rawEvade) == "number" and rawEvade or 0
+                        c.EvadeFill.Size = ud2_new(1, 0, m_clamp(evadeValue / 50, 0, 1), 0)
+
+                        -- 4. Text-Based Jackpot Multiplier Setup
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
-                        
-                        if jackpotCount > 0 then
-                            c.JackpotFill.Visible = true
-                            c.JackpotFill.Size = ud2_new(m_clamp(jackpotCount / 7, 0, 1), 0, 1, 0)
-                        else
-                            c.JackpotFill.Visible = false
-                            local rawEvade = char:GetAttribute("Evade")
-                            local evadeValue = type(rawEvade) == "number" and rawEvade or 0
-                            c.EvadeFill.Size = ud2_new(m_clamp(evadeValue / 50, 0, 1), 0, 1, 0)
-                        end
+                        c.JackpotDisplay = (jackpotCount > 0) and s_format("<font color='#55FF7F'>[%sx JP]</font> ", jackpotCount) or ""
 
-                        -- 4. Cash Parsing Metrics
-                        local rawCash = char:GetAttribute("Cash")
+                        -- 5. Cash Parsing Metrics (Player Level Attributes)
+                        local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#85bb65'>$%s</font> | ", formatVal(cashValue)) or ""
 
@@ -477,12 +513,11 @@ function ESP.Init(State)
                         end
 
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
-                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#55FF7F'>[%sx JP]</font> ", jackpotCount) or ""
                         
                         if isDead then
-                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, c.GroupRoleTag, permBadges, p.Name)
+                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, c.JackpotDisplay, c.GroupRoleTag, permBadges, p.Name)
                         else
-                            c.NameDisplay = s_format("%s%s%s%s%s", leftTag, jackpotTag, c.GroupRoleTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
+                            c.NameDisplay = s_format("%s%s%s%s%s", leftTag, c.JackpotDisplay, c.GroupRoleTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
                         end
                         
                         local distCol = getGradientColor(dist / 800)
