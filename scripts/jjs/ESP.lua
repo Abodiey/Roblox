@@ -164,26 +164,24 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- Master Unified Character & Overhead Billboard
+    -- 1. OVERHEAD BILLBOARD (Text & Ultimate Bar Only - Offset Pixels for Text Legibility)
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 115, 0, 95)
-    bill.ExtentsOffset = v3_new(0, 1.1, 0) -- Perfect anatomical baseline centering
+    bill.Size = ud2_new(0, 200, 0, 42)
+    bill.ExtentsOffset = v3_new(0, 3.3, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
-    -- 1. OVERHEAD CONTENT CONTAINER (Top 35% of Unified space)
-    local topFrame = inst_new("Frame")
-    topFrame.Size = ud2_new(1, 0, 0.35, 0)
-    topFrame.Position = ud2_new(0, 0, 0, 0)
-    topFrame.BackgroundTransparency = 1
-    topFrame.Parent = bill
+    local mainFrame = inst_new("Frame")
+    mainFrame.Size = ud2_new(1, 0, 1, 0)
+    mainFrame.BackgroundTransparency = 1
+    mainFrame.Parent = bill
     
     local blockLayout = inst_new("UIListLayout")
     blockLayout.SortOrder = Enum.SortOrder.LayoutOrder
     blockLayout.Padding = UDim.new(0, 2)
     blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    blockLayout.Parent = topFrame
+    blockLayout.Parent = mainFrame
 
     local txt = inst_new("TextLabel")
     txt.Size = ud2_new(1, 0, 1, -8)
@@ -193,7 +191,7 @@ local function CreateAssets(p)
     txt.Font = Enum.Font.RobotoMono
     txt.TextSize = 11
     txt.LayoutOrder = 1
-    txt.Parent = topFrame
+    txt.Parent = mainFrame
     assets.Text = txt
     
     local stroke = inst_new("UIStroke")
@@ -202,15 +200,15 @@ local function CreateAssets(p)
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- Ultimate Layout Elements
     local ultBack = inst_new("Frame")
-    ultBack.Size = ud2_new(1, 0, 0, 5)
+    letBackSize = ud2_new(1, 0, 0, 5)
+    ultBack.Size = letBackSize
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ultBack.BackgroundTransparency = 0.5
     ultBack.BorderColor3 = COLOR_BLACK
     ultBack.BorderSizePixel = 1
     ultBack.LayoutOrder = 2
-    ultBack.Parent = topFrame
+    ultBack.Parent = mainFrame
     assets.UltBack = ultBack
     
     local ultStroke = inst_new("UIStroke")
@@ -225,18 +223,25 @@ local function CreateAssets(p)
     ultFill.BackgroundTransparency = 0.2
     ultFill.Parent = ultBack
     assets.UltFill = ultFill
-    applyBrawlhallaTicks(ultBack, false)
+    assets.UltLines = applyBrawlhallaTicks(ultBack, false)
 
-    -- 2. FLANKING SIDEBARS (Bottom 60% of Unified space, maps perfectly to Character Sides)
+    -- 2. PHYSICAL CHARACTER SIDEBARS (Sized entirely in Scale / 3D Studs to prevent clipping or floating)
+    local bodyBill = inst_new("BillboardGui")
+    bodyBill.AlwaysOnTop = true
+    bodyBill.Size = ud2_new(4.6, 0, 4.8, 0) -- Scaled 3D volume framework hugging character bounding profile
+    bodyBill.ExtentsOffset = v3_new(0, -0.3, 0) -- Center alignment over Torso
+    bodyBill.Parent = ScreenGui
+    assets.BodyBill = bodyBill
+
     -- Left Sidebar: Health
     local hBack = inst_new("Frame")
-    hBack.Size = ud2_new(0, 5, 0.60, 0)
-    hBack.Position = ud2_new(0, -6, 0.40, 0)
+    hBack.Size = ud2_new(0, 5, 1, 0)
+    hBack.Position = ud2_new(0, 0, 0, 0)
     hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     hBack.BackgroundTransparency = 0.5
     hBack.BorderColor3 = COLOR_BLACK
     hBack.BorderSizePixel = 1
-    hBack.Parent = bill
+    hBack.Parent = bodyBill
     assets.HealthBack = hBack
     
     local hFill = inst_new("Frame")
@@ -252,13 +257,13 @@ local function CreateAssets(p)
 
     -- Right Sidebar: Evade
     local eBack = inst_new("Frame")
-    eBack.Size = ud2_new(0, 5, 0.60, 0)
-    eBack.Position = ud2_new(1, 6, 0.40, 0)
+    eBack.Size = ud2_new(0, 5, 1, 0)
+    eBack.Position = ud2_new(1, -5, 0, 0)
     eBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     eBack.BackgroundTransparency = 0.5
     eBack.BorderColor3 = COLOR_BLACK
     eBack.BorderSizePixel = 1
-    eBack.Parent = bill
+    eBack.Parent = bodyBill
     assets.EvadeBack = eBack
     
     local eFill = inst_new("Frame")
@@ -272,12 +277,11 @@ local function CreateAssets(p)
     assets.EvadeFill = eFill
     assets.EvadeLines = applyBrawlhallaTicks(eBack, true)
     
-    -- Signal Storage structures
+    -- Connections and runtime storage
     assets.Connections = {}
     assets.CharacterConnections = {} 
     assets.KillValueConnections = {} 
     
-    -- Fast execution cache data states
     assets.LastDist = 0
     assets.CachedKills = 0
     assets.CachedMoveset = ""
@@ -298,6 +302,7 @@ local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
+    if assets.BodyBill then assets.BodyBill:Destroy() end
     Cache[p] = nil
 end
 
@@ -359,7 +364,6 @@ local function SetupCharacterSignals(assets, char, hum)
         if not assets.HealthFill then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
         
-        -- High Performance State Tracking Rules
         if hpPerc <= 0.02 then
             assets.HealthBack.Visible = false
         else
@@ -422,8 +426,11 @@ function ESP.Init(State)
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
                     c.Bill.Enabled = true
+                    c.BodyBill.Enabled = true
                     c.Text.Visible = true
+                    
                     c.Bill.Adornee = root
+                    c.BodyBill.Adornee = root
 
                     local sX, sY
                     if myRoot then
@@ -433,7 +440,7 @@ function ESP.Init(State)
                         sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
                     end
 
-                    -- Continuous Frame-by-Frame Inline Metric Updates
+                    -- Frame-by-Frame Health Monitoring Loop
                     local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
                     if liveHpPerc <= 0.02 then
                         c.HealthBack.Visible = false
@@ -449,6 +456,7 @@ function ESP.Init(State)
                         end
                     end
 
+                    -- Frame-by-Frame Evade Monitoring Loop
                     local rawEvade = char:GetAttribute("Evade")
                     local evadeValue = type(rawEvade) == "number" and rawEvade or 0
                     local evadePerc = m_clamp(evadeValue / 50, 0, 1)
@@ -466,18 +474,20 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Ultimate Dynamic Capacity Tracking
+                    -- Ultimate Dynamic Sizing & Layout Ticking Control
                     local rawUlt = p:GetAttribute("Ultimate")
                     local ultValue = type(rawUlt) == "number" and rawUlt or 0
                     c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
 
-                    -- Reactive Rainbow Outline System
+                    -- Rainbow stroke cycle + grid removal logic when ultimate is maxed
                     if ultValue >= 100 then
                         c.UltStroke.Thickness = 1.5
                         c.UltStroke.Color = Color3.fromHSV((gameClock * 0.65) % 1, 1, 1)
+                        for i = 1, 9 do c.UltLines[i].Visible = false end
                     else
                         c.UltStroke.Thickness = 1
                         c.UltStroke.Color = COLOR_BLACK
+                        for i = 1, 9 do c.UltLines[i].Visible = true end
                     end
 
                     if shouldUpdateHeavy then
@@ -488,7 +498,7 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- Moveset Identification Engine
+                        -- Moveset Filter Processor
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
@@ -519,7 +529,7 @@ function ESP.Init(State)
                             movesetName = pm or ""
                         end
 
-                        -- Dark Color Guard Protection 
+                        -- Dark Theme Guard
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
                         
@@ -530,7 +540,7 @@ function ESP.Init(State)
                             c.UltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
                         end
 
-                        -- Isolated Bright Green Cash Formatting Rule
+                        -- Cash Interface Compilation
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
@@ -587,7 +597,6 @@ function ESP.Init(State)
                         killString = s_format("%s<font color='#FFFF00'>*</font>", killString)
                     end
 
-                    -- Compile Screen Presentation Structure
                     c.Text.Text = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
                         c.NameDisplay, 
                         c.CachedMoveset,
@@ -600,11 +609,13 @@ function ESP.Init(State)
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
+                    c.BodyBill.Enabled = false
                     c.Text.Visible = false
                 end
             elseif Cache[p] then
                 Cache[p].Line.Visible = false
                 Cache[p].Bill.Enabled = false
+                Cache[p].BodyBill.Enabled = false
             end
         end
     end)
