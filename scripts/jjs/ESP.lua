@@ -29,6 +29,8 @@ local m_deg = math.deg
 local m_atan2 = math.atan2
 local string = string
 local s_format = string.format
+local os = os
+local o_clock = os.clock
 
 -- Localize Roblox Datatypes
 local Vector2 = Vector2
@@ -59,14 +61,17 @@ ScreenGui.Parent = CoreGui
 local Cache = {}
 local FrameTick = 0 
 
--- Static design colors
-local COLOR_RED = c3_new(1, 0, 0)
+-- Design Palette Constants
+local COLOR_RED = c3_new(1, 0.1, 0.1)
 local COLOR_YELLOW = c3_new(1, 1, 0)
 local COLOR_GREEN = c3_new(0, 1, 0)
 local COLOR_BRIGHT_GREEN = c3_new(0, 1, 0.2)
-local COLOR_CYAN = c3_new(0, 0.75, 1)
+local COLOR_CYAN = c3_new(0, 0.8, 1)
+local COLOR_DARK_BLUE = c3_new(0, 0.1, 0.5)
 local COLOR_WHITE = c3_new(1, 1, 1)
 local COLOR_BLACK = c3_new(0, 0, 0)
+local COLOR_GOLD = c3_new(1, 0.85, 0)
+local COLOR_PURPLE = c3_new(0.68, 0.1, 1)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -114,7 +119,6 @@ local function formatVal(val)
     return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
 end
 
--- Strictly checks if a folder is fully custom (all items named "Custom")
 local function isCustom(movesetFolder)
     if not movesetFolder then return false end
     local children = movesetFolder:GetChildren()
@@ -128,8 +132,9 @@ local function isCustom(movesetFolder)
     return true
 end
 
--- Draws Brawlhalla style interval indicator ticks onto the bars
+-- Draws Brawlhalla style interval ticks and populates reference arrays
 local function applyBrawlhallaTicks(parentFrame, isVertical)
+    local lineCache = {}
     for idx = 1, 9 do
         local tick = inst_new("Frame")
         tick.BorderSizePixel = 0
@@ -144,7 +149,9 @@ local function applyBrawlhallaTicks(parentFrame, isVertical)
             tick.Position = ud2_new(0.1 * idx, 0, 0, 0)
         end
         tick.Parent = parentFrame
+        lineCache[idx] = tick
     end
+    return lineCache
 end
 
 local function CreateAssets(p)
@@ -157,35 +164,36 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- Overhead Billboard (Text & Ultimate Bar Only)
+    -- Master Unified Character & Overhead Billboard
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 200, 0, 42)
-    bill.ExtentsOffset = v3_new(0, 3.0, 0)
+    bill.Size = ud2_new(0, 115, 0, 95)
+    bill.ExtentsOffset = v3_new(0, 1.1, 0) -- Perfect anatomical baseline centering
     bill.Parent = ScreenGui
     assets.Bill = bill
     
-    local mainFrame = inst_new("Frame")
-    mainFrame.Size = ud2_new(1, 0, 1, 0)
-    mainFrame.BackgroundTransparency = 1
-    mainFrame.Parent = bill
+    -- 1. OVERHEAD CONTENT CONTAINER (Top 35% of Unified space)
+    local topFrame = inst_new("Frame")
+    topFrame.Size = ud2_new(1, 0, 0.35, 0)
+    topFrame.Position = ud2_new(0, 0, 0, 0)
+    topFrame.BackgroundTransparency = 1
+    topFrame.Parent = bill
     
     local blockLayout = inst_new("UIListLayout")
     blockLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    blockLayout.Padding = UDim.new(0, 3)
+    blockLayout.Padding = UDim.new(0, 2)
     blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    blockLayout.Parent = mainFrame
+    blockLayout.Parent = topFrame
 
-    -- Info Text Element
     local txt = inst_new("TextLabel")
-    txt.Size = ud2_new(1, 0, 1, -10)
+    txt.Size = ud2_new(1, 0, 1, -8)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
     txt.Font = Enum.Font.RobotoMono
-    txt.TextSize = 12
+    txt.TextSize = 11
     txt.LayoutOrder = 1
-    txt.Parent = mainFrame
+    txt.Parent = topFrame
     assets.Text = txt
     
     local stroke = inst_new("UIStroke")
@@ -194,82 +202,82 @@ local function CreateAssets(p)
     stroke.Parent = txt
     assets.Stroke = stroke
     
-    -- Ultimate Bar (Directly below overhead text)
+    -- Ultimate Layout Elements
     local ultBack = inst_new("Frame")
     ultBack.Size = ud2_new(1, 0, 0, 5)
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
-    ultBack.BackgroundTransparency = 0.6
+    ultBack.BackgroundTransparency = 0.5
     ultBack.BorderColor3 = COLOR_BLACK
     ultBack.BorderSizePixel = 1
     ultBack.LayoutOrder = 2
-    ultBack.Parent = mainFrame
+    ultBack.Parent = topFrame
     assets.UltBack = ultBack
+    
+    local ultStroke = inst_new("UIStroke")
+    ultStroke.Thickness = 1
+    ultStroke.Color = COLOR_BLACK
+    ultStroke.Parent = ultBack
+    assets.UltStroke = ultStroke
     
     local ultFill = inst_new("Frame")
     ultFill.Size = ud2_new(0, 0, 1, 0)
     ultFill.BorderSizePixel = 0
-    ultFill.BackgroundTransparency = 0.25
+    ultFill.BackgroundTransparency = 0.2
     ultFill.Parent = ultBack
     assets.UltFill = ultFill
     applyBrawlhallaTicks(ultBack, false)
 
-    -- Character Flanking Sidebar Billboard (Health on Left, Evade on Right)
-    local bodyBill = inst_new("BillboardGui")
-    bodyBill.AlwaysOnTop = true
-    bodyBill.Size = ud2_new(0, 78, 0, 52) -- Sized to wrap the avatar torso bounds
-    bodyBill.ExtentsOffset = v3_new(0, -0.2, 0)
-    bodyBill.Parent = ScreenGui
-    assets.BodyBill = bodyBill
-
-    -- Left Character Sidebar: Health
+    -- 2. FLANKING SIDEBARS (Bottom 60% of Unified space, maps perfectly to Character Sides)
+    -- Left Sidebar: Health
     local hBack = inst_new("Frame")
-    hBack.Size = ud2_new(0, 6, 1, 0)
-    hBack.Position = ud2_new(0, 0, 0, 0)
+    hBack.Size = ud2_new(0, 5, 0.60, 0)
+    hBack.Position = ud2_new(0, -6, 0.40, 0)
     hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
-    hBack.BackgroundTransparency = 0.6
+    hBack.BackgroundTransparency = 0.5
     hBack.BorderColor3 = COLOR_BLACK
     hBack.BorderSizePixel = 1
-    hBack.Parent = bodyBill
+    hBack.Parent = bill
+    assets.HealthBack = hBack
     
     local hFill = inst_new("Frame")
     hFill.Size = ud2_new(1, 0, 1, 0)
     hFill.AnchorPoint = v2_new(0, 1)
     hFill.Position = ud2_new(0, 0, 1, 0)
     hFill.BorderSizePixel = 0
-    hFill.BackgroundTransparency = 0.25
+    hFill.BackgroundTransparency = 0.2
     hFill.BackgroundColor3 = COLOR_BRIGHT_GREEN
     hFill.Parent = hBack
     assets.HealthFill = hFill
-    applyBrawlhallaTicks(hBack, true)
+    assets.HealthLines = applyBrawlhallaTicks(hBack, true)
 
-    -- Right Character Sidebar: Evade
+    -- Right Sidebar: Evade
     local eBack = inst_new("Frame")
-    eBack.Size = ud2_new(0, 6, 1, 0)
-    eBack.AnchorPoint = v2_new(1, 0)
-    eBack.Position = ud2_new(1, 0, 0, 0)
+    eBack.Size = ud2_new(0, 5, 0.60, 0)
+    eBack.Position = ud2_new(1, 6, 0.40, 0)
     eBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
-    eBack.BackgroundTransparency = 0.6
+    eBack.BackgroundTransparency = 0.5
     eBack.BorderColor3 = COLOR_BLACK
     eBack.BorderSizePixel = 1
-    eBack.Parent = bodyBill
+    eBack.Parent = bill
+    assets.EvadeBack = eBack
     
     local eFill = inst_new("Frame")
     eFill.Size = ud2_new(1, 0, 0, 0)
     eFill.AnchorPoint = v2_new(0, 1)
     eFill.Position = ud2_new(0, 0, 1, 0)
     eFill.BorderSizePixel = 0
-    eFill.BackgroundTransparency = 0.25
+    eFill.BackgroundTransparency = 0.2
     eFill.BackgroundColor3 = COLOR_CYAN
     eFill.Parent = eBack
     assets.EvadeFill = eFill
-    applyBrawlhallaTicks(eBack, true)
+    assets.EvadeLines = applyBrawlhallaTicks(eBack, true)
     
-    -- Connection trackers
+    -- Signal Storage structures
     assets.Connections = {}
     assets.CharacterConnections = {} 
     assets.KillValueConnections = {} 
     
-    -- Dynamic variable caching
+    -- Fast execution cache data states
     assets.LastDist = 0
     assets.CachedKills = 0
     assets.CachedMoveset = ""
@@ -290,12 +298,10 @@ local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
-    if assets.BodyBill then assets.BodyBill:Destroy() end
     Cache[p] = nil
 end
 
 local function SetupPlayerSignals(p, assets)
-    -- Fast Group Role Query Thread
     task.spawn(function()
         local success, role = pcall(function() return p:GetRoleInGroup(TARGET_GROUP) end)
         if success and role and role ~= "Guest" and role ~= "Member" then
@@ -349,15 +355,29 @@ local function SetupCharacterSignals(assets, char, hum)
 
     if not hum then return end
 
-    local function forceUpdateHealth()
+    local function updateBarsInline()
         if not assets.HealthFill then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-        assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
+        
+        -- High Performance State Tracking Rules
+        if hpPerc <= 0.02 then
+            assets.HealthBack.Visible = false
+        else
+            assets.HealthBack.Visible = true
+            assets.HealthFill.Size = ud2_new(1, 0, hpPerc, 0)
+            if hpPerc >= 0.99 then
+                assets.HealthFill.BackgroundColor3 = COLOR_GOLD
+                for i = 1, 9 do assets.HealthLines[i].Visible = false end
+            else
+                assets.HealthFill.BackgroundColor3 = COLOR_BRIGHT_GREEN:Lerp(COLOR_RED, 1 - hpPerc)
+                for i = 1, 9 do assets.HealthLines[i].Visible = true end
+            end
+        end
     end
     
-    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("Health"):Connect(forceUpdateHealth))
-    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(forceUpdateHealth))
-    forceUpdateHealth()
+    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("Health"):Connect(updateBarsInline))
+    table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateBarsInline))
+    updateBarsInline()
 end
 
 function ESP.Init(State)
@@ -376,6 +396,7 @@ function ESP.Init(State)
         
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
+        local gameClock = o_clock()
 
         for p, assets in pairs(Cache) do
             if not p or not p.Parent then CleanupCacheEntry(p, assets) end
@@ -401,11 +422,8 @@ function ESP.Init(State)
                 if vis2 and p2.Z > 0 then
                     c.Line.Visible = true
                     c.Bill.Enabled = true
-                    c.BodyBill.Enabled = true
                     c.Text.Visible = true
-                    
                     c.Bill.Adornee = root
-                    c.BodyBill.Adornee = root
 
                     local sX, sY
                     if myRoot then
@@ -415,9 +433,52 @@ function ESP.Init(State)
                         sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
                     end
 
-                    -- Continuous active safety updates for Health
+                    -- Continuous Frame-by-Frame Inline Metric Updates
                     local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-                    c.HealthFill.Size = ud2_new(1, 0, liveHpPerc, 0)
+                    if liveHpPerc <= 0.02 then
+                        c.HealthBack.Visible = false
+                    else
+                        c.HealthBack.Visible = true
+                        c.HealthFill.Size = ud2_new(1, 0, liveHpPerc, 0)
+                        if liveHpPerc >= 0.99 then
+                            c.HealthFill.BackgroundColor3 = COLOR_GOLD
+                            for i = 1, 9 do c.HealthLines[i].Visible = false end
+                        else
+                            c.HealthFill.BackgroundColor3 = COLOR_BRIGHT_GREEN:Lerp(COLOR_RED, 1 - liveHpPerc)
+                            for i = 1, 9 do c.HealthLines[i].Visible = true end
+                        end
+                    end
+
+                    local rawEvade = char:GetAttribute("Evade")
+                    local evadeValue = type(rawEvade) == "number" and rawEvade or 0
+                    local evadePerc = m_clamp(evadeValue / 50, 0, 1)
+                    if evadePerc <= 0.02 then
+                        c.EvadeBack.Visible = false
+                    else
+                        c.EvadeBack.Visible = true
+                        c.EvadeFill.Size = ud2_new(1, 0, evadePerc, 0)
+                        if evadePerc >= 0.99 then
+                            c.EvadeFill.BackgroundColor3 = COLOR_PURPLE
+                            for i = 1, 9 do c.EvadeLines[i].Visible = false end
+                        else
+                            c.EvadeFill.BackgroundColor3 = COLOR_CYAN:Lerp(COLOR_DARK_BLUE, 1 - evadePerc)
+                            for i = 1, 9 do c.EvadeLines[i].Visible = true end
+                        end
+                    end
+
+                    -- Ultimate Dynamic Capacity Tracking
+                    local rawUlt = p:GetAttribute("Ultimate")
+                    local ultValue = type(rawUlt) == "number" and rawUlt or 0
+                    c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
+
+                    -- Reactive Rainbow Outline System
+                    if ultValue >= 100 then
+                        c.UltStroke.Thickness = 1.5
+                        c.UltStroke.Color = Color3.fromHSV((gameClock * 0.65) % 1, 1, 1)
+                    else
+                        c.UltStroke.Thickness = 1
+                        c.UltStroke.Color = COLOR_BLACK
+                    end
 
                     if shouldUpdateHeavy then
                         local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
@@ -427,12 +488,11 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- 1. Custom Moveset Evaluation
+                        -- Moveset Identification Engine
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
                         local movesetFolder = char:FindFirstChild("Moveset")
-                        
                         local fullyCustom = isCustom(movesetFolder)
                         
                         if cm == "Custom" or fullyCustom then
@@ -459,33 +519,23 @@ function ESP.Init(State)
                             movesetName = pm or ""
                         end
 
-                        -- 2. Ultimate Handling with Black Color Visibility Fallback
+                        -- Dark Color Guard Protection 
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
                         
                         if hexColor == "000000" then
-                            c.UltBack.BorderColor3 = COLOR_WHITE
-                            c.UltBack.BackgroundColor3 = c3_new(0.2, 0.2, 0.2)
+                            c.UltBack.BackgroundColor3 = c3_new(0.18, 0.18, 0.18)
+                            if ultValue < 100 then c.UltStroke.Color = COLOR_WHITE end
                         else
-                            c.UltBack.BorderColor3 = COLOR_BLACK
                             c.UltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
                         end
 
-                        local rawUlt = p:GetAttribute("Ultimate")
-                        local ultValue = type(rawUlt) == "number" and rawUlt or 0
-                        c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
-
-                        -- 3. Evade Tracking
-                        local rawEvade = char:GetAttribute("Evade")
-                        local evadeValue = type(rawEvade) == "number" and rawEvade or 0
-                        c.EvadeFill.Size = ud2_new(1, 0, m_clamp(evadeValue / 50, 0, 1), 0)
-
-                        -- 4. Fixed Bright Green Cash Tags
+                        -- Isolated Bright Green Cash Formatting Rule
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
 
-                        -- Permissions Badges
+                        -- Security Badge Compilation
                         local permBadges = ""
                         if char:GetAttribute("PS_Owner") == true then
                             permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
@@ -493,7 +543,6 @@ function ESP.Init(State)
                             permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
                         end
 
-                        -- Text-Based Jackpot Tag compilation
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
@@ -523,7 +572,7 @@ function ESP.Init(State)
                     
                     local currentDist = c.LastDist
 
-                    -- 2D Line Calculations
+                    -- Tracer Vectors
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
@@ -538,7 +587,7 @@ function ESP.Init(State)
                         killString = s_format("%s<font color='#FFFF00'>*</font>", killString)
                     end
 
-                    -- Master Output Compile
+                    -- Compile Screen Presentation Structure
                     c.Text.Text = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
                         c.NameDisplay, 
                         c.CachedMoveset,
@@ -551,13 +600,11 @@ function ESP.Init(State)
                 else
                     c.Line.Visible = false
                     c.Bill.Enabled = false
-                    c.BodyBill.Enabled = false
                     c.Text.Visible = false
                 end
             elseif Cache[p] then
                 Cache[p].Line.Visible = false
                 Cache[p].Bill.Enabled = false
-                Cache[p].BodyBill.Enabled = false
             end
         end
     end)
