@@ -26,6 +26,17 @@ local function isRTL(text)
     return false
 end
 
+-- Checks if a message is purely composed of English characters, numbers, common symbols, and spaces
+local function isProbablyEnglish(text)
+    -- Remove common punctuation, numbers, and spaces
+    local stripped = string.gsub(text, "[%s%d%p]", "")
+    if #stripped == 0 then return true end -- Just numbers/punctuation
+    
+    -- Check if it contains only standard English alphabet characters (a-z, A-Z)
+    local englishChars = string.match(stripped, "^[a-zA-Z]+$")
+    return englishChars ~= nil
+end
+
 function Aura.Init(State)
     local BubbleConfig = TextChatService.BubbleChatConfiguration
     BubbleConfig.MaxDistance = 500 
@@ -62,8 +73,8 @@ function Aura.Init(State)
             task.spawn(function()
                 local displayMsg = rawMsg
                 
-                -- Use the environment's HTTP request function to contact Google Translate
-                if type(request) == "function" then
+                -- Skip API completely if it passes our English/slang check
+                if type(request) == "function" and not isProbablyEnglish(rawMsg) then
                     local apiUrl = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=" .. HttpService:UrlEncode(rawMsg)
                     local responseSuccess, response = pcall(request, {
                         Url = apiUrl,
@@ -76,7 +87,7 @@ function Aura.Init(State)
                             local translatedText = decoded[1][1][1]
                             local detectedLang = decoded[3]
                             
-                            -- Ensure it's actually a foreign language and translation is different
+                            -- Ensure it's not detected as English, and the string isn't an exact structural match
                             if detectedLang ~= "en" and string.lower(translatedText) ~= string.lower(rawMsg) then
                                 displayMsg = string.format("%s\n[Translation]: %s", rawMsg, translatedText)
                             end
