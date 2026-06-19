@@ -4,6 +4,7 @@ local TextChatService = cloneref(game:GetService("TextChatService"))
 local Chat = cloneref(game:GetService("Chat"))
 local RunService = cloneref(game:GetService("RunService"))
 local Players = cloneref(game:GetService("Players"))
+local HttpService = cloneref(game:GetService("HttpService"))
 
 -- Using modern Luau Unicode escapes for directional formatting
 local LRI = "\u{2066}" -- Left-to-Right Isolate
@@ -59,9 +60,33 @@ function Aura.Init(State)
             lastMsg[charName] = rawMsg
             
             task.spawn(function()
+                local displayMsg = rawMsg
+                
+                -- Use the environment's HTTP request function to contact Google Translate
+                if type(request) == "function" then
+                    local apiUrl = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=" .. HttpService:UrlEncode(rawMsg)
+                    local responseSuccess, response = pcall(request, {
+                        Url = apiUrl,
+                        Method = "GET"
+                    })
+                    
+                    if responseSuccess and response and response.StatusCode == 200 then
+                        local decodeSuccess, decoded = pcall(function() return HttpService:JSONDecode(response.Body) end)
+                        if decodeSuccess and decoded and decoded[1] and decoded[1][1] and decoded[1][1][1] then
+                            local translatedText = decoded[1][1][1]
+                            local detectedLang = decoded[3]
+                            
+                            -- Ensure it's actually a foreign language and translation is different
+                            if detectedLang ~= "en" and string.lower(translatedText) ~= string.lower(rawMsg) then
+                                displayMsg = string.format("%s\n[Translation]: %s", rawMsg, translatedText)
+                            end
+                        end
+                    end
+                end
+
                 -- Isolate the specific direction of the message content
                 local directionMarker = isRTL(rawMsg) and RLI or LRI
-                local isolatedMsg = directionMarker .. rawMsg .. PDI
+                local isolatedMsg = directionMarker .. displayMsg .. PDI
 
                 -- Force the structural wrapper ([Name]: ) to always read Left-to-Right
                 local formattedChat = string.format("%s[<b>%s</b>]: %s%s", LRI, charName, isolatedMsg, PDI)
