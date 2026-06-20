@@ -1,20 +1,20 @@
 local Train = {}
 
-local Main = workspace:WaitForChild("Map")
-Main = Main:WaitForChild("Destructible")
-Main = Main:WaitForChild("Model")
-Main = Main:WaitForChild("StationControl")
-
-local Prompt = Main:WaitForChild("ButtonTrain")
-Prompt = Prompt:WaitForChild("Button")
-Prompt = Prompt:WaitForChild("Button")
-
-local Event = Main:WaitForChild("Handle")
-Event = Event:WaitForChild("Train")
+-- Kept outside as the global baseline reference
+local Map = workspace:WaitForChild("Map",99)
 
 local CurrentThread
 
 function Train.Init(ButtonComponent)
+    -- Dynamically look for "Destructible", "Model", and descendants inside the function
+    local Destructible = Map:FindFirstChild("Destructible")
+    local Main = Destructible and Destructible:FindFirstChild("Model")
+    Main = Main and Main:FindFirstChild("StationControl")
+
+    local Prompt = Main and Main:FindFirstChild("ButtonTrain")
+    Prompt = Prompt and Prompt:FindFirstChild("Button")
+    Prompt = Prompt and Prompt:FindFirstChild("Button")
+
     if not Main or not Prompt then
         if ButtonComponent then 
             ButtonComponent:Set("Spawn Train (Map Error)") 
@@ -63,6 +63,18 @@ function Train.Init(ButtonComponent)
 end
 
 function Train.Spawn()
+    -- Dynamically look for everything under Map when called
+    local Destructible = Map:FindFirstChild("Destructible")
+    local Main = Destructible and Destructible:FindFirstChild("Model")
+    Main = Main and Main:FindFirstChild("StationControl")
+
+    local Prompt = Main and Main:FindFirstChild("ButtonTrain")
+    Prompt = Prompt and Prompt:FindFirstChild("Button")
+    Prompt = Prompt and Prompt:FindFirstChild("Button")
+
+    local Event = Main and Main:FindFirstChild("Handle")
+    Event = Event and Event:FindFirstChild("Train")
+
     if Prompt and Prompt.Enabled and Event then
         Event:FireServer()
     end
