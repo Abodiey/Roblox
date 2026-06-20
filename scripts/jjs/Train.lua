@@ -1,7 +1,7 @@
 local Train = {}
 
 -- Kept outside as the global baseline reference
-local Map = workspace:WaitForChild("Map",99)
+local Map = workspace:WaitForChild("Map")
 
 local CurrentThread
 
@@ -30,6 +30,9 @@ function Train.Init(ButtonComponent)
 
         if not ButtonComponent then return end
 
+        -- Quick safety check to see if the Prompt was deleted mid-lifecycle
+        if not Prompt:IsDescendantOf(game) then return end
+
         if Prompt.Enabled then
             ButtonComponent:Set("Spawn Train (Ready)")
         else
@@ -47,14 +50,17 @@ function Train.Init(ButtonComponent)
             if CurrentThread then task.cancel(CurrentThread) end
             
             CurrentThread = task.spawn(function()
-                local Duration = 180
-                while Duration > 0 and not Prompt.Enabled do
+                local Duration = 180 -- 3 minutes in seconds
+                
+                -- LEAK PROTECTION: Loop terminates instantly if Prompt is destroyed/removed from game
+                while Duration > 0 and Prompt:IsDescendantOf(game) and not Prompt.Enabled do
                     local Minutes = math.floor(Duration / 60)
                     local Seconds = Duration % 60
                     ButtonComponent:Set(string.format("Spawn Train (%dm %02ds)", Minutes, Seconds))
                     task.wait(1)
                     Duration = Duration - 1
                 end
+                
                 UpdateButtonText()
             end)
         end
