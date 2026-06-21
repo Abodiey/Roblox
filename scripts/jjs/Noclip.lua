@@ -53,11 +53,18 @@ function Noclip.Init(State)
                             v.CanCollide = false
                         end
                     elseif v.Name == "SetAssets" then
-                        -- Highly specific path optimization
+                        -- Highly specific path optimization for GojoMask
                         local mask = v:FindFirstChild("GojoMask") and v.GojoMask:FindFirstChild("Mask")
                         if mask and mask:IsA("BasePart") and mask.CanCollide then
                             storedParts[mask] = true
-                            mask.CanCollide = false
+                            v.GojoMask.Mask.CanCollide = false
+                        end
+
+                        -- Highly specific path optimization for ArmWrap
+                        local armWrap = v:FindFirstChild("ArmWrap") and v.ArmWrap:FindFirstChild("Collide")
+                        if armWrap and armWrap:IsA("BasePart") and armWrap.CanCollide then
+                            storedParts[armWrap] = true
+                            v.ArmWrap.CanCollide = false
                         end
                     end
 
