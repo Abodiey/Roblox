@@ -64,7 +64,7 @@ function Noclip.Init(State)
                         local armWrap = v:FindFirstChild("ArmWrap") and v.ArmWrap:FindFirstChild("Collide")
                         if armWrap and armWrap:IsA("BasePart") and armWrap.CanCollide then
                             storedParts[armWrap] = true
-                            v.ArmWrap.CanCollide = false
+                            v.ArmWrap.Collide.CanCollide = false
                         end
                     end
 
