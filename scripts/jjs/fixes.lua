@@ -4,7 +4,8 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local LTM = "LocalTransparencyModifier"
 local OldIndex
 
-OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
+if hookmetamethod then
+    OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
     if Prop ~= LTM then 
         return OldIndex(Self, Prop, Val) 
     end
@@ -18,7 +19,8 @@ OldIndex = hookmetamethod(game, "__newindex", function(Self, Prop, Val)
     end
 
     return OldIndex(Self, Prop, Val)
-end)
+    end)
+end
 
 local Effects = workspace:WaitForChild("Effects")
 
