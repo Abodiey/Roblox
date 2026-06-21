@@ -17,6 +17,15 @@ task.spawn(function()
     DashRemote = ReplicatedStorage:WaitForChild("Knit", 99999):WaitForChild("Knit", 99999):WaitForChild("Services", 99999):WaitForChild("MovementService", 99999):WaitForChild("RE", 99999):WaitForChild("Dash", 99999)
 end)
 
+-- Character tracking outside
+local currentCharacter = LocalPlayer.Character
+LocalPlayer.CharacterAdded:Connect(function(char)
+    currentCharacter = char
+end)
+LocalPlayer.CharacterRemoving:Connect(function()
+    currentCharacter = nil
+end)
+
 -- Optimizations
 local getAttribute = game.GetAttribute
 
@@ -26,12 +35,9 @@ function AutoBurst.Init(State)
     local HeartbeatConnection = RunService.Heartbeat:Connect(function()
         -- Directly check the toggle state
         if not State.Toggles.AutoBurst then return end
-        if not DashRemote then return end
-            
-        local character = LocalPlayer.Character
-        if not character then return end
+        if not DashRemote or not currentCharacter then return end
 
-        local isBurstActive = getAttribute(character, ATTRIBUTE_NAME)
+        local isBurstActive = getAttribute(currentCharacter, ATTRIBUTE_NAME)
 
         -- Check for a rising edge trigger (the exact moment "Burst" becomes true)
         if isBurstActive and not wasBurstActive then
