@@ -6,20 +6,23 @@ if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
 getgenv().cloneref = cloneref or function(O) return O end
+
 local StarterGui = cloneref(game:GetService("StarterGui"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
 
 task.spawn(function()
-    local Success
-    while not Success do
-        Success = pcall(function()
-            StarterGui:SetCore("SendNotification", {
-                Title = "Catstar Pro",
-                Text = "Loading...",
-                Duration = 5
-            })
-        end)
-        if not Success then task.wait(0.5) end
+    -- Directly wait for the internal CoreGui notification screen to initialize
+    local robloxGui = CoreGui:WaitForChild("RobloxGui", 10)
+    if robloxGui then
+        robloxGui:WaitForChild("NotificationFrame", 10)
     end
+
+    -- The exact instant NotificationFrame is created, SetCore is ready
+    StarterGui:SetCore("SendNotification", {
+        Title = "Catstar Pro",
+        Text = "Loading...",
+        Duration = 5
+    })
 end)
 
 local Rayfield
