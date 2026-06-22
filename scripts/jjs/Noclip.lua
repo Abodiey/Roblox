@@ -41,6 +41,21 @@ function Noclip.Init(State)
         for i = 1, #players do
             local char = players[i]
             if char ~= myChar then
+                if v.Name == "FrameNPC" then
+                        local torso = v.Torso
+                        storedParts[torso] = true
+                        torso.CanCollide = false
+                        continue
+                end
+                if v.Name == "MechamaruBot" then
+                    local torso = v.Torso
+                    storedParts[torso] = true
+                    torso.CanCollide = false
+                    local head = v.Head
+                    storedParts[head] = true
+                    head.CanCollide = false
+                    continue
+                end
                 -- Only check immediate children and specific deep paths
                 local children = char:GetChildren()
                 for j = 1, #children do
