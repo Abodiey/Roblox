@@ -9,7 +9,7 @@ getgenv().cloneref = cloneref or function(O) return O end
 local StarterGui = cloneref(game:GetService("StarterGui"))
 
 task.spawn(function()
-    local Success = false
+    local Success
     while not Success do
         Success = pcall(function()
             StarterGui:SetCore("SendNotification", {
@@ -94,7 +94,7 @@ end
 Load("fixes")
 
 local Modules = {}
-for _, Name in {"BlackFlash", "Ratio", "AntiVoid", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "ESP", "DummyESP", "Targeting", "AutoBurst"} do
+for _, Name in {"ESP", "BlackFlash", "Ratio", "AntiVoid", "AntiBlackhole", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "DummyESP", "Targeting", "AutoBurst"} do
     Modules[Name] = Load(Name)
 end
 
@@ -131,6 +131,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Auto Nanami Ratio", CurrentValue = CatstarState.Toggles.Ratio, Callback = function(V) CatstarState.Toggles.Ratio = V end}},
     {Type = "Toggle",   Module = "AutoBurst",    Args = {Name = "Auto Burst", CurrentValue = CatstarState.Toggles.AutoBurst, Callback = function(V) CatstarState.Toggles.AutoBurst = V end}},
     {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid, Callback = function(V) CatstarState.Toggles.AntiVoid = V end}},
+    {Type = "Toggle",   Module = "AntiBlackhole",Args = {Name = "Anti Blackhole", CurrentValue = CatstarState.Toggles.AntiBlackhole, Callback = function(V) CatstarState.Toggles.AntiBlackhole = V end}},
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
