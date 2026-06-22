@@ -32,6 +32,7 @@ getgenv().CatstarState = {
         Ratio = false,
         AutoBurst = true,
         AntiVoid = false,
+        AntiBlackhole = true,
         Noclip = true, 
         DomainNoclip = true, 
         QTE = true, 
