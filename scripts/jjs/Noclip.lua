@@ -40,7 +40,7 @@ function Noclip.Init(State)
         local players = charFolder:GetChildren()
         for i = 1, #players do
             local char = players[i]
-            if char ~= myChar then
+            if char ~= myChar and not char:GetAttribute("Dead") then
                 if char.Name == "FrameNPC" then
                         local torso = char.Torso
                         storedParts[torso] = true
