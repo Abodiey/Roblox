@@ -41,13 +41,14 @@ function Noclip.Init(State)
         for i = 1, #players do
             local char = players[i]
             if char ~= myChar and not char:GetAttribute("Dead") then
-                if char.Name == "FrameNPC" then
+                local charName = char.Name
+                if charName == "FrameNPC" then
                         local torso = char.Torso
                         storedParts[torso] = true
                         torso.CanCollide = false
                         continue
                 end
-                if char.Name == "MechamaruBot" then
+                if charName == "MechamaruBot" then
                     local torso = char.Torso
                     storedParts[torso] = true
                     torso.CanCollide = false
@@ -56,7 +57,7 @@ function Noclip.Init(State)
                     head.CanCollide = false
                     continue
                 end
-                if char.Name == "HarutaSwordNPC" then
+                if charName == "HarutaSwordNPC" then
                     local root = char.HarutaSword.Hand.Handle
                     storedParts[root] = true
                     root.CanCollide = false
@@ -66,14 +67,14 @@ function Noclip.Init(State)
                 local children = char:GetChildren()
                 for j = 1, #children do
                     local v = children[j]
-                    
+                    local vName = v.Name
                     -- Check if it's a target part OR the specific GojoMask folder
-                    if TARGET_NAMES[v.Name] and v:IsA("BasePart") then
+                    if TARGET_NAMES[vName] and v:IsA("BasePart") then
                         if v.CanCollide then
                             storedParts[v] = true
                             v.CanCollide = false
                         end
-                    elseif v.Name == "SetAssets" then
+                    elseif vName == "SetAssets" then
                         -- Highly specific path optimization for GojoMask
                         local moveset = char:GetAttribute("Moveset")
                         local mask = moveset == "Gojo" and v:FindFirstChild("GojoMask") and v.GojoMask:FindFirstChild("Mask")
@@ -83,7 +84,7 @@ function Noclip.Init(State)
                         end
 
                         -- Highly specific path optimization for ArmWrap
-                        local armWrap = moveset == "Hanami" and v:FindFirstChild("ArmWrap") and v.ArmWrap:FindFirstChild("Collide")
+                        local armWrap = moveset == "Hanami" and v:FindFirstChild("ArmWrap")
                         if armWrap and armWrap:IsA("BasePart") and armWrap.CanCollide then
                             storedParts[armWrap] = true
                             v.ArmWrap.CanCollide = false
@@ -91,7 +92,7 @@ function Noclip.Init(State)
                     end
 
                     -- Check for "Collide" child inside the R6 parts
-                    if TARGET_NAMES[v.Name] then
+                    if TARGET_NAMES[vName] then
                         local childCollide = v:FindFirstChild("Collide")
                         if childCollide and childCollide:IsA("BasePart") and childCollide.CanCollide then
                             storedParts[childCollide] = true
