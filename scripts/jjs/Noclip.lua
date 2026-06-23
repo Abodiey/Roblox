@@ -56,6 +56,12 @@ function Noclip.Init(State)
                     head.CanCollide = false
                     continue
                 end
+                if char.Name == "HarutaSwordNPC" then
+                    local root = char.HarutaSword.Hand.Handle
+                    storedParts[root] = true
+                    root.CanCollide = false
+                    continue
+                end
                 -- Only check immediate children and specific deep paths
                 local children = char:GetChildren()
                 for j = 1, #children do
