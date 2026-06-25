@@ -95,18 +95,60 @@ local function Load(Name)
 end
 
 -- Run game fixes before iterating over feature modules
-Load("fixes")
+task.spawn(function()
+        Load("fixes")
+end)
 
+-- PASSIVE MODULE LOADING THREAD
 local Modules = {}
-for _, Name in {"ESP", "BlackFlash", "Ratio", "AntiVoid", "AntiBlackhole", "Noclip", "DomainNoclip", "Aimbot", "QTE", "Train", "Aura", "ItemESP", "DummyESP", "Targeting", "AutoBurst"} do
-    Modules[Name] = Load(Name)
+local ModuleStatus = {} -- Keeps track of loading status ('Loading', 'Ready', or 'Failed')
+
+local ModuleList = {"ESP", "Aimbot", "Noclip", "AntiBlackhole", "AutoBurst", "Aura", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting"}
+
+for _, Name in ipairs(ModuleList) do
+    ModuleStatus[Name] = "Loading"
 end
 
+task.spawn(function()
+    for _, Name in ipairs(ModuleList) do
+        task.spawn(function()
+            local Result = Load(Name)
+            if Result then
+                Modules[Name] = Result
+                ModuleStatus[Name] = "Ready"
+            else
+                ModuleStatus[Name] = "Failed"
+            end
+        end)
+    end
+end)
+
+-- UI LOADING AND INITIALIZATION
 local File, Day = "RF_Cache.lua", "--" .. os.date("%d")
 local Content = isfile(File) and readfile(File)
 
 if not Content or Content:sub(1, #Day) ~= Day then
-    local Success, RayData = pcall(game.HttpGet, game, "https://sirius.menu/rayfield")
+    local Success, RayData
+    local RayUrl = "https://sirius.menu/rayfield"
+    
+    if request then
+        local ReqSuccess, Response = pcall(function()
+            return request({
+                Url = RayUrl,
+                Method = "GET"
+            })
+        end)
+        Success = ReqSuccess and type(Response) == "table" and Response.StatusCode == 200
+        if Success then
+            RayData = Response.Body
+        end
+    end
+    
+    -- Fallback to HttpGet if request wasn't present or failed
+    if not Success then
+        Success, RayData = pcall(game.HttpGet, game, RayUrl)
+    end
+    
     if Success and RayData then
         Content = Day .. "\n" .. RayData
         writefile(File, Content)
@@ -140,7 +182,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
     {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
-    {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() Modules.Aimbot.Toggle(CatstarState) end}},
+    {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
     
     {Type = "Section",  Name = "Visuals"},
@@ -151,11 +193,11 @@ local UiLayout = {
     
     {Type = "Section",  Name = "Targeting"},
     {Type = "Input",    Module = "Targeting",    Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.TargetIdentifier = T end}},
-    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() Modules.Targeting.Spectate(CatstarState.TargetIdentifier) end}}
+    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState.TargetIdentifier) end end}}
 }
 
 -- ==========================================
--- AUTOMATED SEAMLESS GENERATION
+-- AUTOMATED SEAMLESS GENERATION WITH ASYNC BINDING
 -- ==========================================
 local InitializedModules = {}
 
@@ -163,25 +205,37 @@ for _, Element in ipairs(UiLayout) do
     if Element.Type == "Section" then
         MainTab:CreateSection(Element.Name)
     else
-        local Mod = Modules[Element.Module]
-        if Mod then
-            local Component = MainTab["Create" .. Element.Type](MainTab, Element.Args)
+        local Component = MainTab["Create" .. Element.Type](MainTab, Element.Args)
+        
+        -- Handle Initialization on a separate micro-thread so it doesn't freeze layout construction
+        task.spawn(function()
+            local TargetModule = Element.Module
             
-            if not InitializedModules[Element.Module] then
-                InitializedModules[Element.Module] = true
+            -- Dynamic check loop: Wait up to 15 seconds for the passive downloader thread to grab the module
+            local StartTime = os.clock()
+            while ModuleStatus[TargetModule] == "Loading" and (os.clock() - StartTime) < 15 do
+                task.wait()
+            end
+            
+            local Mod = Modules[TargetModule]
+            if Mod and not InitializedModules[TargetModule] then
+                InitializedModules[TargetModule] = true
                 
                 if type(Mod) == "table" and type(Mod.Init) == "function" then
-                    if Element.Module == "Train" then
+                    if TargetModule == "Train" then
                         Mod.Init(Component)
                     else
                         Mod.Init(CatstarState)
                     end
                 else
-                    if not Mod.Spectate then warn(Element.Module .. " does not have an .Init function") end
+                    if not Mod.Spectate then warn(TargetModule .. " does not have an .Init function") end
                 end
+            elseif ModuleStatus[TargetModule] == "Failed" or not Mod then
+                warn("UI linked to failed module payload: " .. tostring(TargetModule))
             end
-            task.wait()
-        end
+        end)
+        
+        task.wait() -- Small frame yield keeps UI creation looking smooth
     end
 end
 
