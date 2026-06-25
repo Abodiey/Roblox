@@ -6,6 +6,7 @@ local game = game
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
+local workspace = workspace
 
 -- Localize Global Engine Functions
 local task = task
