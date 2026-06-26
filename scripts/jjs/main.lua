@@ -5,23 +5,31 @@ while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
-getgenv().cloneref = cloneref or function(O) return O end
+-- Safe reference cloner fallback
+local cloneref = cloneref or function(O) return O end
 
 local StarterGui = cloneref(game:GetService("StarterGui"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
+local Players = cloneref(game:GetService("Players"))
 
-task.spawn(function()
-    -- Directly wait for the internal CoreGui notification screen to initialize
-    local robloxGui = CoreGui:WaitForChild("RobloxGui", 10)
-    if robloxGui then
-        robloxGui:WaitForChild("NotificationFrame", 10)
+-- Defer execution to let the engine initialize its threads smoothly
+task.defer(function()
+    -- Ensure the LocalPlayer actually exists before attempting UI interactions
+    if not Players.LocalPlayer then
+        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
     end
 
-    -- The exact instant NotificationFrame is created, SetCore is ready
+    -- Directly wait for the internal CoreGui notification screen to initialize
+    local robloxGui = CoreGui:WaitForChild("RobloxGui", 99)
+    if robloxGui then
+        robloxGui:WaitForChild("NotificationFrame", 99)
+    end
+
+    -- Attempt to send notification safely
     StarterGui:SetCore("SendNotification", {
-        Title = "Catstar Pro",
-        Text = "Loading...",
-        Duration = 5
+            Title = "Catstar Pro",
+            Text = "Loading...",
+            Duration = 5
     })
 end)
 
