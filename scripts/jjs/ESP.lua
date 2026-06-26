@@ -6,7 +6,7 @@ local game = game
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
-local workspace = workspace
+local workspace = cloneref(game:GetService("Workspace"))
 
 -- Localize Global Engine Functions
 local task = task
@@ -140,7 +140,7 @@ local function applyBrawlhallaTicks(parentFrame, isVertical)
         tick.BorderSizePixel = 0
         tick.BackgroundColor3 = COLOR_BLACK
         tick.BackgroundTransparency = 0.5
-        tick.ZIndex = 5
+        tick.ZIndex = 3
         if isVertical then
             tick.Size = ud2_new(1, 0, 0, 1)
             tick.Position = ud2_new(0, 0, 0.1 * idx, 0)
@@ -161,10 +161,11 @@ local function CreateAssets(p)
     local line = inst_new("Frame")
     line.BorderSizePixel = 0
     line.AnchorPoint = v2_new(0.5, 0.5)
+    line.ZIndex = 1
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- 1. OVERHEAD BILLBOARD (Text & Ultimate Bar Only - Offset Pixels for Text Legibility)
+    -- 1. OVERHEAD BILLBOARD (Text & Ultimate Bar Only)
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
     bill.Size = ud2_new(0, 200, 0, 42)
@@ -201,12 +202,11 @@ local function CreateAssets(p)
     assets.Stroke = stroke
     
     local ultBack = inst_new("Frame")
-    letBackSize = ud2_new(1, 0, 0, 5)
-    ultBack.Size = letBackSize
+    ultBack.Size = ud2_new(1, 0, 0, 5)
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ultBack.BackgroundTransparency = 0.5
-    ultBack.BorderColor3 = COLOR_BLACK
-    ultBack.BorderSizePixel = 1
+    ultBack.BorderSizePixel = 0
+    ultBack.ZIndex = 1
     ultBack.LayoutOrder = 2
     ultBack.Parent = mainFrame
     assets.UltBack = ultBack
@@ -221,15 +221,16 @@ local function CreateAssets(p)
     ultFill.Size = ud2_new(0, 0, 1, 0)
     ultFill.BorderSizePixel = 0
     ultFill.BackgroundTransparency = 0.2
+    ultFill.ZIndex = 2
     ultFill.Parent = ultBack
     assets.UltFill = ultFill
     assets.UltLines = applyBrawlhallaTicks(ultBack, false)
 
-    -- 2. PHYSICAL CHARACTER SIDEBARS (Sized entirely in Scale / 3D Studs to prevent clipping or floating)
+    -- 2. PHYSICAL CHARACTER SIDEBARS (Widened to 5.4 studs to clear animations)
     local bodyBill = inst_new("BillboardGui")
     bodyBill.AlwaysOnTop = true
-    bodyBill.Size = ud2_new(4.6, 0, 4.8, 0) -- Scaled 3D volume framework hugging character bounding profile
-    bodyBill.ExtentsOffset = v3_new(0, -0.3, 0) -- Center alignment over Torso
+    bodyBill.Size = ud2_new(5.4, 0, 4.8, 0)
+    bodyBill.ExtentsOffset = v3_new(0, -0.3, 0)
     bodyBill.Parent = ScreenGui
     assets.BodyBill = bodyBill
 
@@ -239,10 +240,16 @@ local function CreateAssets(p)
     hBack.Position = ud2_new(0, 0, 0, 0)
     hBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     hBack.BackgroundTransparency = 0.5
-    hBack.BorderColor3 = COLOR_BLACK
-    hBack.BorderSizePixel = 1
+    hBack.BorderSizePixel = 0
+    hBack.ZIndex = 1
     hBack.Parent = bodyBill
     assets.HealthBack = hBack
+    
+    local hBackStroke = inst_new("UIStroke")
+    hBackStroke.Thickness = 1
+    hBackStroke.Color = COLOR_BLACK
+    hBackStroke.Parent = hBack
+    assets.HealthBackStroke = hBackStroke
     
     local hFill = inst_new("Frame")
     hFill.Size = ud2_new(1, 0, 1, 0)
@@ -250,6 +257,7 @@ local function CreateAssets(p)
     hFill.Position = ud2_new(0, 0, 1, 0)
     hFill.BorderSizePixel = 0
     hFill.BackgroundTransparency = 0.2
+    hFill.ZIndex = 2
     hFill.BackgroundColor3 = COLOR_BRIGHT_GREEN
     hFill.Parent = hBack
     assets.HealthFill = hFill
@@ -261,10 +269,16 @@ local function CreateAssets(p)
     eBack.Position = ud2_new(1, -5, 0, 0)
     eBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     eBack.BackgroundTransparency = 0.5
-    eBack.BorderColor3 = COLOR_BLACK
-    eBack.BorderSizePixel = 1
+    eBack.BorderSizePixel = 0
+    eBack.ZIndex = 1
     eBack.Parent = bodyBill
     assets.EvadeBack = eBack
+    
+    local eBackStroke = inst_new("UIStroke")
+    eBackStroke.Thickness = 1
+    eBackStroke.Color = COLOR_BLACK
+    eBackStroke.Parent = eBack
+    assets.EvadeBackStroke = eBackStroke
     
     local eFill = inst_new("Frame")
     eFill.Size = ud2_new(1, 0, 0, 0)
@@ -272,6 +286,7 @@ local function CreateAssets(p)
     eFill.Position = ud2_new(0, 0, 1, 0)
     eFill.BorderSizePixel = 0
     eFill.BackgroundTransparency = 0.2
+    eFill.ZIndex = 2
     eFill.BackgroundColor3 = COLOR_CYAN
     eFill.Parent = eBack
     assets.EvadeFill = eFill
@@ -281,6 +296,11 @@ local function CreateAssets(p)
     assets.Connections = {}
     assets.CharacterConnections = {} 
     assets.KillValueConnections = {} 
+    
+    -- AFK Detection Coordinates
+    assets.LastPosition = v3_new(0, 0, 0)
+    assets.LastMoveTime = o_clock()
+    assets.IsAFK = false
     
     assets.LastDist = 0
     assets.CachedKills = 0
@@ -388,6 +408,11 @@ function ESP.Init(State)
     local conn = RunService.RenderStepped:Connect(function()
         if not State.Toggles.Esp then 
             ScreenGui.Enabled = false 
+            for _, assets in pairs(Cache) do
+                if assets.Line then assets.Line.Visible = false end
+                if assets.Bill then assets.Bill.Enabled = false end
+                if assets.BodyBill then assets.BodyBill.Enabled = false end
+            end
             return 
         end
         ScreenGui.Enabled = true
@@ -400,7 +425,12 @@ function ESP.Init(State)
         
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
+        local isThrottledFrame = (FrameTick % 3 == 0)
         local gameClock = o_clock()
+
+        -- Optimize performance footprint: single calculation per engine cycle
+        local globalRainbowColor = Color3.fromHSV((gameClock * 0.4) % 1, 1, 1)
+        local globalRainbowHex = s_format("%02x%02x%02x", m_floor(globalRainbowColor.R * 255), m_floor(globalRainbowColor.G * 255), m_floor(globalRainbowColor.B * 255))
 
         for p, assets in pairs(Cache) do
             if not p or not p.Parent then CleanupCacheEntry(p, assets) end
@@ -417,6 +447,8 @@ function ESP.Init(State)
                 if not c then 
                     c = CreateAssets(p)
                     Cache[p] = c 
+                    c.LastPosition = root.Position
+                    c.LastMoveTime = gameClock
                     SetupPlayerSignals(p, c)
                     SetupCharacterSignals(c, char, hum)
                 end
@@ -438,6 +470,16 @@ function ESP.Init(State)
                         sX, sY = p1.X, p1.Y
                     else
                         sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
+                    end
+
+                    -- Inline Real-Time Position Vector Delta Validation (AFK Tracking)
+                    local currentPos = root.Position
+                    if (currentPos - c.LastPosition).Magnitude > 0.1 then
+                        c.LastPosition = currentPos
+                        c.LastMoveTime = gameClock
+                        c.IsAFK = false
+                    elseif (gameClock - c.LastMoveTime) >= 300 then
+                        c.IsAFK = true
                     end
 
                     -- Frame-by-Frame Health Monitoring Loop
@@ -474,20 +516,22 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Ultimate Dynamic Sizing & Layout Ticking Control
+                    -- Ultimate Tracking Updates
                     local rawUlt = p:GetAttribute("Ultimate")
                     local ultValue = type(rawUlt) == "number" and rawUlt or 0
                     c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
 
-                    -- Rainbow stroke cycle + grid removal logic when ultimate is maxed
-                    if ultValue >= 100 then
-                        c.UltStroke.Thickness = 1.5
-                        c.UltStroke.Color = Color3.fromHSV((gameClock * 0.65) % 1, 1, 1)
-                        for i = 1, 9 do c.UltLines[i].Visible = false end
-                    else
-                        c.UltStroke.Thickness = 1
-                        c.UltStroke.Color = COLOR_BLACK
-                        for i = 1, 9 do c.UltLines[i].Visible = true end
+                    -- Throttled UI Rendering Layer Property Application
+                    if isThrottledFrame then
+                        if ultValue >= 100 then
+                            c.UltStroke.Thickness = 1.5
+                            c.UltStroke.Color = globalRainbowColor
+                            for i = 1, 9 do c.UltLines[i].Visible = false end
+                        else
+                            c.UltStroke.Thickness = 1
+                            c.UltStroke.Color = COLOR_BLACK
+                            for i = 1, 9 do c.UltLines[i].Visible = true end
+                        end
                     end
 
                     if shouldUpdateHeavy then
@@ -498,14 +542,16 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- Moveset Filter Processor
+                        -- Moveset Architecture Evaluator
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
                         local movesetFolder = char:FindFirstChild("Moveset")
                         local fullyCustom = isCustom(movesetFolder)
+                        local usesCustomLook = false
                         
                         if cm == "Custom" or fullyCustom then
+                            usesCustomLook = true
                             if fullyCustom then
                                 local ultAttr = char:GetAttribute("CustomUlt")
                                 local customChild = movesetFolder:FindFirstChild("Custom")
@@ -529,28 +575,34 @@ function ESP.Init(State)
                             movesetName = pm or ""
                         end
 
-                        -- Dark Theme Guard
+                        -- Custom Lookalike Safeguard Framework (Dynamic Multi-Color Swapping)
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
+                        if usesCustomLook then
+                            hexColor = globalRainbowHex
+                        end
                         c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
                         
-                        if hexColor == "000000" then
+                        if hexColor == "000000" and not usesCustomLook then
                             c.UltBack.BackgroundColor3 = c3_new(0.18, 0.18, 0.18)
                             if ultValue < 100 then c.UltStroke.Color = COLOR_WHITE end
                         else
                             c.UltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
                         end
 
-                        -- Cash Interface Compilation
+                        -- Cash Interface Processing
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
 
-                        -- Security Badge Compilation
+                        -- Player-Based Badges Compilation
                         local permBadges = ""
-                        if char:GetAttribute("PS_Owner") == true then
+                        if p:GetAttribute("PS_Owner") == true then
                             permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
-                        elseif char:GetAttribute("PS_Perms") == true then
+                        elseif p:GetAttribute("PS_Perms") == true then
                             permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
+                        end
+                        if p:GetAttribute("Workshop") == true then
+                            permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
                         end
 
                         local rawJackpot = char:GetAttribute("JackpotInRow")
@@ -558,11 +610,12 @@ function ESP.Init(State)
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
                         
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
+                        local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
                         if isDead then
-                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", leftTag, jackpotTag, c.GroupRoleTag, permBadges, p.Name)
+                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", afkTag, leftTag, jackpotTag, c.GroupRoleTag, permBadges, p.Name)
                         else
-                            c.NameDisplay = s_format("%s%s%s%s%s", leftTag, jackpotTag, c.GroupRoleTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
+                            c.NameDisplay = s_format("%s%s%s%s%s%s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, permBadges, (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>")
                         end
                         
                         local distCol = getGradientColor(dist / 800)
@@ -570,7 +623,7 @@ function ESP.Init(State)
                         c.LineColor = getGradientColor(dist / 600)
                         
                         if movesetName and movesetName ~= "" then
-                            if DARK_MOVESETS[movesetName] then
+                            if DARK_MOVESETS[movesetName] and not usesCustomLook then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
                             else
                                 c.CachedMoveset = s_format("<font color='#%s'>%s</font> | ", hexColor, tostring(movesetName))
@@ -592,9 +645,10 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
+                    -- Explicit High-Visibility Flag Configuration
                     local killString = formatVal(c.CachedKills)
                     if c.IsHidingKills then
-                        killString = s_format("%s<font color='#FFFF00'>*</font>", killString)
+                        killString = s_format("%s <font color='#FF3333'><b>[HIDDEN]</b></font>", killString)
                     end
 
                     c.Text.Text = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
