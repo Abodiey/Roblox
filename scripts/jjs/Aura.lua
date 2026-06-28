@@ -6,10 +6,9 @@ local RunService = cloneref(game:GetService("RunService"))
 local Players = cloneref(game:GetService("Players"))
 local HttpService = cloneref(game:GetService("HttpService"))
 
--- Using modern Luau Unicode escapes for directional formatting
-local LRI = "\u{2066}" -- Left-to-Right Isolate
-local RLI = "\u{2067}" -- Right-to-Left Isolate
-local PDI = "\u{2069}" -- Pop Directional Isolate
+local LRI = "\u{2066}" 
+local RLI = "\u{2067}" 
+local PDI = "\u{2069}" 
 
 local lastMsg = {}
 local localPlayer = Players.LocalPlayer
@@ -18,7 +17,6 @@ local lastCheck = 0
 
 local function isRTL(text)
     for _, codePoint in utf8.codes(text) do
-        -- Captures Arabic, Hebrew, Persian, Syriac, Thaana, etc.
         if (codePoint >= 0x0590 and codePoint <= 0x08FF) or (codePoint >= 0xFB50 and codePoint <= 0xFDFF) then
             return true
         end
@@ -26,13 +24,10 @@ local function isRTL(text)
     return false
 end
 
--- Checks if a message is purely composed of English characters, numbers, common symbols, and spaces
 local function isProbablyEnglish(text)
-    -- Remove common punctuation, numbers, and spaces
     local stripped = string.gsub(text, "[%s%d%p]", "")
-    if #stripped == 0 then return true end -- Just numbers/punctuation
+    if #stripped == 0 then return true end 
     
-    -- Check if it contains only standard English alphabet characters (a-z, A-Z)
     local englishChars = string.match(stripped, "^[a-zA-Z]+$")
     return englishChars ~= nil
 end
@@ -49,7 +44,7 @@ function Aura.Init(State)
         lastCheck = 0
 
         local charFolder = workspace:FindFirstChild("Characters")
-        if not State.Toggles.MsgAura or not charFolder then return end
+        if not State.Toggles.MsgAura.Value or not charFolder then return end
         
         local currentLocalChar = localPlayer.Character
         local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
@@ -73,7 +68,6 @@ function Aura.Init(State)
             task.spawn(function()
                 local displayMsg = rawMsg
                 
-                -- Skip API completely if it passes our English/slang check
                 if type(request) == "function" and not isProbablyEnglish(rawMsg) then
                     local apiUrl = "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=" .. HttpService:UrlEncode(rawMsg)
                     local responseSuccess, response = pcall(request, {
@@ -87,7 +81,6 @@ function Aura.Init(State)
                             local translatedText = decoded[1][1][1]
                             local detectedLang = decoded[3]
                             
-                            -- Ensure it's not detected as English, and the string isn't an exact structural match
                             if detectedLang ~= "en" and string.lower(translatedText) ~= string.lower(rawMsg) then
                                 displayMsg = string.format("%s\n[Translation]: %s", rawMsg, translatedText)
                             end
@@ -95,11 +88,9 @@ function Aura.Init(State)
                     end
                 end
 
-                -- Isolate the specific direction of the message content
                 local directionMarker = isRTL(rawMsg) and RLI or LRI
                 local isolatedMsg = directionMarker .. displayMsg .. PDI
 
-                -- Force the structural wrapper ([Name]: ) to always read Left-to-Right
                 local formattedChat = string.format("%s[<b>%s</b>]: %s%s", LRI, charName, isolatedMsg, PDI)
                 
                 generalChannel:DisplaySystemMessage(formattedChat)
