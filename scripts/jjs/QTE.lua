@@ -1,9 +1,23 @@
 local QTE = {}
+
+-- Localize Services & Core API
+local cloneref = cloneref
+local game = game
 local Players = cloneref(game:GetService("Players"))
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local workspace = cloneref(game:GetService("Workspace"))
+
+-- Localize Global Engine Functions
+local task = task
+local typeof = typeof
+local os = os
+local math = math
+local m_max = math.max
+local table = table
+local table_insert = table.insert
 
 local Player = Players.LocalPlayer
-local PlayerGui = Player.PlayerGui
+local PlayerGui = Player:WaitForChild("PlayerGui")
 local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 local CharactersFolder = workspace:WaitForChild("Characters", 99)
 
@@ -11,53 +25,87 @@ QTE.InitialDelay = 1
 QTE.MinimumDelay = 0.05
 QTE.RampSpeed = 0.28
 
+-- Current Execution Instance Identifier for immediate thread termination
+local CurrentScriptID = 0
+
+-- Connection Trackers
+local networkConn = nil
+local toggleConn = nil
+
+local function cleanupQTE()
+    CurrentScriptID = CurrentScriptID + 1 -- Invalidates any running loop threads instantly
+    if networkConn then
+        networkConn:Disconnect()
+        networkConn = nil
+    end
+end
+
 function QTE.Init(State)
-    local remoteTarget = nil
+    local toggleObject = State.Toggles.QTE
 
-    local conn1 = Event.OnClientEvent:Connect(function(mode, targetEvent)
-        if typeof(mode) ~= "string" then return end
-        if mode ~= "QTE" then return end
-        if typeof(targetEvent) ~= "Instance" then return end
-        if not targetEvent:IsA("RemoteEvent") then return end
-        if not targetEvent:IsDescendantOf(CharactersFolder) then return end
+    local function handleToggleChange()
+        local isEnabled = toggleObject.Value
 
-        remoteTarget = targetEvent
+        if isEnabled then
+            if not networkConn then
+                local remoteTarget = nil
 
-        local child = PlayerGui:WaitForChild("QTE", 5)
-        if not child then return end
-        if not State.Toggles.QTE then return end
+                networkConn = Event.OnClientEvent:Connect(function(mode, targetEvent)
+                    if typeof(mode) ~= "string" or mode ~= "QTE" then return end
+                    if typeof(targetEvent) ~= "Instance" or not targetEvent:IsA("RemoteEvent") then return end
+                    if not targetEvent:IsDescendantOf(CharactersFolder) then return end
 
-        task.spawn(function()
-            local currentDelay = QTE.InitialDelay
-            local startTime = os.clock()
+                    remoteTarget = targetEvent
 
-            while true do
-                if not State.Toggles.QTE then break end
-                if child.Parent ~= PlayerGui then break end
-                if not remoteTarget then break end
-                if not remoteTarget.Parent then break end
+                    local child = PlayerGui:WaitForChild("QTE", 5)
+                    if not child then return end
 
-                local healthBar = child.Health.Bar1
+                    -- Capture execution state scope
+                    CurrentScriptID = CurrentScriptID + 1
+                    local memScriptID = CurrentScriptID
 
-                if healthBar.Size.X.Scale > 0.75 then
-                    task.wait()
-                    continue
-                end
+                    task.spawn(function()
+                        local currentDelay = QTE.InitialDelay
+                        local startTime = os.clock()
 
-                if os.clock() - startTime > 5 and healthBar.Size.X.Scale < 0.55 then
-                    remoteTarget:FireServer(true)
-                    task.wait()
-                    continue
-                end
+                        while memScriptID == CurrentScriptID do
+                            if child.Parent ~= PlayerGui then break end
+                            if not remoteTarget or not remoteTarget.Parent then break end
 
-                remoteTarget:FireServer(true)
-                
-                task.wait(currentDelay)
-                currentDelay = math.max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
+                            local healthFolder = child:FindFirstChild("Health")
+                            local healthBar = healthFolder and healthFolder:FindFirstChild("Bar1")
+                            if not healthBar then break end
+
+                            local currentScale = healthBar.Size.X.Scale
+
+                            if currentScale > 0.75 then
+                                task.wait()
+                                continue
+                            end
+
+                            if (os.clock() - startTime > 5) and currentScale < 0.55 then
+                                remoteTarget:FireServer(true)
+                                task.wait()
+                                continue
+                            end
+
+                            remoteTarget:FireServer(true)
+                            
+                            task.wait(currentDelay)
+                            currentDelay = m_max(QTE.MinimumDelay, currentDelay - QTE.RampSpeed)
+                        end
+                    end)
+                end)
             end
-        end)
-    end)
-    table.insert(State.Connections, conn1)
+        else
+            cleanupQTE()
+        end
+    end
+
+    toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
+    table_insert(State.Connections, toggleConn)
+
+    handleToggleChange()
 end
 
 return QTE
