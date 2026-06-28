@@ -113,23 +113,21 @@ local DARK_MOVESETS = {
 }
 
 local function getGradientColor(percent)
-    percent = m_clamp(percent, 0, 1)
+    percent = percent < 0 and 0 or (percent > 1 and 1 or percent)
+    local scaledPercent = percent * 2
     if percent > 0.5 then
-        return COLOR_YELLOW:Lerp(COLOR_GREEN, (percent - 0.5) * 2)
+        return COLOR_YELLOW:Lerp(COLOR_GREEN, scaledPercent - 1)
     end
-    return COLOR_RED:Lerp(COLOR_YELLOW, percent * 2)
+    return COLOR_RED:Lerp(COLOR_YELLOW, scaledPercent)
 end
-
 local function formatVal(val)
-    return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
+    return val >= 1000 and s_format(val % 1000 == 0 and "%.0fk" or "%.1fk", val * 0.001) or tostring(val)
 end
-
 local function isCustom(movesetFolder)
-    if not movesetFolder then return false end
-    local children = movesetFolder:GetChildren()
-    if ##children == 0 then return false end
-    
-    for _, move in ipairs(children) do
+    if not (movesetFolder and movesetFolder:FindFirstChildOfClass("Instance")) then 
+        return false 
+    end
+    for _, move in movesetFolder:GetChildren() do
         if move.Name ~= "Custom" then 
             return false 
         end
@@ -470,10 +468,9 @@ function ESP.Init(State)
 
     local conn = RunService.RenderStepped:Connect(function()
         if not toggleObject.Value then return end
-
+        if not lp then return end
         local cam = workspace.CurrentCamera
         local viewportSize = cam.ViewportSize
-        if not lp then return end
         local char_lp = lp.Character
         local myRoot = char_lp and char_lp:FindFirstChild("HumanoidRootPart")
         
