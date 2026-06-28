@@ -1,7 +1,6 @@
 local Gamepasses = {}
 local Players = cloneref(game:GetService("Players"))
 
--- Secure LocalPlayer references safely
 local plr = Players.LocalPlayer
 if not plr then
     Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
@@ -11,38 +10,36 @@ end
 local gamepassesFolder = plr:WaitForChild("Gamepasses")
 local passIds = {"1151174294", "718699461", "984868818", "857428668", "718947270", "742180133"}
 
+-- Cache original gamepass states at startup so they are never overwritten with false
+local originalStates = {}
+if gamepassesFolder then
+    for _, id in ipairs(passIds) do
+        originalStates[id] = gamepassesFolder:GetAttribute(id) or false
+    end
+end
+
 function Gamepasses.Init(State)
-    -- Spawn a persistent thread since Init is only called once at startup
-    task.spawn(function()
-        local wasActive = false
+    local toggleObject = State.Toggles.Gamepasses
 
-        while true do
-            -- Checks if the specific toggle is true or false
-            local isActive = State.Toggles.Gamepasses
-
-            if isActive and not wasActive then
-                -- Toggle just turned ON: Spoof the gamepasses to true
-                wasActive = true
-                for _, id in ipairs(passIds) do
-                    if gamepassesFolder then
-                        gamepassesFolder:SetAttribute(id, true)
-                    end
-                end
-
-            elseif not isActive and wasActive then
-                -- Toggle just turned OFF: Revert them back to false
-                wasActive = false
-                for _, id in ipairs(passIds) do
-                    if gamepassesFolder then
-                        gamepassesFolder:SetAttribute(id, false)
-                    end
-                end
+    local function handleToggleChange()
+        if not gamepassesFolder then return end
+        
+        local isEnabled = toggleObject.Value
+        if isEnabled then
+            for _, id in ipairs(passIds) do
+                gamepassesFolder:SetAttribute(id, true)
             end
-
-            -- Sleep interval to poll the toggle state with zero overhead
-            task.wait(0.1)
+        else
+            for _, id in ipairs(passIds) do
+                gamepassesFolder:SetAttribute(id, originalStates[id])
+            end
         end
-    end)
+    end
+
+    local toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
+    table.insert(State.Connections, toggleConn)
+
+    handleToggleChange()
 end
 
 return Gamepasses
