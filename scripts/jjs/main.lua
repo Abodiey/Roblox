@@ -120,6 +120,9 @@ for _, Name in ipairs(ModuleList) do
 end
 
 task.spawn(function()
+    if not Players.LocalPlayer then
+        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    end
     for _, Name in ipairs(ModuleList) do
         task.spawn(function()
             local Result = Load(Name)
