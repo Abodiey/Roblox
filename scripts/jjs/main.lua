@@ -222,7 +222,7 @@ local UiLayout = {
     
     {Type = "Section",  Name = "Emote Exploits"},
     {Type = "Toggle",   Module = "DiamondInTheSky",Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
-    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Range = {1, 50}, Increment = 1, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Flag = "DiamondInTheSkySpeed", Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}}
+    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Range = {1, 50}, Increment = 1, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Flag = "DiamondInTheSkySpeed", Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}},
     {Type = "Section",  Name = "Utility Mechanics"},
     
     {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
@@ -239,7 +239,7 @@ local UiLayout = {
 
     {Type = "Section",  Name = "Unlocks"},
     {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses.Value, Callback = function(V) CatstarState.Toggles.Gamepasses.Value = V end}},
-    {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound.Value, Callback = function(V) CatstarState.Toggles.KillSound.Value = V end}}
+    {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound.Value, Callback = function(V) CatstarState.Toggles.KillSound.Value = V end}},
 }
 
 local InitializedModules = {}
