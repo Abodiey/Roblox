@@ -48,6 +48,7 @@ getgenv().CatstarState = {
         DomainNoclip = false, 
         QTE = true,
         Gamepasses = true,
+        KillSound = true,
         MsgAura = true, 
         ItemEsp = false, 
         Esp = true, 
@@ -112,7 +113,7 @@ end)
 local Modules = {}
 local ModuleStatus = {} -- Keeps track of loading status ('Loading', 'Ready', or 'Failed')
 
-local ModuleList = {"ESP", "Aimbot", "Gamepasses", "Noclip", "AutoBurst", "Aura", "AntiBlackhole", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting"}
+local ModuleList = {"ESP", "Aimbot", "Gamepasses", "Noclip", "AutoBurst", "Aura", "AntiBlackhole", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting","KillSound"}
 
 for _, Name in ipairs(ModuleList) do
     ModuleStatus[Name] = "Loading"
@@ -191,6 +192,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
     {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses, Callback = function(V) CatstarState.Toggles.Gamepasses = V end}},
+    {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound, Callback = function(V) CatstarState.Toggles.KillSound = V end}},
     {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
     {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
