@@ -19,9 +19,9 @@ task.defer(function()
     end
 
     StarterGui:SetCore("SendNotification", {
-            Title = "Catstar Pro",
-            Text = "Loading...",
-            Duration = 5
+        Title = "Catstar Pro",
+        Text = "Loading...",
+        Duration = 5
     })
 end)
 
@@ -100,7 +100,6 @@ local ClassMap = {
 }
 
 local StateStructure = {
-    Connections = setmetatable({}, { __mode = "v" }),
     Toggles = BindToFolder(TogglesFolder, ClassMap, ToggleDefaults),
     Variables = BindToFolder(VariablesFolder, ClassMap, VariableDefaults)
 }
@@ -141,7 +140,7 @@ local function Load(Name)
 end
 
 task.spawn(function()
-        Load("fixes")
+    Load("fixes")
 end)
 
 local Modules = {}
@@ -218,7 +217,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip.Value, Callback = function(V) CatstarState.Toggles.DomainNoclip.Value = V end}},
     {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid.Value, Callback = function(V) CatstarState.Toggles.AntiVoid.Value = V end}},
     {Type = "Toggle",   Module = "AntiBlackhole",Args = {Name = "Anti Blackhole", CurrentValue = CatstarState.Toggles.AntiBlackhole.Value, Callback = function(V) CatstarState.Toggles.AntiBlackhole.Value = V end}},
-    {Type = "Toggle",   Module="InstantInteract",Args = {Name = "Instant Interact", CurrentValue = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
+    {Type = "Toggle",   Module = "InstantInteract",Args = {Name = "Instant Interact", CurrentValue = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
     
     {Type = "Section",  Name = "Emote Exploits"},
     {Type = "Toggle",   Module = "DiamondInTheSky",Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
@@ -267,12 +266,12 @@ for _, Element in ipairs(UiLayout) do
                     InitializedModules[TargetModule] = true
                     
                     if type(Mod) == "table" and type(Mod[runName]) == "function" then
-                        local passArg = CatstarState
+                        -- Safe multi-argument routing matching signature (Component, State)
                         if Element.InitArg == "Component" then
-                            passArg = Component
+                            Mod[runName](Component, CatstarState)
+                        else
+                            Mod[runName](CatstarState)
                         end
-                        
-                        Mod[runName](passArg)
                     else
                         warn(TargetModule .. " does not have a ." .. runName .. " function")
                     end
