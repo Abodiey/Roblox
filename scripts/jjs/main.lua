@@ -56,8 +56,11 @@ getgenv().CatstarState = {
         Aim = false, 
         TeamCheck = true 
     },
-    LockedTarget = nil,
-    TargetIdentifier = ""
+    Variables = {
+        SpeedMultiplier = 15
+        LockedTarget = nil,
+        TargetIdentifier = ""
+    },
 }
 
 local function Load(Name)
@@ -193,7 +196,9 @@ local UiLayout = {
     {Type = "Toggle",   Module = "AntiBlackhole",Args = {Name = "Anti Blackhole", CurrentValue = CatstarState.Toggles.AntiBlackhole, Callback = function(V) CatstarState.Toggles.AntiBlackhole = V end}},
     {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip, Callback = function(V) CatstarState.Toggles.Noclip = V end}},
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
+    {Type = "Toggle",   Module="InstantInteract",Args = {Name = "Instant Interact with Proximity Prompts", CurrentValue = CatstarState.Toggles.InstantInteract, Callback = function(V) CatstarState.Toggles.InstantInteract = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
+    {Type = "Slider", Module = "DiamondInTheSky",Args = {Name = "Diamond In The Sky Speed", Min = 1, Max = 50, CurrentValue = CatstarState.Variables.SpeedMultiplier, Callback = function(V) CatstarState.Variables.SpeedMultiplier = V end}}
     {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses, Callback = function(V) CatstarState.Toggles.Gamepasses = V end}},
     {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound, Callback = function(V) CatstarState.Toggles.KillSound = V end}},
     {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
@@ -207,8 +212,8 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DummyESP",     Args = {Name = "Dummy ESP", CurrentValue = CatstarState.Toggles.DummyESP, Callback = function(V) CatstarState.Toggles.DummyESP = V end}},
     
     {Type = "Section",  Name = "Targeting"},
-    {Type = "Input",    Module = "Targeting",    Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.TargetIdentifier = T end}},
-    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState.TargetIdentifier) end end}}
+    {Type = "Input",    Module = "Targeting",    Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.Variables.TargetIdentifier = T end}},
+    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState) end end}}
 }
 
 -- ==========================================
