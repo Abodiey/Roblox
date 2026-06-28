@@ -61,7 +61,7 @@ function Train.Init(ButtonComponent, State)
     table_insert(State.Connections, ChildRemovedConnection)
 end
 
-function Train.Spawn()
+function Train.Clicked()
     local Destructible = Map:FindFirstChild("Destructible")
     local Main = Destructible and Destructible:FindFirstChild("Model")
     Main = Main and Main:FindFirstChild("StationControl")
