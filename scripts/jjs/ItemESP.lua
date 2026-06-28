@@ -1,76 +1,174 @@
 local ESP = {}
 
-local CoreGui = cloneref(game:GetService("CoreGui"))
+-- Localize Services & Core API
+local cloneref = cloneref
+local game = game
 local RunService = cloneref(game:GetService("RunService"))
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local workspace = cloneref(game:GetService("Workspace"))
 
-local itemsFolder = workspace:WaitForChild("Items")
+-- Localize Global Engine Functions
+local task = task
+local t_wait = task.wait
+local Instance = Instance
+local inst_new = Instance.new
+local type = type
+local tostring = tostring
+local ipairs = ipairs
+local pairs = pairs
+local table = table
+local table_insert = table.insert
+local table_clear = table.clear
 
+-- Localize Math & String Libraries
+local math = math
+local m_clamp = math.clamp
+local m_floor = math.floor
+local string = string
+local s_format = string.format
+
+-- Localize Roblox Datatypes
+local Vector3 = Vector3
+local v3_new = Vector3.new
+local UDim2 = UDim2
+local ud2_new = UDim2.new
+local Color3 = Color3
+local c3_new = Color3.new
+local Enum = Enum
+
+-- Clean previous asset hierarchy
 while CoreGui:FindFirstChild("ItemESP") do
     CoreGui.ItemESP:Destroy()
-    task.wait()
+    t_wait()
 end
 
-local Folder = Instance.new("Folder")
-Folder.Name = "ItemESP"
-Folder.Parent = CoreGui
+local ScreenGui = inst_new("ScreenGui")
+ScreenGui.Name = "ItemESP"
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = CoreGui
 
 local Cache = {}
+local itemsFolder = workspace:WaitForChild("Items")
+
+-- Connection trackers
+local loopConn = nil
+
+-- Design Palette Constants matching PlayerESP
+local COLOR_WHITE = c3_new(1, 1, 1)
+local COLOR_BLACK = c3_new(0, 0, 0)
+local COLOR_CYAN = c3_new(0, 0.8, 1)
+local COLOR_YELLOW = c3_new(1, 1, 0)
+local COLOR_RED = c3_new(1, 0.1, 0.1)
+
+local function getGradientColor(percent)
+    percent = m_clamp(percent, 0, 1)
+    if percent > 0.5 then
+        return COLOR_YELLOW:Lerp(COLOR_CYAN, (percent - 0.5) * 2)
+    end
+    return COLOR_RED:Lerp(COLOR_YELLOW, percent * 2)
+end
 
 local function CreateESP(item, part)
-    local bg = Instance.new("BillboardGui")
-    bg.Name = item:GetDebugId()
-    bg.Adornee = part
-    bg.Size = UDim2.new(0, 100, 0, 20)
-    bg.AlwaysOnTop = true
-    bg.Parent = Folder
+    local assets = {}
 
-    local l = Instance.new("TextLabel")
-    l.Size = UDim2.new(1, 0, 1, 0)
-    l.BackgroundTransparency = 1
-    l.Text = item.Name
-    l.TextColor3 = Color3.new(0, 1, 1)
-    l.TextStrokeTransparency = 0
-    l.TextStrokeColor3 = Color3.new(0, 0, 0)
-    l.TextSize = 14
-    l.Parent = bg
+    local bill = inst_new("BillboardGui")
+    bill.AlwaysOnTop = true
+    bill.Size = ud2_new(0, 150, 0, 24)
+    bill.ExtentsOffset = v3_new(0, 0.5, 0)
+    bill.Adornee = part
+    bill.Parent = ScreenGui
+    assets.Bill = bill
 
-    return bg
+    local txt = inst_new("TextLabel")
+    txt.Size = ud2_new(1, 0, 1, 0)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = COLOR_CYAN
+    txt.RichText = true
+    txt.Font = Enum.Font.RobotoMono
+    txt.TextSize = 11
+    txt.Parent = bill
+    assets.Text = txt
+
+    local stroke = inst_new("UIStroke")
+    stroke.Thickness = 1
+    stroke.Color = COLOR_BLACK
+    stroke.Parent = txt
+    assets.Stroke = stroke
+
+    return assets
 end
 
 function ESP.Init(State)
-    local conn = RunService.Heartbeat:Connect(function()
-        if not State.Toggles.ItemEsp then 
-            Folder:ClearAllChildren()
-            Cache = {}
-            return 
-        end
-        
-        if not itemsFolder then return end
+    local toggleObject = State.Toggles.ItemEsp
 
-        local currentItems = itemsFolder:GetChildren()
-        local activeIds = {}
+    local function handleToggleChange()
+        local isEnabled = toggleObject.Value
+        ScreenGui.Enabled = isEnabled
 
-        for _, item in pairs(currentItems) do
-            local id = item:GetDebugId()
-            activeIds[id] = true
+        if isEnabled then
+            -- Connect the loop only when enabled
+            if not loopConn then
+                loopConn = RunService.Heartbeat:Connect(function()
+                    if not itemsFolder then return end
+
+                    local cam = workspace.CurrentCamera
+                    local camPos = cam and cam.CFrame.Position
+                    local currentItems = itemsFolder:GetChildren()
+                    local activeIds = {}
+
+                    for i = 1, #currentItems do
+                        local item = currentItems[i]
+                        local id = item:GetDebugId()
+                        activeIds[id] = true
+
+                        local c = Cache[id]
+                        local part = item:IsA("BasePart") and item or item:FindFirstChildOfClass("BasePart")
+
+                        if part then
+                            if not c then
+                                c = CreateESP(item, part)
+                                Cache[id] = c
+                            end
+
+                            c.Bill.Enabled = true
+                            
+                            local dist = camPos and (part.Position - camPos).Magnitude or 0
+                            local distCol = getGradientColor(dist / 400)
+                            local hexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
+
+                            c.Text.Text = s_format("<b>%s</b>\n<font color='#%s'>%sm</font>", item.Name, hexDistColor, tostring(m_floor(dist)))
+                        elseif c then
+                            c.Bill.Enabled = false
+                        end
+                    end
+
+                    for id, assets in pairs(Cache) do
+                        if not activeIds[id] then
+                            if assets.Bill then assets.Bill:Destroy() end
+                            Cache[id] = nil
+                        end
+                    end
+                end)
+            end
+        else
+            -- Disconnect the loop completely when disabled
+            if loopConn then
+                loopConn:Disconnect()
+                loopConn = nil
+            end
             
-            if not Cache[id] then
-                local part = item:IsA("BasePart") and item or item:FindFirstChildOfClass("BasePart")
-                if part then
-                    Cache[id] = CreateESP(item, part)
-                end
+            -- Clear assets from memory and UI
+            for id, assets in pairs(Cache) do
+                if assets.Bill then assets.Bill:Destroy() end
             end
+            table_clear(Cache)
         end
+    end
 
-        for id, gui in pairs(Cache) do
-            if not activeIds[id] then
-                gui:Destroy()
-                Cache[id] = nil
-            end
-        end
-    end)
-    
-    table.insert(State.Connections, conn)
+    local toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
+    table_insert(State.Connections, toggleConn)
+
+    handleToggleChange()
 end
 
 return ESP
