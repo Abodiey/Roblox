@@ -147,7 +147,7 @@ end)
 local Modules = {}
 local ModuleStatus = {}
 
-local ModuleList = {"ESP", "Aimbot", "Gamepasses", "Noclip", "AutoBurst", "Aura", "AntiBlackhole", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
+local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainNoclip", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 for _, Name in ipairs(ModuleList) do
     ModuleStatus[Name] = "Loading"
