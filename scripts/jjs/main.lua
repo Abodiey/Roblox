@@ -1,31 +1,23 @@
---[[ 
-    CATSTAR PRO V6.2 | Main Loader
-]]
 while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
--- Safe reference cloner fallback
 getgenv().cloneref = cloneref or function(O) return O end
 local cloneref = cloneref
 local StarterGui = cloneref(game:GetService("StarterGui"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local Players = cloneref(game:GetService("Players"))
 
--- Defer execution to let the engine initialize its threads smoothly
 task.defer(function()
-    -- Ensure the LocalPlayer actually exists before attempting UI interactions
     if not Players.LocalPlayer then
         Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
     end
 
-    -- Directly wait for the internal CoreGui notification screen to initialize
     local robloxGui = CoreGui:WaitForChild("RobloxGui", 99)
     if robloxGui then
         robloxGui:WaitForChild("NotificationFrame", 99)
     end
 
-    -- Attempt to send notification safely
     StarterGui:SetCore("SendNotification", {
             Title = "Catstar Pro",
             Text = "Loading...",
@@ -36,7 +28,7 @@ end)
 local Rayfield
 local BaseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
-getgenv().CatstarState = {
+local StateStructure = {
     Connections = setmetatable({}, { __mode = "v" }),
     Toggles = { 
         BlackFlash = false, 
@@ -45,7 +37,8 @@ getgenv().CatstarState = {
         AntiVoid = false,
         AntiBlackhole = true,
         Noclip = true, 
-        DomainNoclip = false, 
+        DomainNoclip = false,
+        InstantInteract = true,
         QTE = true,
         Gamepasses = true,
         KillSound = true,
@@ -54,14 +47,18 @@ getgenv().CatstarState = {
         Esp = true, 
         DummyESP = true, 
         Aim = false, 
-        TeamCheck = true 
+        TeamCheck = true,
+        DiamondInTheSky = false
     },
     Variables = {
-        SpeedMultiplier = 15
+        SpeedMultiplier = 15,
         LockedTarget = nil,
         TargetIdentifier = ""
     },
 }
+
+getgenv().CatstarState = StateStructure
+local CatstarState = StateStructure
 
 local function Load(Name)
     local Success, RawCode
@@ -107,16 +104,14 @@ local function Load(Name)
     return Result
 end
 
--- Run game fixes before iterating over feature modules
 task.spawn(function()
         Load("fixes")
 end)
 
--- PASSIVE MODULE LOADING THREAD
 local Modules = {}
-local ModuleStatus = {} -- Keeps track of loading status ('Loading', 'Ready', or 'Failed')
+local ModuleStatus = {}
 
-local ModuleList = {"ESP", "Aimbot", "Gamepasses", "Noclip", "AutoBurst", "Aura", "AntiBlackhole", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting","KillSound"}
+local ModuleList = {"ESP", "Aimbot", "Gamepasses", "Noclip", "AutoBurst", "Aura", "AntiBlackhole", "DummyESP", "QTE", "DomainNoclip", "ItemESP", "BlackFlash", "Ratio", "AntiVoid", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 for _, Name in ipairs(ModuleList) do
     ModuleStatus[Name] = "Loading"
@@ -139,7 +134,6 @@ task.spawn(function()
     end
 end)
 
--- UI LOADING AND INITIALIZATION
 local File, Day = "RF_Cache.lua", "--" .. os.date("%d")
 local Content = isfile(File) and readfile(File)
 
@@ -160,7 +154,6 @@ if not Content or Content:sub(1, #Day) ~= Day then
         end
     end
     
-    -- Fallback to HttpGet if request wasn't present or failed
     if not Success then
         Success, RayData = pcall(game.HttpGet, game, RayUrl)
     end
@@ -184,9 +177,6 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Main", 4483362458)
 
--- ==========================================
--- ORDERLY INTERFACE CONFIGURATION
--- ==========================================
 local UiLayout = {
     {Type = "Section",  Name = "Combat & QTE"},
     {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Auto BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash, Callback = function(V) CatstarState.Toggles.BlackFlash = V end}},
@@ -198,10 +188,11 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip, Callback = function(V) CatstarState.Toggles.DomainNoclip = V end}},
     {Type = "Toggle",   Module="InstantInteract",Args = {Name = "Instant Interact with Proximity Prompts", CurrentValue = CatstarState.Toggles.InstantInteract, Callback = function(V) CatstarState.Toggles.InstantInteract = V end}},
     {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE, Callback = function(V) CatstarState.Toggles.QTE = V end}},
-    {Type = "Slider", Module = "DiamondInTheSky",Args = {Name = "Diamond In The Sky Speed", Min = 1, Max = 50, CurrentValue = CatstarState.Variables.SpeedMultiplier, Callback = function(V) CatstarState.Variables.SpeedMultiplier = V end}}
+    {Type = "Toggle",   Module = "DiamondInTheSky", Args = {Name = "Faster Diamond In The Sky Emote", CurrentValue = CatstarState.Toggles.DiamondInTheSky, Callback = function(V) CatstarState.Toggles.DiamondInTheSky = V end}},
+    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Min = 1, Max = 50, CurrentValue = CatstarState.Variables.SpeedMultiplier, Callback = function(V) CatstarState.Variables.SpeedMultiplier = V end}},
     {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses, Callback = function(V) CatstarState.Toggles.Gamepasses = V end}},
     {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound, Callback = function(V) CatstarState.Toggles.KillSound = V end}},
-    {Type = "Button",   Module = "Train",        Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
+    {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
     {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
     {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck, Callback = function(V) CatstarState.Toggles.TeamCheck = V end}},
     
@@ -212,13 +203,10 @@ local UiLayout = {
     {Type = "Toggle",   Module = "DummyESP",     Args = {Name = "Dummy ESP", CurrentValue = CatstarState.Toggles.DummyESP, Callback = function(V) CatstarState.Toggles.DummyESP = V end}},
     
     {Type = "Section",  Name = "Targeting"},
-    {Type = "Input",    Module = "Targeting",    Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.Variables.TargetIdentifier = T end}},
-    {Type = "Button",   Module = "Targeting",    Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState) end end}}
+    {Type = "Input",    Module = "Targeting",    InitName = "None", Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.Variables.TargetIdentifier = T end}},
+    {Type = "Button",   Module = "Targeting",    InitName = "None", Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState) end end}}
 }
 
--- ==========================================
--- AUTOMATED SEAMLESS GENERATION WITH ASYNC BINDING
--- ==========================================
 local InitializedModules = {}
 
 for _, Element in ipairs(UiLayout) do
@@ -227,11 +215,9 @@ for _, Element in ipairs(UiLayout) do
     else
         local Component = MainTab["Create" .. Element.Type](MainTab, Element.Args)
         
-        -- Handle Initialization on a separate micro-thread so it doesn't freeze layout construction
         task.spawn(function()
             local TargetModule = Element.Module
             
-            -- Dynamic check loop: Wait up to 15 seconds for the passive downloader thread to grab the module
             local StartTime = os.clock()
             while ModuleStatus[TargetModule] == "Loading" and (os.clock() - StartTime) < 15 do
                 task.wait()
@@ -239,23 +225,29 @@ for _, Element in ipairs(UiLayout) do
             
             local Mod = Modules[TargetModule]
             if Mod and not InitializedModules[TargetModule] then
-                InitializedModules[TargetModule] = true
                 
-                if type(Mod) == "table" and type(Mod.Init) == "function" then
-                    if TargetModule == "Train" then
-                        Mod.Init(Component)
+                local runName = Element.InitName or "Init"
+                
+                if runName ~= "None" then
+                    InitializedModules[TargetModule] = true
+                    
+                    if type(Mod) == "table" and type(Mod[runName]) == "function" then
+                        local passArg = CatstarState
+                        if Element.InitArg == "Component" then
+                            passArg = Component
+                        end
+                        
+                        Mod[runName](passArg)
                     else
-                        Mod.Init(CatstarState)
+                        warn(TargetModule .. " does not have a ." .. runName .. " function")
                     end
-                else
-                    if not Mod.Spectate then warn(TargetModule .. " does not have an .Init function") end
                 end
             elseif ModuleStatus[TargetModule] == "Failed" or not Mod then
                 warn("UI linked to failed module payload: " .. tostring(TargetModule))
             end
         end)
         
-        task.wait() -- Small frame yield keeps UI creation looking smooth
+        task.wait()
     end
 end
 
