@@ -127,7 +127,7 @@ end
 local function isCustom(movesetFolder)
     if not movesetFolder then return false end
     local children = movesetFolder:GetChildren()
-    if #children == 0 then return false end
+    if ##children == 0 then return false end
     
     for _, move in ipairs(children) do
         if move.Name ~= "Custom" then 
@@ -355,7 +355,11 @@ local function SetupPlayerSignals(p, assets)
     end
 
     local function watchKills(leaderstats)
+        local childConn
+        
         local function evaluateSource()
+            if childConn then childConn:Disconnect() childConn = nil end
+            
             local isHidden = leaderstats:GetAttribute("HiddenKills")
             assets.IsHidingKills = not (not isHidden)
 
@@ -363,11 +367,36 @@ local function SetupPlayerSignals(p, assets)
                 local hiddenFolder = leaderstats:FindFirstChild("Hidden")
                 if hiddenFolder then
                     local killsVal = hiddenFolder:FindFirstChild("Kills")
-                    if killsVal then trackValueInstance(killsVal) end
+                    if killsVal then 
+                        trackValueInstance(killsVal) 
+                    else
+                        childConn = hiddenFolder.ChildAdded:Connect(function(child)
+                            if child.Name == "Kills" then
+                                trackValueInstance(child)
+                                if childConn then childConn:Disconnect() childConn = nil end
+                            end
+                        end)
+                    end
+                else
+                    childConn = leaderstats.ChildAdded:Connect(function(child)
+                        if child.Name == "Hidden" then
+                            if childConn then childConn:Disconnect() childConn = nil end
+                            evaluateSource()
+                        end
+                    end)
                 end
             else
                 local killsVal = leaderstats:FindFirstChild("Kills")
-                if killsVal then trackValueInstance(killsVal) end
+                if killsVal then 
+                    trackValueInstance(killsVal) 
+                else
+                    childConn = leaderstats.ChildAdded:Connect(function(child)
+                        if child.Name == "Kills" then
+                            trackValueInstance(child)
+                            if childConn then childConn:Disconnect() childConn = nil end
+                        end
+                    end)
+                end
             end
         end
 
@@ -375,8 +404,22 @@ local function SetupPlayerSignals(p, assets)
         evaluateSource()
     end
 
-    local leaderstats = p:FindFirstChild("leaderstats")
-    if leaderstats then watchKills(leaderstats) end
+    local function checkLeaderstats()
+        local leaderstats = p:FindFirstChild("leaderstats")
+        if leaderstats then
+            watchKills(leaderstats)
+        else
+            local statsConn
+            statsConn = p.ChildAdded:Connect(function(child)
+                if child.Name == "leaderstats" then
+                    statsConn:Disconnect()
+                    watchKills(child)
+                end
+            end)
+            table_insert(assets.Connections, statsConn)
+        end
+    end
+    checkLeaderstats()
 end
 
 local function SetupCharacterSignals(assets, char, hum)
