@@ -410,8 +410,10 @@ local function SetupCharacterSignals(assets, char, hum)
 end
 
 function ESP.Init(State)
-    local conn = RunService.RenderStepped:Connect(function()
-        if not State.Toggles.Esp then 
+    local toggleObject = State.Toggles.Esp
+
+    local function handleToggleChange()
+        if not toggleObject.Value then 
             ScreenGui.Enabled = false 
             for _, assets in pairs(Cache) do
                 if assets.Line then assets.Line.Visible = false end
@@ -421,6 +423,10 @@ function ESP.Init(State)
             return 
         end
         ScreenGui.Enabled = true
+    end
+
+    local conn = RunService.RenderStepped:Connect(function()
+        if not toggleObject.Value then return end
 
         local cam = workspace.CurrentCamera
         local viewportSize = cam.ViewportSize
@@ -433,7 +439,6 @@ function ESP.Init(State)
         local isThrottledFrame = (FrameTick % 3 == 0)
         local gameClock = o_clock()
 
-        -- Optimize performance footprint: single calculation per engine cycle
         local globalRainbowColor = Color3.fromHSV((gameClock * 0.4) % 1, 1, 1)
         local globalRainbowHex = s_format("%02x%02x%02x", m_floor(globalRainbowColor.R * 255), m_floor(globalRainbowColor.G * 255), m_floor(globalRainbowColor.B * 255))
 
@@ -477,7 +482,6 @@ function ESP.Init(State)
                         sX, sY = viewportSize.X * 0.5, viewportSize.Y * 0.5
                     end
 
-                    -- Inline Real-Time Position Vector Delta Validation (AFK Tracking)
                     local currentPos = root.Position
                     if (currentPos - c.LastPosition).Magnitude > 0.1 then
                         c.LastPosition = currentPos
@@ -487,7 +491,6 @@ function ESP.Init(State)
                         c.IsAFK = true
                     end
 
-                    -- Frame-by-Frame Health Monitoring Loop
                     local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
                     if liveHpPerc <= 0.02 then
                         c.HealthBack.Visible = false
@@ -503,7 +506,6 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Frame-by-Frame Evade Monitoring Loop
                     local rawEvade = char:GetAttribute("Evade")
                     local evadeValue = type(rawEvade) == "number" and rawEvade or 0
                     local evadePerc = m_clamp(evadeValue / 50, 0, 1)
@@ -521,12 +523,10 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Ultimate Tracking Updates
                     local rawUlt = p:GetAttribute("Ultimate")
                     local ultValue = type(rawUlt) == "number" and rawUlt or 0
                     c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
 
-                    -- Throttled UI Rendering Layer Property Application
                     if isThrottledFrame then
                         if ultValue >= 100 then
                             c.UltStroke.Thickness = 1.5
@@ -547,7 +547,6 @@ function ESP.Init(State)
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
-                        -- Moveset Architecture Evaluator
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
                         local pm = p:GetAttribute("Moveset")
@@ -580,7 +579,6 @@ function ESP.Init(State)
                             movesetName = pm or ""
                         end
 
-                        -- Custom Lookalike Safeguard Framework (Dynamic Multi-Color Swapping)
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         if usesCustomLook then
                             hexColor = globalRainbowHex
@@ -594,12 +592,10 @@ function ESP.Init(State)
                             c.UltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
                         end
 
-                        -- Cash Interface Processing
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
 
-                        -- Player-Based Badges Compilation
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
                             permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
@@ -640,7 +636,6 @@ function ESP.Init(State)
                     
                     local currentDist = c.LastDist
 
-                    -- Tracer Vectors
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
@@ -650,7 +645,6 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    -- Explicit High-Visibility Flag Configuration
                     local killString = formatVal(c.CachedKills)
                     if c.IsHidingKills then
                         killString = s_format("%s <font color='#FF3333'><b>[HIDDEN]</b></font>", killString)
@@ -679,6 +673,11 @@ function ESP.Init(State)
         end
     end)
     table_insert(State.Connections, conn)
+
+    local toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
+    table_insert(State.Connections, toggleConn)
+
+    handleToggleChange()
 end
 
 return ESP
