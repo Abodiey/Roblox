@@ -43,7 +43,7 @@ end
 -- [ 3. HELPER FUNCTIONS ]
 -- =============================================================================
 local function HookRemote(descendant)
-    if descendant:IsA("RemoteEvent") then
+    if descendant:IsA("RemoteEvent") or descendant:IsA("UnreliableRemoteEvent") then
         Connections[descendant] = descendant.OnClientEvent:Connect(function() end)
     end
 end
