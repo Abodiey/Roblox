@@ -7,7 +7,7 @@ if not plr then
     plr = Players.LocalPlayer
 end
 
-local gamepassesFolder = plr:WaitForChild("Gamepasses")
+local gamepassesFolder = plr:WaitForChild("Gamepasses",99)
 local passIds = {"1151174294", "718699461", "984868818", "857428668", "718947270", "742180133"}
 
 -- Cache original gamepass states at startup so they are never overwritten with false
