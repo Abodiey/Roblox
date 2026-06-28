@@ -221,10 +221,10 @@ local UiLayout = {
     {Type = "Toggle",   Module="InstantInteract",Args = {Name = "Instant Interact", CurrentValue = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
     
     {Type = "Section",  Name = "Emote Exploits"},
-    {Type = "Toggle",   Module = "DiamondInTheSky", Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
-    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Min = 1, Max = 50, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}},
-
+    {Type = "Toggle",   Module = "DiamondInTheSky",Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
+    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Range = {1, 50}, Increment = 1, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Flag = "DiamondInTheSkySpeed", Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}}
     {Type = "Section",  Name = "Utility Mechanics"},
+    
     {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
 
     {Type = "Section",  Name = "Visual Mechanics"},
