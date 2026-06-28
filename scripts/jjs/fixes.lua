@@ -7,7 +7,7 @@ local Debris = cloneref(game:GetService("Debris"))
 local LTM = "LocalTransparencyModifier"
 local Connections = {}
 local DomainConnections = {}
-local Whitelist = { ["FinalBeam"] = true, ["Beam"] = true, ["PlasmaWave"] = true }
+local Whitelist = { ["FinalBeam"] = true, ["Beam"] = true, ["PlasmaWave"] = true, ["ArmProjectile"] = true, }
 
 -- =============================================================================
 -- [ 2. IMMEDIATE EXECUTION: SERVICES & HOOKS ]
@@ -19,17 +19,22 @@ local function HookRemote(descendant)
 end
 
 -- Setup services as fast as possible
-local debreeService = ReplicatedStorage:WaitForChild("DebreeService", 99999)
-if debreeService then
-    for _, d in ipairs(debreeService:GetDescendants()) do HookRemote(d) end
-    table.insert(Connections, debreeService.DescendantAdded:Connect(HookRemote))
-end
-
-local handicapService = ReplicatedStorage:WaitForChild("HandicapService", 99999)
-if handicapService then
-    for _, d in ipairs(handicapService:GetDescendants()) do HookRemote(d) end
-    table.insert(Connections, handicapService.DescendantAdded:Connect(HookRemote))
-end
+task.spawn(function()
+    local Services = ReplicatedStorage:WaitForChild("Knit"):WaitForChild("Knit"):WaitForChild("Services")
+    for _, v in ipairs({"DebreeService", "HandicapService", "BlockService"}) do
+        task.spawn(function()
+            local service = Services:WaitForChild(v, 99)
+            local reContainer = service and service:WaitForChild("RE", 99)
+            if not reContainer then return end
+            for _, d in ipairs(reContainer:GetChildren()) do HookRemote(d) end
+            table.insert(Connections, reContainer.ChildAdded:Connect(HookRemote))
+        end)
+    end
+    task.delay(30, function()
+        for _, conn in pairs(Connections) do pcall(function() conn:Disconnect() end) end
+        table.clear(Connections)
+    end)
+end)
 
 -- Run hookmetamethod immediately after service hooks
 if hookmetamethod then
@@ -58,7 +63,7 @@ end
 -- [ 4. DOMAINS SYSTEM ]
 -- =============================================================================
 local function HandleDomainChild(domainChild)
-    local remote = domainChild:WaitForChild("UnreliableRemoteEvent", 5)
+    local remote = domainChild:WaitForChild("UnreliableRemoteEvent", 15)
     if not remote or not remote:IsA("UnreliableRemoteEvent") then return end
     DomainConnections[domainChild] = remote.OnClientEvent:Connect(function() end)
 end
@@ -76,11 +81,3 @@ if Domains then
         end
     end)
 end
-
--- =============================================================================
--- [ 5. CLEANUP THREAD ]
--- =============================================================================
-task.delay(30, function()
-    for _, conn in pairs(Connections) do pcall(function() conn:Disconnect() end) end
-    table.clear(Connections)
-end)
