@@ -1,6 +1,5 @@
 local DiamondInTheSky = {}
 
--- Upvalue Caching Optimization
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local PreSimulation = RunService.PreSimulation
@@ -8,7 +7,6 @@ local Vector3_new = Vector3.new
 
 local player = Players.LocalPlayer
 
--- Runtime cached references and connection states
 local character = nil
 local rootPart = nil
 local activeSwingForce = nil
@@ -18,16 +16,14 @@ local forceAddedConn, forceRemovedConn
 local loopConn
 local charAddedConn, charRemovingConn
 
--- Core velocity adjustment loop targeting the force object itself
 local function setVelocity(State)
     if activeSwingForce then
         local currentVelocity = activeSwingForce.Velocity
-        local mult = State.Variables.SpeedMultiplier
+        local mult = State.Variables.SpeedMultiplier.Value
         activeSwingForce.Velocity = Vector3_new(currentVelocity.X * mult, currentVelocity.Y, currentVelocity.Z * mult)
     end
 end
 
--- Manages the PreSimulation connection state dynamically
 local function toggleLoop(shouldEnable, State)
     if shouldEnable then
         if not loopConn then
@@ -43,7 +39,6 @@ local function toggleLoop(shouldEnable, State)
     end
 end
 
--- Validates the active Emote's name attribute
 local function checkEmote(emoteInstance, State)
     if attrConn then attrConn:Disconnect() end
     
@@ -56,7 +51,6 @@ local function checkEmote(emoteInstance, State)
     end)
 end
 
--- Clear all listeners and states cleanly on removal/respawn
 local function cleanup()
     if addedConn then addedConn:Disconnect() addedConn = nil end
     if removedConn then removedConn:Disconnect() removedConn = nil end
@@ -70,14 +64,12 @@ local function cleanup()
     activeSwingForce = nil
 end
 
--- Main setup function triggered upon spawning
 local function setup(newCharacter, State)
     cleanup()
     
     character = newCharacter
     rootPart = character:WaitForChild("HumanoidRootPart", 99999)
 
-    -- Track the SwingForce instance entering/leaving the RootPart
     activeSwingForce = rootPart:FindFirstChild("SwingForce")
     
     forceAddedConn = rootPart.ChildAdded:Connect(function(child)
@@ -92,7 +84,6 @@ local function setup(newCharacter, State)
         end
     end)
 
-    -- Handle the Info tracking folder structure
     local infoFolder = character:WaitForChild("Info", 99999)
     if infoFolder and character == newCharacter then
         local currentEmote = infoFolder:FindFirstChild("Emote")
@@ -109,13 +100,12 @@ local function setup(newCharacter, State)
         removedConn = infoFolder.ChildRemoved:Connect(function(child)
             if child.Name == "Emote" then
                 if loopConn then loopConn:Disconnect() loopConn = nil end
-                if attrConn then attrConn:Disconnect() attrConn = nil end
+                if attrConn then attrConn:Disconnect() armConn = nil end
             end
         end)
     end
 end
 
--- Structural master cleanup of character connection events when toggle goes off
 local function deepCleanup()
     cleanup()
     if charAddedConn then charAddedConn:Disconnect() charAddedConn = nil end
@@ -123,37 +113,31 @@ local function deepCleanup()
 end
 
 function DiamondInTheSky.Init(State)
-    -- Spawn a persistent thread since Init is only called once at startup
-    task.spawn(function()
-        local wasActive = false
+    local toggleObject = State.Toggles.DiamondInTheSky
 
-        while true do
-            -- Target toggle state directly
-            local isActive = State.Toggles.DiamondInTheSky
-
-            if isActive and not wasActive then
-                -- Toggle just turned ON: Activate listeners and build setup
-                wasActive = true
-                
-                if player.Character then
-                    setup(player.Character, State)
-                end
-                
+    local function handleStateChange()
+        if toggleObject.Value then
+            if player.Character then
+                setup(player.Character, State)
+            end
+            
+            if not charAddedConn then
                 charAddedConn = player.CharacterAdded:Connect(function(char)
                     setup(char, State)
                 end)
-                charRemovingConn = player.CharacterRemoving:Connect(cleanup)
-
-            elseif not isActive and wasActive then
-                -- Toggle just turned OFF: Clear everything completely
-                wasActive = false
-                deepCleanup()
             end
-
-            -- Sleep interval to check state pointer with zero overhead
-            task.wait(0.1)
+            if not charRemovingConn then
+                charRemovingConn = player.CharacterRemoving:Connect(cleanup)
+            end
+        else
+            deepCleanup()
         end
-    end)
+    end
+
+    local changeConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleStateChange)
+    table.insert(State.Connections, changeConn)
+
+    handleStateChange()
 end
 
 return DiamondInTheSky
