@@ -100,6 +100,7 @@ local ClassMap = {
 }
 
 local StateStructure = {
+    Connections = setmetatable({}, { __mode = "v" }),
     Toggles = BindToFolder(TogglesFolder, ClassMap, ToggleDefaults),
     Variables = BindToFolder(VariablesFolder, ClassMap, VariableDefaults)
 }
