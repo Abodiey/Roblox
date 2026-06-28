@@ -1,3 +1,9 @@
+--[[
+    https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans
+    if you have any idea how to do teleport bypass, dm me on discord
+
+    Catstar Pro
+]]--
 while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
