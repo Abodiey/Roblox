@@ -1,10 +1,10 @@
 local Noclip = {}
 
 -- Localize Services and Global Functions
+local charFolder = workspace:WaitForChild("Characters")
 local RunService = cloneref(game:GetService("RunService"))
 local Players = cloneref(game:GetService("Players"))
 local lp = Players.LocalPlayer
-local charFolder = workspace:WaitForChild("Characters")
 
 local pairs = pairs
 local getChildren = game.GetChildren
