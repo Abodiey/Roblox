@@ -45,6 +45,11 @@ local c3_new = Color3.new
 local Enum = Enum
 
 local lp = Players.LocalPlayer
+if not lp then
+    task.spawn(function()
+        lp = Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    end)
+end
 local TARGET_GROUP = 16357742
 
 -- Clean previous asset hierarchy
@@ -419,7 +424,7 @@ function ESP.Init(State)
 
         local cam = workspace.CurrentCamera
         local viewportSize = cam.ViewportSize
-        
+        if not lp then return end
         local char_lp = lp.Character
         local myRoot = char_lp and char_lp:FindFirstChild("HumanoidRootPart")
         
