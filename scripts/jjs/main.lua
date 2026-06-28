@@ -21,7 +21,7 @@ task.defer(function()
     StarterGui:SetCore("SendNotification", {
         Title = "Catstar Pro",
         Text = "Loading...",
-        Duration = 5
+        Duration = 15
     })
 end)
 
@@ -72,13 +72,13 @@ local ToggleDefaults = {
     AntiVoid = false,
     AutoBurst = true,
     BlackFlash = false, 
-    DiamondInTheSky = false,
+    DiamondInTheSky = true,
     DomainNoclip = false,
     DummyESP = true, 
     Esp = true, 
     Gamepasses = true,
     InstantInteract = true,
-    ItemEsp = false, 
+    ItemEsp = true, 
     KillSound = true,
     MsgAura = true, 
     Noclip = true, 
@@ -223,9 +223,10 @@ local UiLayout = {
     {Type = "Section",  Name = "Emote Exploits"},
     {Type = "Toggle",   Module = "DiamondInTheSky",Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
     {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Range = {1, 50}, Increment = 1, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Flag = "DiamondInTheSkySpeed", Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}},
-    {Type = "Section",  Name = "Utility Mechanics"},
     
-    {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Spawn() end end}},
+    {Type = "Section",  Name = "Utility Mechanics"},
+    {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Clicked() end end}},
+    {Type = "Button",   Module = "Rejoin",       InitName = "None", Args = {Name = "Rejoin Server", Callback = function() if Modules.Rejoin then Modules.Rejoin.Clicked() end end}},
 
     {Type = "Section",  Name = "Visual Mechanics"},
     {Type = "Toggle",   Module = "ESP",          Args = {Name = "Player ESP", CurrentValue = CatstarState.Toggles.Esp.Value, Callback = function(V) CatstarState.Toggles.Esp.Value = V end}},
