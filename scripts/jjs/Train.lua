@@ -7,6 +7,7 @@ local workspace = cloneref(game:GetService("Workspace"))
 
 -- Localize Global Engine Functions
 local table = table
+local table_insert = table.insert
 
 -- Kept outside as the global baseline reference
 local Map = workspace:WaitForChild("Map")
@@ -50,14 +51,14 @@ function Train.Init(ButtonComponent, State)
             UpdateButtonText()
         end
     end)
-    table.insert(State.Toggles, ChildAddedConnection) -- Stored directly inside Value Folder wrapper state structure safely
+    table_insert(State.Connections, ChildAddedConnection)
 
     local ChildRemovedConnection = PromptParent.ChildRemoved:Connect(function(child)
         if child.Name == "Button" then
             UpdateButtonText()
         end
     end)
-    table.insert(State.Toggles, ChildRemovedConnection)
+    table_insert(State.Connections, ChildRemovedConnection)
 end
 
 function Train.Spawn()
