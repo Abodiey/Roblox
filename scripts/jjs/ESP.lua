@@ -113,21 +113,23 @@ local DARK_MOVESETS = {
 }
 
 local function getGradientColor(percent)
-    percent = percent < 0 and 0 or (percent > 1 and 1 or percent)
-    local scaledPercent = percent * 2
+    percent = m_clamp(percent, 0, 1)
     if percent > 0.5 then
-        return COLOR_YELLOW:Lerp(COLOR_GREEN, scaledPercent - 1)
+        return COLOR_YELLOW:Lerp(COLOR_GREEN, (percent - 0.5) * 2)
     end
-    return COLOR_RED:Lerp(COLOR_YELLOW, scaledPercent)
+    return COLOR_RED:Lerp(COLOR_YELLOW, percent * 2)
 end
+
 local function formatVal(val)
-    return val >= 1000 and s_format(val % 1000 == 0 and "%.0fk" or "%.1fk", val * 0.001) or tostring(val)
+    return val >= 1000 and s_format("%.1fk", val / 1000) or tostring(val)
 end
+
 local function isCustom(movesetFolder)
-    if not (movesetFolder and movesetFolder:FindFirstChildOfClass("Instance")) then 
-        return false 
-    end
-    for _, move in movesetFolder:GetChildren() do
+    if not movesetFolder then return false end
+    local children = movesetFolder:GetChildren()
+    if #children == 0 then return false end
+    
+    for _, move in ipairs(children) do
         if move.Name ~= "Custom" then 
             return false 
         end
@@ -353,49 +355,34 @@ local function SetupPlayerSignals(p, assets)
     end
 
     local function watchKills(leaderstats)
-        local childConn
-        
         local function evaluateSource()
-            if childConn then childConn:Disconnect() childConn = nil end
-            
             local isHidden = leaderstats:GetAttribute("HiddenKills")
             assets.IsHidingKills = not (not isHidden)
 
-            if isHidden then
-                local hiddenFolder = leaderstats:FindFirstChild("Hidden")
-                if hiddenFolder then
-                    local killsVal = hiddenFolder:FindFirstChild("Kills")
-                    if killsVal then 
-                        trackValueInstance(killsVal) 
-                    else
-                        childConn = hiddenFolder.ChildAdded:Connect(function(child)
-                            if child.Name == "Kills" then
-                                trackValueInstance(child)
-                                if childConn then childConn:Disconnect() childConn = nil end
-                            end
-                        end)
+            task.spawn(function()
+                if isHidden then
+                    local hiddenFolder = leaderstats:FindFirstChild("Hidden")
+                    while not hiddenFolder and p.Parent and leaderstats:GetAttribute("HiddenKills") == true do
+                        t_wait()
+                        hiddenFolder = leaderstats:FindFirstChild("Hidden")
                     end
+                    if not hiddenFolder then return end
+                    
+                    local killsVal = hiddenFolder:FindFirstChild("Kills")
+                    while not killsVal and p.Parent and leaderstats:GetAttribute("HiddenKills") == true do
+                        t_wait()
+                        killsVal = hiddenFolder:FindFirstChild("Kills")
+                    end
+                    if killsVal then trackValueInstance(killsVal) end
                 else
-                    childConn = leaderstats.ChildAdded:Connect(function(child)
-                        if child.Name == "Hidden" then
-                            if childConn then childConn:Disconnect() childConn = nil end
-                            evaluateSource()
-                        end
-                    end)
+                    local killsVal = leaderstats:FindFirstChild("Kills")
+                    while not killsVal and p.Parent and not leaderstats:GetAttribute("HiddenKills") do
+                        t_wait()
+                        killsVal = leaderstats:FindFirstChild("Kills")
+                    end
+                    if killsVal then trackValueInstance(killsVal) end
                 end
-            else
-                local killsVal = leaderstats:FindFirstChild("Kills")
-                if killsVal then 
-                    trackValueInstance(killsVal) 
-                else
-                    childConn = leaderstats.ChildAdded:Connect(function(child)
-                        if child.Name == "Kills" then
-                            trackValueInstance(child)
-                            if childConn then childConn:Disconnect() childConn = nil end
-                        end
-                    end)
-                end
-            end
+            end)
         end
 
         table_insert(assets.Connections, leaderstats:GetAttributeChangedSignal("HiddenKills"):Connect(evaluateSource))
@@ -407,14 +394,14 @@ local function SetupPlayerSignals(p, assets)
         if leaderstats then
             watchKills(leaderstats)
         else
-            local statsConn
-            statsConn = p.ChildAdded:Connect(function(child)
-                if child.Name == "leaderstats" then
-                    statsConn:Disconnect()
-                    watchKills(child)
+            task.spawn(function()
+                local leaderstatsWait = p:FindFirstChild("leaderstats")
+                while not leaderstatsWait and p.Parent do
+                    t_wait()
+                    leaderstatsWait = p:FindFirstChild("leaderstats")
                 end
+                if leaderstatsWait then watchKills(leaderstatsWait) end
             end)
-            table_insert(assets.Connections, statsConn)
         end
     end
     checkLeaderstats()
@@ -468,9 +455,10 @@ function ESP.Init(State)
 
     local conn = RunService.RenderStepped:Connect(function()
         if not toggleObject.Value then return end
-        if not lp then return end
+
         local cam = workspace.CurrentCamera
         local viewportSize = cam.ViewportSize
+        if not lp then return end
         local char_lp = lp.Character
         local myRoot = char_lp and char_lp:FindFirstChild("HumanoidRootPart")
         
