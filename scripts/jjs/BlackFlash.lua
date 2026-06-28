@@ -63,7 +63,7 @@ function BlackFlash.Init(State)
         if not animator then return end
 
         local conn = animator.AnimationPlayed:Connect(function(track)
-            if not State.Toggles.BlackFlash then return end
+            if not State.Toggles.BlackFlash.Value then return end
             
             local id = tonumber(track.Animation.AnimationId:match("%d+$"))
             local cfg = DB[id]
