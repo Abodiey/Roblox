@@ -1,5 +1,15 @@
 local InstantInteract = {}
+
+-- Localize Services & Core API
+local cloneref = cloneref
+local game = game
 local ProximityPromptService = cloneref(game:GetService("ProximityPromptService"))
+
+-- Localize Global Engine Functions
+local pairs = pairs
+local table = table
+local table_insert = table.insert
+local table_clear = table.clear
 
 -- Weak table to cache original durations without preventing garbage collection
 local originalDurations = setmetatable({}, {__mode = "k"})
@@ -8,7 +18,6 @@ local cache = originalDurations
 -- Connection trackers
 local promptShownConn = nil
 local promptHiddenConn = nil
-local toggleConn = nil
 
 -- Completely cleans up connections and restores existing overridden prompts
 local function cleanupInstantInteract()
@@ -21,7 +30,7 @@ local function cleanupInstantInteract()
             prompt.HoldDuration = originalTime
         end
     end
-    table.clear(cache)
+    table_clear(cache)
 end
 
 function InstantInteract.Init(State)
@@ -56,8 +65,8 @@ function InstantInteract.Init(State)
         end
     end
 
-    toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
-    table.insert(State.Connections, toggleConn)
+    local toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
+    table_insert(State.Connections, toggleConn)
 
     handleToggleChange()
 end
