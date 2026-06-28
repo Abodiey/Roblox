@@ -23,10 +23,9 @@ Highlight.Name = "AimbotHighlight"
 Highlight.Parent = CoreGui
 
 function Aimbot.Toggle(State)
-    -- Early Return: If already aiming, turn it off and exit
-    if State.Toggles.Aim then 
-        State.Toggles.Aim = false
-        State.LockedTarget = nil
+    if State.Toggles.Aim.Value then 
+        State.Toggles.Aim.Value = false
+        State.Variables.LockedTarget.Value = nil
         Highlight.Adornee = nil
         return 
     end
@@ -39,16 +38,14 @@ function Aimbot.Toggle(State)
     Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
-        -- Early Continues: Filter out invalid targets instantly
         if obj == Player.Character then continue end
         if obj:GetAttribute("Dead") then continue end
         
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
         
-        -- Team Check Guard
         local targetPlayer = Players:GetPlayerFromCharacter(obj)
-        if State.Toggles.TeamCheck and myTeam and targetPlayer and targetPlayer.Team == myTeam then 
+        if State.Toggles.TeamCheck.Value and myTeam and targetPlayer and targetPlayer.Team == myTeam then 
             continue 
         end
 
@@ -64,50 +61,49 @@ function Aimbot.Toggle(State)
 
     if not nearest then return end
     
-    State.LockedTarget = nearest
-    State.Toggles.Aim = true
+    State.Variables.LockedTarget.Value = nearest
+    State.Toggles.Aim.Value = true
 end
 
 function Aimbot.Init(State)
     Camera = workspace.CurrentCamera
     State.Connections = State.Connections or {}
     
-    if State.Toggles.TeamCheck == nil then
-        State.Toggles.TeamCheck = true
+    if State.Toggles.TeamCheck.Value == nil then
+        State.Toggles.TeamCheck.Value = true
     end
 
     local removeConn = Players.PlayerRemoving:Connect(function(p)
-        if not State.LockedTarget then return end
-        if State.LockedTarget.Name ~= p.Name then return end
+        local currentTarget = State.Variables.LockedTarget.Value
+        if not currentTarget then return end
+        if currentTarget.Name ~= p.Name then return end
         
-        State.LockedTarget = nil
+        State.Variables.LockedTarget.Value = nil
         Highlight.Adornee = nil
     end)
     table.insert(State.Connections, removeConn)
 
     local updateConn = RunService.Heartbeat:Connect(function()
-        -- Early Return: System is idle or has no target
-        if not State.Toggles.Aim then Highlight.Adornee = nil return end
+        if not State.Toggles.Aim.Value then Highlight.Adornee = nil return end
         
-        local target = State.LockedTarget
+        local target = State.Variables.LockedTarget.Value
         if not target or not target.Parent then Highlight.Adornee = nil return end
         
-        -- Early Return: Reset target if they are flagged dead
         if target:GetAttribute("Dead") then
-            State.LockedTarget = nil
+            State.Variables.LockedTarget.Value = nil
+            State.Toggles.Aim.Value = false
             Highlight.Adornee = nil
             return
         end
 
-        -- Early Return: Reset target if tracking part is missing
         local targetPart = target:FindFirstChild("HumanoidRootPart")
         if not targetPart then
-            State.LockedTarget = nil
+            State.Variables.LockedTarget.Value = nil
+            State.Toggles.Aim.Value = false
             Highlight.Adornee = nil
             return
         end
 
-        -- Main execution path (fully flattened, no nesting)
         Highlight.Adornee = target
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
     end)
