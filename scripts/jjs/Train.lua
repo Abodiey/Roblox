@@ -1,11 +1,40 @@
 local Train = {}
 
+-- Localize Services & Core API
+local cloneref = cloneref
+local game = game
+local workspace = cloneref(game:GetService("Workspace"))
+
+-- Localize Global Engine Functions
+local task = task
+local math = math
+local m_floor = math.floor
+local string = string
+local s_format = string.format
+local table = table
+local table_insert = table.insert
+local coroutine = coroutine
+local c_status = coroutine.status
+local c_close = coroutine.close
+
 -- Kept outside as the global baseline reference
 local Map = workspace:WaitForChild("Map")
 
-local CurrentThread
+local CurrentThread = nil
 
-function Train.Init(ButtonComponent)
+-- Helper to safely terminate an active thread only if it's alive
+local function stopCurrentThread()
+    if CurrentThread then
+        local status = c_status(CurrentThread)
+        if status == "suspended" or status == "running" then
+            -- coroutine.close is safe and standard in Luau for closing active threads
+            c_close(CurrentThread)
+        end
+        CurrentThread = nil
+    end
+end
+
+function Train.Init(ButtonComponent, State)
     -- Dynamically look for "Destructible", "Model", and descendants inside the function
     local Destructible = Map:FindFirstChild("Destructible")
     local Main = Destructible and Destructible:FindFirstChild("Model")
@@ -24,17 +53,11 @@ function Train.Init(ButtonComponent)
     end
 
     local function UpdateButtonText()
-        if CurrentThread then
-            task.cancel(CurrentThread)
-            CurrentThread = nil
-        end
+        stopCurrentThread()
 
         if not ButtonComponent then return end
-
-        -- Safety check to see if the parent container itself is still in the game
         if not PromptParent:IsDescendantOf(game) then return end
 
-        -- Check if the prompt child exists
         local Prompt = PromptParent:FindFirstChild("Button")
         if Prompt then
             ButtonComponent:Set("Spawn Train (Ready)")
@@ -44,18 +67,17 @@ function Train.Init(ButtonComponent)
     end
 
     local function StartCooldown()
-        if CurrentThread then task.cancel(CurrentThread) end
+        stopCurrentThread()
         
         if not ButtonComponent then return end
 
         CurrentThread = task.spawn(function()
             local Duration = 180 -- 3 minutes in seconds
             
-            -- Loop runs while prompt is missing, but stops if it reappears or map breaks
             while Duration > 0 and PromptParent:IsDescendantOf(game) and not PromptParent:FindFirstChild("Button") do
-                local Minutes = math.floor(Duration / 60)
+                local Minutes = m_floor(Duration / 60)
                 local Seconds = Duration % 60
-                ButtonComponent:Set(string.format("Spawn Train (%dm %02ds)", Minutes, Seconds))
+                ButtonComponent:Set(s_format("Spawn Train (%dm %02ds)", Minutes, Seconds))
                 task.wait(1)
                 Duration = Duration - 1
             end
@@ -70,24 +92,23 @@ function Train.Init(ButtonComponent)
         StartCooldown()
     end
     
-    -- Listen for the prompt appearing or disappearing
+    -- Listen for the prompt appearing or disappearing, route connections to the passed State table
     local ChildAddedConnection = PromptParent.ChildAdded:Connect(function(child)
         if child.Name == "Button" then
             UpdateButtonText()
         end
     end)
-    table.insert(getgenv().CatstarState.Connections, ChildAddedConnection)
+    table_insert(State.Connections, ChildAddedConnection)
 
     local ChildRemovedConnection = PromptParent.ChildRemoved:Connect(function(child)
         if child.Name == "Button" then
             StartCooldown()
         end
     end)
-    table.insert(getgenv().CatstarState.Connections, ChildRemovedConnection)
+    table_insert(State.Connections, ChildRemovedConnection)
 end
 
 function Train.Spawn()
-    -- Dynamically look for everything under Map when called
     local Destructible = Map:FindFirstChild("Destructible")
     local Main = Destructible and Destructible:FindFirstChild("Model")
     Main = Main and Main:FindFirstChild("StationControl")
@@ -100,7 +121,6 @@ function Train.Spawn()
     local Event = Main and Main:FindFirstChild("Handle")
     Event = Event and Event:FindFirstChild("Train")
 
-    -- Removed Prompt.Enabled check since existence implies availability
     if Prompt and Event then
         Event:FireServer()
     end
