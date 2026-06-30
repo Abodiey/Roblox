@@ -11,9 +11,9 @@ local table = table
 local table_insert = table.insert
 local table_clear = table.clear
 
--- Weak table to cache original durations without preventing garbage collection
-local originalDurations = setmetatable({}, {__mode = "k"})
-local cache = originalDurations
+-- Weak table to cache original values without preventing garbage collection
+-- Structure: cache[prompt] = { duration = originalDuration, distance = originalDistance }
+local cache = setmetatable({}, {__mode = "k"})
 
 -- Connection trackers
 local promptShownConn = nil
@@ -25,9 +25,10 @@ local function cleanupInstantInteract()
     if promptHiddenConn then promptHiddenConn:Disconnect() promptHiddenConn = nil end
 
     -- Restore any cached prompts currently in memory back to their original state
-    for prompt, originalTime in pairs(cache) do
+    for prompt, originalData do
         if prompt and prompt.Parent then
-            prompt.HoldDuration = originalTime
+            prompt.HoldDuration = originalData.duration
+            prompt.MaxActivationDistance = originalData.distance
         end
     end
     table_clear(cache)
@@ -43,20 +44,34 @@ function InstantInteract.Init(State)
             if not promptShownConn then
                 promptShownConn = ProximityPromptService.PromptShown:Connect(function(prompt)
                     if not prompt then return end
-                    local current = prompt.HoldDuration
-                    if current == 0 then return end -- Skip if already instant
                     
-                    cache[prompt] = cache[prompt] or current
-                    prompt.HoldDuration = 0
+                    -- Fetch or initialize cache entry for this prompt
+                    local originalData = cache[prompt]
+                    if not originalData then
+                        originalData = {
+                            duration = prompt.HoldDuration,
+                            distance = prompt.MaxActivationDistance
+                        }
+                        cache[prompt] = originalData
+                    end
+
+                    -- Apply modifications safely using cached originals to prevent compounding
+                    if originalData.duration > 0 then
+                        prompt.HoldDuration = 0
+                    end
+                    
+                    prompt.MaxActivationDistance = originalData.distance * 2
                 end)
             end
 
             if not promptHiddenConn then
                 promptHiddenConn = ProximityPromptService.PromptHidden:Connect(function(prompt)
                     if not prompt or not prompt.Parent then return end -- Skip if prompt was destroyed/removed
-                    local original = cache[prompt]
-                    if original then
-                        prompt.HoldDuration = original
+                    
+                    local originalData = cache[prompt]
+                    if originalData then
+                        prompt.HoldDuration = originalData.duration
+                        prompt.MaxActivationDistance = originalData.distance
                     end
                 end)
             end
