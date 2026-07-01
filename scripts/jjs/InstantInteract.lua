@@ -53,25 +53,25 @@ function InstantInteract.Init(State)
                 promptShownConn = ProximityPromptService.PromptShown:Connect(function(prompt)
                     if not prompt then return end
                     
-                    -- Cache duration if not already cached
+                    -- Check if we have already cached this prompt before
+                    local cachedDistance = originalDistances[prompt]
                     local cachedDuration = originalDurations[prompt]
-                    if not cachedDuration then
+
+                    if not cachedDistance then
+                        -- First time seeing this prompt: capture its authentic original values
+                        cachedDistance = prompt.MaxActivationDistance
                         cachedDuration = prompt.HoldDuration
+                        
+                        originalDistances[prompt] = cachedDistance
                         originalDurations[prompt] = cachedDuration
                     end
 
-                    -- Cache distance if not already cached
-                    local cachedDistance = originalDistances[prompt]
-                    if not cachedDistance then
-                        cachedDistance = prompt.MaxActivationDistance
-                        originalDistances[prompt] = cachedDistance
-                    end
-
-                    -- Modify properties safely
+                    -- Apply modifications cleanly using ONLY the pristine cached constants
                     if cachedDuration > 0 then
                         prompt.HoldDuration = 0
                     end
                     
+                    -- Overwrite explicitly based on the base distance, neutralizing any engine loops
                     prompt.MaxActivationDistance = cachedDistance * 2
                 end)
             end
