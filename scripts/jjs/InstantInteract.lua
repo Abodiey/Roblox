@@ -53,12 +53,12 @@ function InstantInteract.Init(State)
                 promptShownConn = ProximityPromptService.PromptShown:Connect(function(prompt)
                     if not prompt then return end
                     
-                    -- Check if we have already cached this prompt before
                     local cachedDistance = originalDistances[prompt]
                     local cachedDuration = originalDurations[prompt]
 
-                    if not cachedDistance then
-                        -- First time seeing this prompt: capture its authentic original values
+                    -- If we haven't logged this prompt yet, or if the engine reset its distance 
+                    -- below the multiplier threshold while hidden, re-verify its baseline
+                    if not cachedDistance or prompt.MaxActivationDistance == cachedDistance then
                         cachedDistance = prompt.MaxActivationDistance
                         cachedDuration = prompt.HoldDuration
                         
@@ -66,13 +66,20 @@ function InstantInteract.Init(State)
                         originalDurations[prompt] = cachedDuration
                     end
 
-                    -- Apply modifications cleanly using ONLY the pristine cached constants
-                    if cachedDuration > 0 then
+                    -- Apply modifications safely using baseline upvalues
+                    if cachedDuration and cachedDuration > 0 then
                         prompt.HoldDuration = 0
                     end
                     
-                    -- Overwrite explicitly based on the base distance, neutralizing any engine loops
-                    prompt.MaxActivationDistance = cachedDistance * 2
+                    if cachedDistance then
+                        local targetDistance = cachedDistance * 2
+                        -- Apply a strict hard cap of 20 studs maximum
+                        if targetDistance > 20 then
+                            prompt.MaxActivationDistance = 20
+                        else
+                            prompt.MaxActivationDistance = targetDistance
+                        end
+                    end
                 end)
             end
 
