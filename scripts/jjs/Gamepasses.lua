@@ -7,18 +7,32 @@ if not plr then
     plr = Players.LocalPlayer
 end
 
-local gamepassesFolder = plr:WaitForChild("Gamepasses",99)
+local gamepassesFolder = plr:WaitForChild("Gamepasses",999)
 local passIds = {"1151174294", "718699461", "984868818", "857428668", "718947270", "742180133"}
 
--- Cache original gamepass states at startup so they are never overwritten with false
-local originalStates = {}
-if gamepassesFolder then
-    for _, id in ipairs(passIds) do
-        originalStates[id] = gamepassesFolder:GetAttribute(id) or false
+-- Helper function to remove already-owned gamepasses from the target table
+local function filterOwnedPasses()
+    if not gamepassesFolder then return end
+    local currentAttributes = gamepassesFolder:GetAttributes()
+    
+    for i = #passIds, 1, -1 do
+        local id = passIds[i]
+        if currentAttributes[id] ~= nil then
+            table.remove(passIds, i)
+        end
     end
 end
 
+-- Run initial filter check at startup
+filterOwnedPasses()
+
 function Gamepasses.Init(State)
+    -- Fallback check if the folder wasn't ready at startup
+    if not gamepassesFolder then
+        gamepassesFolder = plr:FindFirstChild("Gamepasses")
+        filterOwnedPasses()
+    end
+
     local toggleObject = State.Toggles.Gamepasses
 
     local function handleToggleChange()
@@ -31,7 +45,7 @@ function Gamepasses.Init(State)
             end
         else
             for _, id in ipairs(passIds) do
-                gamepassesFolder:SetAttribute(id, originalStates[id])
+                gamepassesFolder:SetAttribute(id, nil)
             end
         end
     end
