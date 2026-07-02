@@ -333,9 +333,14 @@ end
 
 local function SetupPlayerSignals(p, assets)
     task.spawn(function()
-        local success, role = pcall(function() return p:GetRoleInGroup(TARGET_GROUP) end)
-        if success and role and role ~= "Guest" and role ~= "Member" then
-            assets.GroupRoleTag = s_format("<font color='#00AAFF'>[%s]</font> ", role)
+        local success, rank = pcall(p.GetRankInGroup, p, TARGET_GROUP)
+        if success and type(rank) == "number" and rank > 0 then
+            local successRole, role = pcall(p.GetRoleInGroup, p, TARGET_GROUP)
+            if successRole then
+                role = tostring(role)
+                assets.GroupRoleTag = s_format("<font color='#00AAFF'>[%s]</font> ", role)
+                return
+            end
         end
     end)
 
@@ -357,7 +362,7 @@ local function SetupPlayerSignals(p, assets)
     local function watchKills(leaderstats)
         local function evaluateSource()
             local isHidden = leaderstats:GetAttribute("HiddenKills")
-            assets.IsHidingKills = not (not isHidden)
+            assets.IsHidingKills = not not isHidden
 
             task.spawn(function()
                 if isHidden then
