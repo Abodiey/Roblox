@@ -25,8 +25,7 @@ end
 
 -- Secure data folders
 local stats = plr:WaitForChild("leaderstats", 99999)
-local hiddenFolder = stats and stats:WaitForChild("Hidden", 99999)
-if not stats or not hiddenFolder then return KillSound end
+if not stats then return KillSound end
 
 -- Pre-create sound template
 local baseSound = inst_new("Sound")
@@ -36,7 +35,7 @@ baseSound.Parent = SoundService
 
 -- State variables for connections
 local valueConn = nil
-local attributeConn = nil
+local descendantConn = nil
 local toggleConn = nil
 local lastVal = 0
 
@@ -66,21 +65,21 @@ local function trackKillsObject(killsObj)
     end)
 end
 
--- Function to evaluate where kills are located based on the current attribute state
-local function updateKillSource()
-    local kills
-    if stats:GetAttribute("HiddenKills") then
-        kills = hiddenFolder:WaitForChild("Kills", 5)
-    else
-        kills = stats:WaitForChild("Kills", 5)
+-- Scan leaderstats for any instance named "Kills"
+local function scanForKills()
+    for _, desc in ipairs(stats:GetDescendants()) do
+        if desc.Name == "Kills" and desc:IsA("ValueBase") then
+            trackKillsObject(desc)
+            return true
+        end
     end
-    trackKillsObject(kills)
+    return false
 end
 
 -- Completely clears connections when toggle is off
 local function cleanupKillSound()
     if valueConn then valueConn:Disconnect() valueConn = nil end
-    if attributeConn then attributeConn:Disconnect() attributeConn = nil end
+    if descendantConn then descendantConn:Disconnect() descendantConn = nil end
 end
 
 function KillSound.Init(State)
@@ -90,10 +89,16 @@ function KillSound.Init(State)
         local isEnabled = toggleObject.Value
 
         if isEnabled then
-            -- Set up execution logic directly on toggle activation instead of polling
-            updateKillSource()
-            if not attributeConn then
-                attributeConn = stats:GetAttributeChangedSignal("HiddenKills"):Connect(updateKillSource)
+            -- Run an initial scan to see if Kills already exists
+            scanForKills()
+            
+            -- Listen for dynamically added elements using DescendantAdded
+            if not descendantConn then
+                descendantConn = stats.DescendantAdded:Connect(function(descendant)
+                    if descendant.Name == "Kills" and descendant:IsA("ValueBase") then
+                        trackKillsObject(descendant)
+                    end
+                end)
             end
         else
             cleanupKillSound()
