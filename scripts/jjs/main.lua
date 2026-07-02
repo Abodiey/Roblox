@@ -86,7 +86,7 @@ local ToggleDefaults = {
     DiamondInTheSky = true,
     DomainNoclip = false,
     DummyESP = true, 
-    Esp = true, 
+    ESP = true, 
     Gamepasses = true,
     InstantInteract = true,
     ItemESP = true, 
@@ -247,7 +247,7 @@ local UiLayout = {
     
     {Type = "Section",  Name = "Targeting & Spectating"},
     {Type = "Input",    Module = "Targeting",    InitName = "None", Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.Variables.TargetIdentifier.Value = T end}},
-    {Type = "Button",   Module = "Targeting",    InitName = "None", Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Spectate(CatstarState) end end}},
+    {Type = "Button",   Module = "Targeting",    InitName = "None", Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Clicked(CatstarState) end end}},
 
     {Type = "Section",  Name = "Unlocks"},
     {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses.Value, Callback = function(V) CatstarState.Toggles.Gamepasses.Value = V end}},
