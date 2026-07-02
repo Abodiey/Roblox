@@ -58,8 +58,13 @@ local function BindToFolder(folderInstance, valueClassMapping, defaultValues)
 
             local default = defaultValues[key]
             local className = valueClassMapping[type(default)] or "StringValue"
-            if default == nil and (key == "LockedTarget" or key:find("Target")) then
-                className = "ObjectValue"
+            if default == nil then
+                if key == "LockedTarget" or key:find("Target") then
+                    className = "ObjectValue"
+                else
+                    default = false
+                    className = "StringValue"
+                end
             end
 
             local valObj = Instance.new(className)
