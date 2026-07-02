@@ -42,7 +42,7 @@ SettingsFolder.Name = "CatstarSettings"
 SettingsFolder.Parent = CoreGui
 
 local TogglesFolder = Instance.new("Folder")
-TogglesFolder.Name = "Toggles"
+SettingsFolder.Name = "Toggles"
 TogglesFolder.Parent = SettingsFolder
 
 local VariablesFolder = Instance.new("Folder")
@@ -240,7 +240,7 @@ local UiLayout = {
     {Type = "Button",   Module = "Rejoin",       InitName = "None", Args = {Name = "Rejoin Server", Callback = function() if Modules.Rejoin then Modules.Rejoin.Clicked() end end}},
 
     {Type = "Section",  Name = "Visual Mechanics"},
-    {Type = "Toggle",   Module = "ESP",          Args = {Name = "Player ESP", CurrentValue = CatstarState.Toggles.Esp.Value, Callback = function(V) CatstarState.Toggles.Esp.Value = V end}},
+    {Type = "Toggle",   Module = "ESP",          Args = {Name = "Player ESP", CurrentValue = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",     Args = {Name = "Dummy ESP", CurrentValue = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
     {Type = "Toggle",   Module = "ItemESP",      Args = {Name = "Item ESP", CurrentValue = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
     {Type = "Toggle",   Module = "Aura",         Args = {Name = "Message Aura", CurrentValue = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
