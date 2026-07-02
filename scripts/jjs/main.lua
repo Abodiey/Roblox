@@ -84,7 +84,7 @@ local ToggleDefaults = {
     Esp = true, 
     Gamepasses = true,
     InstantInteract = true,
-    ItemEsp = true, 
+    ItemESP = true, 
     KillSound = true,
     MsgAura = true, 
     Noclip = true, 
@@ -237,7 +237,7 @@ local UiLayout = {
     {Type = "Section",  Name = "Visual Mechanics"},
     {Type = "Toggle",   Module = "ESP",          Args = {Name = "Player ESP", CurrentValue = CatstarState.Toggles.Esp.Value, Callback = function(V) CatstarState.Toggles.Esp.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",     Args = {Name = "Dummy ESP", CurrentValue = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
-    {Type = "Toggle",   Module = "ItemESP",      Args = {Name = "Item ESP", CurrentValue = CatstarState.Toggles.ItemEsp.Value, Callback = function(V) CatstarState.Toggles.ItemEsp.Value = V end}},
+    {Type = "Toggle",   Module = "ItemESP",      Args = {Name = "Item ESP", CurrentValue = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
     {Type = "Toggle",   Module = "Aura",         Args = {Name = "Message Aura", CurrentValue = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
     
     {Type = "Section",  Name = "Targeting & Spectating"},
