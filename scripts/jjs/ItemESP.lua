@@ -116,7 +116,7 @@ function ItemESP.Init(State)
                     local currentItems = itemsFolder:GetChildren()
                     local activeIds = {}
                     
-                    -- Track positions per frame to handle stacked/overlapping items
+                    -- Stacking lookup tracker using simple string keys to prevent engine-level table reference bugs
                     local positionCounts = {}
 
                     for i = 1, #currentItems do
@@ -135,14 +135,15 @@ function ItemESP.Init(State)
 
                             c.Bill.Enabled = true
                             
-                            -- Stacking Check: Group items by checking proximity (rounded to nearest stud)
+                            -- Generate a rounded string coordinate hash (snaps positions within a 2-stud boundary)
                             local pos = part.Position
-                            local roundedPos = v3_new(m_floor(pos.X + 0.5), m_floor(pos.Y + 0.5), m_floor(pos.Z + 0.5))
-                            local stackIndex = positionCounts[roundedPos] or 0
-                            positionCounts[roundedPos] = stackIndex + 1
+                            local posKey = s_format("%d_%d_%d", m_floor(pos.X * 0.5), m_floor(pos.Y * 0.5), m_floor(pos.Z * 0.5))
+                            
+                            local stackIndex = positionCounts[posKey] or 0
+                            positionCounts[posKey] = stackIndex + 1
 
-                            -- Incrementally offset Billboard vertical placement based on items already at this spot
-                            c.Bill.ExtentsOffset = v3_new(0, 0.5 + (stackIndex * 1.3), 0)
+                            -- Vertically stagger Billboard positions dynamically based on current overlaps
+                            c.Bill.ExtentsOffset = v3_new(0, 0.5 + (stackIndex * 1.5), 0)
                             
                             local dist = camPos and (part.Position - camPos).Magnitude or 0
                             local distCol = getGradientColor(dist / 400)
