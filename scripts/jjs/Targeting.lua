@@ -12,13 +12,11 @@ local ipairs = ipairs
 local string = string
 local s_lower = string.lower
 local table = table
-local table_insert = table.insert
 
 local LocalPlayer = Players.LocalPlayer
 
--- Connection trackers
+-- Connection tracker
 local loopConn = nil
-local toggleConn = nil
 
 -- Safely resets the camera subject back to the local character's humanoid
 local function resetCamera()
@@ -54,53 +52,41 @@ local function findTargetPlayer(searchTerm)
     return nil
 end
 
-function Targeting.Init(State)
-    local toggleObject = State.Toggles.Spectate
-
-    local function handleToggleChange()
-        local isEnabled = toggleObject.Value
-
-        if isEnabled then
-            -- Fallback safety check for state variable
-            if not State.Variables or not State.Variables.TargetIdentifier then 
-                toggleObject.Value = false
-                return 
-            end
-
-            local targetPlayer = findTargetPlayer(State.Variables.TargetIdentifier)
-            if not targetPlayer then
-                toggleObject.Value = false
-                return
-            end
-
-            -- Connect updating camera alignment loop only while spectating is enabled
-            if not loopConn then
-                loopConn = RunService.RenderStepped:Connect(function()
-                    local camera = workspace.CurrentCamera
-                    if not camera then return end
-
-                    local targetChar = targetPlayer.Character
-                    local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
-
-                    if targetHum and targetHum.Health > 0 then
-                        if camera.CameraSubject ~= targetHum then
-                            camera.CameraSubject = targetHum
-                        end
-                    else
-                        -- Target died, left, or went invalid; auto-disable spectate asset safely
-                        toggleObject.Value = false
-                    end
-                end)
-            end
-        else
-            resetCamera()
-        end
+-- Executed when the Spectate button is clicked
+function Targeting.Clicked(State)
+    -- If we are already spectating, clicking the button again acts to turn it off
+    if loopConn then
+        resetCamera()
+        return
     end
 
-    toggleConn = toggleObject:GetPropertyChangedSignal("Value"):Connect(handleToggleChange)
-    table_insert(State.Connections, toggleConn)
+    -- Safety check for state variable
+    if not State.Variables or not State.Variables.TargetIdentifier then 
+        return 
+    end
 
-    handleToggleChange()
+    local targetPlayer = findTargetPlayer(State.Variables.TargetIdentifier.Value)
+    if not targetPlayer then
+        return
+    end
+
+    -- Connect updating camera alignment loop
+    loopConn = RunService.RenderStepped:Connect(function()
+        local camera = workspace.CurrentCamera
+        if not camera then return end
+
+        local targetChar = targetPlayer.Character
+        local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+
+        if targetHum and targetHum.Health > 0 then
+            if camera.CameraSubject ~= targetHum then
+                camera.CameraSubject = targetHum
+            end
+        else
+            -- Target died, left, or went invalid; auto-disable spectate cleanly
+            resetCamera()
+        end
+    end)
 end
 
 return Targeting
