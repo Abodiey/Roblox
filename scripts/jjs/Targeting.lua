@@ -54,7 +54,7 @@ end
 
 -- Executed when the Spectate button is clicked
 function Targeting.Clicked(State)
-    -- If we are already spectating, clicking the button again acts to turn it off
+    -- Toggle behavior: if already spectating, return the camera back to our own player
     if loopConn then
         resetCamera()
         return
@@ -76,14 +76,15 @@ function Targeting.Clicked(State)
         if not camera then return end
 
         local targetChar = targetPlayer.Character
-        local targetHum = targetChar and targetChar:FindFirstChildOfClass("Humanoid")
+        if not targetChar or targetChar:GetAttribute("Dead") then resetCamera() return end
+        local targetRoot = targetChar.PrimaryPart
 
-        if targetHum and targetHum.Health > 0 then
+        if targetRoot then
             if camera.CameraSubject ~= targetHum then
                 camera.CameraSubject = targetHum
             end
         else
-            -- Target died, left, or went invalid; auto-disable spectate cleanly
+            -- Target died, left, or went invalid; return view to original player safely
             resetCamera()
         end
     end)
