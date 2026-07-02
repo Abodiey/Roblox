@@ -443,7 +443,7 @@ local function SetupCharacterSignals(assets, char, hum)
 end
 
 function ESP.Init(State)
-    local toggleObject = State.Toggles.Esp
+    local toggleObject = State.Toggles.ESP
 
     local function handleToggleChange()
         if not toggleObject.Value then 
