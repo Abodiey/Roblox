@@ -22,8 +22,8 @@ local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99
 local CharactersFolder = workspace:WaitForChild("Characters", 99)
 
 QTE.InitialDelay = 1
-QTE.MinimumDelay = 0.05
-QTE.RampSpeed = 0.28
+QTE.MinimumDelay = 0.1
+QTE.RampSpeed = 0.21
 
 -- Current Execution Instance Identifier for immediate thread termination
 local CurrentScriptID = 0
