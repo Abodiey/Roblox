@@ -8,8 +8,7 @@ local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
 local YukiService = ReplicatedStorage:WaitForChild("Knit"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("YukiService")
 local EffectsEvent = YukiService:WaitForChild("RE"):WaitForChild("Effects")
 
-local workspaceRef = cloneref(game:GetService("Workspace"))
-local effects = workspaceRef:WaitForChild("Effects", 9999)
+local effects = workspace:WaitForChild("Effects", 9999)
 
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart", 9999)
@@ -59,7 +58,7 @@ function AntiBlackHole.Init(State)
 				local baseMultiplier = (humanoid.FloorMaterial == Enum.Material.Air) and 300 or 2000
 				local counterVelocity = lookDirection * (pullFactor * baseMultiplier * deltaTime)
 
-				if distance <= 25 then
+				if distance <= 25 and distance > 10 then
 					local pushDirection = -lookDirection
 					local escapeVelocity = pushDirection * ((1 - (distance / 25)) * 120)
 					hrp.AssemblyLinearVelocity = (hrp.AssemblyLinearVelocity - counterVelocity) + escapeVelocity
