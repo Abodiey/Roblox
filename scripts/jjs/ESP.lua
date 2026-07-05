@@ -176,7 +176,7 @@ local function CreateAssets(p)
     -- 1. OVERHEAD BILLBOARD (Text, Ultimate Bar, and Moveset Hotbar)
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 240, 0, 95) -- Expanded to map out the hotbar elements safely
+    bill.Size = ud2_new(0, 240, 0, 95)
     bill.ExtentsOffset = v3_new(0, 4.0, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
@@ -192,35 +192,34 @@ local function CreateAssets(p)
     blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     blockLayout.Parent = mainFrame
 
-    -- Dynamic Hotbar Replication
-    local mainGui = StarterGui:FindFirstChild("Main")
-    local movesetPreset = mainGui and mainGui:FindFirstChild("Controls") and mainGui.Controls:FindFirstChild("Moveset")
-    local itemPreset = mainGui and mainGui:FindFirstChild("Preset") and mainGui.Preset:FindFirstChild("Item")
+    -- Dynamic Hotbar Replication (Guaranteed Hierarchy via StarterGui)
+    local mainGui = StarterGui.Main
+    local movesetPreset = mainGui.Controls.Moveset
+    local itemPreset = mainGui.Preset.Item
 
-    if movesetPreset and itemPreset then
-        local movesetFrame = movesetPreset:Clone()
-        movesetFrame.LayoutOrder = 0 -- Displays at the top tier above name tags
-        movesetFrame.Parent = mainFrame
-        
-        -- Scale the moveset frame half down using a UIScale object safely
-        local uiScale = inst_new("UIScale")
-        uiScale.Scale = 0.5
-        uiScale.Parent = movesetFrame
-        
-        -- Purge anything that isn't the UIListLayout structure
-        for _, obj in ipairs(movesetFrame:GetChildren()) do
-            if not obj:IsA("UIListLayout") and not obj:IsA("UIScale") then
-                obj:Destroy()
-            end
+    local movesetFrame = movesetPreset:Clone()
+    movesetFrame.LayoutOrder = 0
+    movesetFrame.Parent = mainFrame
+    
+    -- Inject dynamic distance scaling controller
+    local uiScale = inst_new("UIScale")
+    uiScale.Scale = 0.5
+    uiScale.Parent = movesetFrame
+    assets.MovesetScale = uiScale
+    
+    -- Purge anything that isn't structural components
+    for _, obj in ipairs(movesetFrame:GetChildren()) do
+        if not obj:IsA("UIListLayout") and not obj:IsA("UIScale") then
+            obj:Destroy()
         end
+    end
 
-        assets.MovesetItems = {}
-        for index = 1, 4 do
-            local item = itemPreset:Clone()
-            item.Visible = false
-            item.Parent = movesetFrame
-            assets.MovesetItems[index] = item
-        end
+    assets.MovesetItems = {}
+    for index = 1, 4 do
+        local item = itemPreset:Clone()
+        item.Visible = false
+        item.Parent = movesetFrame
+        assets.MovesetItems[index] = item
     end
 
     local txt = inst_new("TextLabel")
@@ -559,6 +558,20 @@ function ESP.Init(State)
                         c.IsAFK = true
                     end
 
+                    -- Real-time distance tracking for dynamic scaling operations
+                    local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
+                    local dist = (currentRootPos - root.Position).Magnitude
+                    c.LastDist = dist
+
+                    -- Distance-based sizing factor logic (keeps text readable and sets lower bounds)
+                    if c.MovesetScale then
+                        local scaleFactor = 0.5
+                        if dist > 20 then
+                            scaleFactor = m_clamp(0.5 - ((dist - 20) / 280) * 0.25, 0.25, 0.5)
+                        end
+                        c.MovesetScale.Scale = scaleFactor
+                    end
+
                     local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
                     if liveHpPerc <= 0.02 then
                         c.HealthBack.Visible = false
@@ -607,7 +620,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Real-Time Dynamic Hotbar Mapping & Cooldown Progressions
+                    -- Real-Time Dynamic Hotbar Mapping & Cooldown Progressions[cite: 1]
                     if c.MovesetItems then
                         for index = 1, 4 do
                             c.MovesetItems[index].Visible = false
@@ -622,12 +635,10 @@ function ESP.Init(State)
                                     if itemFrame then
                                         itemFrame.Visible = true
                                         
-                                        -- Assign Key Text
-                                        if itemFrame:FindFirstChild("Key") and itemFrame.Key:FindFirstChild("Key") then
-                                            itemFrame.Key.Key.Text = tostring(slotKey)
-                                        end
+                                        -- Target strict explicit layout node trees directly[cite: 1]
+                                        itemFrame.Key.Key.Text = tostring(slotKey)
 
-                                        -- Compute Dynamic Naming Configuration
+                                        -- Compute Dynamic Naming Configuration[cite: 1]
                                         local finalMoveName = move.Name
                                         if not string.find(finalMoveName, "%a") then
                                             local serviceAttr = move:GetAttribute("Service")
@@ -636,17 +647,21 @@ function ESP.Init(State)
                                             end
                                         end
 
-                                        -- Recursively update text on any label found within descendants
-                                        for _, descObj in ipairs(itemFrame:GetDescendants()) do
-                                            if descObj:IsA("TextLabel") or descObj:IsA("TextBox") then
-                                                descObj.Text = finalMoveName
-                                            end
+                                        -- Set targeted hotbar texts directly
+                                        itemFrame.ItemName.Text = finalMoveName
+
+                                        -- Dynamic Tip Attribute Assignment logic
+                                        local tipAttr = move:GetAttribute("Tip")
+                                        if tipAttr ~= nil then
+                                            itemFrame.Tip.Text = tostring(tipAttr)
+                                        else
+                                            itemFrame.Tip.Text = ""
                                         end
 
-                                        -- Dynamic Cooldown Scaling Operations (.Value used for duration)
+                                        -- Dynamic Cooldown scaling from object duration value property[cite: 1]
                                         local lastUsedStamp = move:GetAttribute("LastUse")
                                         local totalCdDuration = tonumber(move.Value)
-                                        local cdVisualFrame = itemFrame:FindFirstChild("Cooldown")
+                                        local cdVisualFrame = itemFrame.Cooldown
 
                                         if cdVisualFrame and type(lastUsedStamp) == "number" and type(totalCdDuration) == "number" and totalCdDuration > 0 then
                                             local serverNow = workspace:GetServerTimeNow()
@@ -668,10 +683,6 @@ function ESP.Init(State)
                     end
 
                     if shouldUpdateHeavy then
-                        local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
-                        local dist = (currentRootPos - root.Position).Magnitude
-                        c.LastDist = dist
-                        
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
                         
@@ -793,7 +804,6 @@ function ESP.Init(State)
                     c.BodyBill.Enabled = false
                     c.Text.Visible = false
                 end
-            -- Gracefully handle streaming/fallback visibility if structural components alter context
             elseif Cache[p] then
                 Cache[p].Line.Visible = false
                 Cache[p].Bill.Enabled = false
