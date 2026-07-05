@@ -16,6 +16,7 @@ local Instance = Instance
 local inst_new = Instance.new
 local type = type
 local tostring = tostring
+local tonumber = tonumber
 local ipairs = ipairs
 local pairs = pairs
 local table = table
@@ -38,6 +39,7 @@ local Vector2 = Vector2
 local v2_new = Vector2.new
 local Vector3 = Vector3
 local v3_new = Vector3.new
+local UDim = UDim
 local UDim2 = UDim2
 local ud2_new = UDim2.new
 local Color3 = Color3
@@ -200,9 +202,14 @@ local function CreateAssets(p)
         movesetFrame.LayoutOrder = 0 -- Displays at the top tier above name tags
         movesetFrame.Parent = mainFrame
         
+        -- Scale the moveset frame half down using a UIScale object safely
+        local uiScale = inst_new("UIScale")
+        uiScale.Scale = 0.5
+        uiScale.Parent = movesetFrame
+        
         -- Purge anything that isn't the UIListLayout structure
         for _, obj in ipairs(movesetFrame:GetChildren()) do
-            if not obj:IsA("UIListLayout") then
+            if not obj:IsA("UIListLayout") and not obj:IsA("UIScale") then
                 obj:Destroy()
             end
         end
@@ -234,7 +241,7 @@ local function CreateAssets(p)
     assets.Stroke = stroke
     
     local ultBack = inst_new("Frame")
-    maxSize = ud2_new(1, 0, 0, 5)
+    local maxSize = ud2_new(1, 0, 0, 5)
     ultBack.Size = maxSize
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ultBack.BackgroundTransparency = 0.5
@@ -629,17 +636,16 @@ function ESP.Init(State)
                                             end
                                         end
 
-                                        -- Locate and bind Title string securely
-                                        for _, childObj in ipairs(itemFrame:GetChildren()) do
-                                            if childObj:IsA("TextLabel") then
-                                                childObj.Text = finalMoveName
-                                                break
+                                        -- Recursively update text on any label found within descendants
+                                        for _, descObj in ipairs(itemFrame:GetDescendants()) do
+                                            if descObj:IsA("TextLabel") or descObj:IsA("TextBox") then
+                                                descObj.Text = finalMoveName
                                             end
                                         end
 
-                                        -- Dynamic Cooldown Scaling Operations
+                                        -- Dynamic Cooldown Scaling Operations (.Value used for duration)
                                         local lastUsedStamp = move:GetAttribute("LastUse")
-                                        local totalCdDuration = move:GetAttribute("Cooldown")
+                                        local totalCdDuration = tonumber(move.Value)
                                         local cdVisualFrame = itemFrame:FindFirstChild("Cooldown")
 
                                         if cdVisualFrame and type(lastUsedStamp) == "number" and type(totalCdDuration) == "number" and totalCdDuration > 0 then
