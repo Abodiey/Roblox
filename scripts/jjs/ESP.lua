@@ -16,6 +16,7 @@ local t_wait = task.wait
 local Instance = Instance
 local inst_new = Instance.new
 local type = type
+local typeof = typeof
 local tostring = tostring
 local tonumber = tonumber
 local ipairs = ipairs
@@ -23,7 +24,6 @@ local pairs = pairs
 local table = table
 local table_insert = table.insert
 local table_clear = table.clear
-local pcall = pcall
 
 -- Localize Math & String Libraries
 local math = math
@@ -69,9 +69,24 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = CoreGui
 
 local Cache = {}
-local MarkedCharacters = {}
-local FriendCache = {}
+local ActiveMarks = {}
+local MyFriends = {}
 local FrameTick = 0 
+
+-- Populate LocalPlayer Friend Registry Asynchronously
+task.spawn(function()
+    local success, pages = pcall(function() return Players:GetFriendsAsync(lp.UserId) end)
+    if success and pages then
+        while true do
+            for _, item in ipairs(pages:GetCurrentPage()) do
+                MyFriends[item.Id] = true
+            end
+            if pages.IsFinished then break end
+            local advanceSuccess = pcall(function() pages:AdvanceToNextPageAsync() end)
+            if not advanceSuccess then break end
+        end
+    end
+end)
 
 -- Design Palette Constants
 local COLOR_RED = c3_new(1, 0.1, 0.1)
@@ -119,51 +134,6 @@ local DARK_MOVESETS = {
     ["Kurourushi"] = true
 }
 
--- Dynamic Async Relationship Tracker Loop
-local function updateFriendship(p)
-    if p == lp then return end
-    FriendCache[p] = "None"
-    task.spawn(function()
-        local success, isFriend = pcall(function() return lp:IsFriendsWith(p.UserId) end)
-        if success and isFriend then
-            FriendCache[p] = "Friend"
-        else
-            for _, other in ipairs(Players:GetPlayers()) do
-                if other ~= lp and other ~= p then
-                    local s1, f1 = pcall(function() return lp:IsFriendsWith(other.UserId) end)
-                    local s2, f2 = pcall(function() return other:IsFriendsWith(p.UserId) end)
-                    if s1 and f1 and s2 and f2 then
-                        FriendCache[p] = "Mutual"
-                        break
-                    end
-                end
-            end
-        end
-    end)
-end
-
-Players.PlayerAdded:Connect(updateFriendship)
-Players.PlayerRemoving:Connect(function(p) FriendCache[p] = nil end)
-for _, p in ipairs(Players:GetPlayers()) do updateFriendship(p) end
-
--- Bind Knit Charles Effects Tracking Engine Safely
-task.spawn(function()
-    local Knit = ReplicatedStorage:WaitForChild("Knit", 5)
-    local KnitInner = Knit and Knit:WaitForChild("Knit", 5)
-    local Services = KnitInner and KnitInner:WaitForChild("Services", 5)
-    local CharlesService = Services and Services:WaitForChild("CharlesService", 5)
-    local RE = CharlesService and CharlesService:WaitForChild("RE", 5)
-    local Effects = RE and RE:WaitForChild("Effects", 5)
-    
-    if Effects then
-        Effects.OnClientEvent:Connect(function(action, targetChar, pos, markInstance)
-            if action == "Mark" and targetChar and targetChar:IsA("Model") then
-                MarkedCharacters[targetChar] = markInstance
-            end
-        end)
-    end
-end)
-
 local function getGradientColor(percent)
     percent = m_clamp(percent, 0, 1)
     if percent > 0.5 then
@@ -189,6 +159,7 @@ local function isCustom(movesetFolder)
     return true
 end
 
+-- Draws Brawlhalla style interval ticks and populates reference arrays
 local function applyBrawlhallaTicks(parentFrame, isVertical)
     local lineCache = {}
     for idx = 1, 9 do
@@ -213,6 +184,7 @@ end
 local function CreateAssets(p)
     local assets = {}
     
+    -- Tracer Line Frame
     local line = inst_new("Frame")
     line.BorderSizePixel = 0
     line.AnchorPoint = v2_new(0.5, 0.5)
@@ -220,11 +192,11 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- High-DPI Resolution Fix (480x190 Canvas with Base UIScale at 0.5)
+    -- 1. OVERHEAD BILLBOARD (Text, Ultimate Bar, and Moveset Hotbar)
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 480, 0, 190)
-    bill.ExtentsOffset = v3_new(0, 4.5, 0)
+    bill.Size = ud2_new(0, 240, 0, 95)
+    bill.ExtentsOffset = v3_new(0, 4.0, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
@@ -233,17 +205,13 @@ local function CreateAssets(p)
     mainFrame.BackgroundTransparency = 1
     mainFrame.Parent = bill
     
-    local highDpiScale = inst_new("UIScale")
-    highDpiScale.Scale = 0.5
-    highDpiScale.Parent = mainFrame
-    
     local blockLayout = inst_new("UIListLayout")
     blockLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    blockLayout.Padding = UDim.new(0, 4)
+    blockLayout.Padding = UDim.new(0, 3)
     blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     blockLayout.Parent = mainFrame
 
-    -- Main UI presets guaranteed structure mapping
+    -- Dynamic Hotbar Replication (Guaranteed Hierarchy via StarterGui)
     local mainGui = StarterGui.Main
     local movesetPreset = mainGui.Controls.Moveset
     local itemPreset = mainGui.Preset.Item
@@ -252,11 +220,13 @@ local function CreateAssets(p)
     movesetFrame.LayoutOrder = 0
     movesetFrame.Parent = mainFrame
     
+    -- Inject dynamic distance scaling controller
     local uiScale = inst_new("UIScale")
     uiScale.Scale = 0.5
     uiScale.Parent = movesetFrame
     assets.MovesetScale = uiScale
     
+    -- Purge anything that isn't structural components
     for _, obj in ipairs(movesetFrame:GetChildren()) do
         if not obj:IsA("UIListLayout") and not obj:IsA("UIScale") then
             obj:Destroy()
@@ -272,12 +242,12 @@ local function CreateAssets(p)
     end
 
     local txt = inst_new("TextLabel")
-    txt.Size = ud2_new(1, 0, 0, 26)
+    txt.Size = ud2_new(1, 0, 0, 24)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
     txt.Font = Enum.Font.RobotoMono
-    txt.TextSize = 12
+    txt.TextSize = 11
     txt.LayoutOrder = 1
     txt.Parent = mainFrame
     assets.Text = txt
@@ -289,14 +259,15 @@ local function CreateAssets(p)
     assets.Stroke = stroke
     
     local ultBack = inst_new("Frame")
-    ultBack.Size = ud2_new(1, 0, 0, 6)
+    local maxSize = ud2_new(1, 0, 0, 5)
+    ultBack.Size = maxSize
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ultBack.BackgroundTransparency = 0.5
     ultBack.BorderSizePixel = 0
     ultBack.ZIndex = 1
     ultBack.LayoutOrder = 2
     ultBack.Parent = mainFrame
-    assets.MainUltBack = ultBack
+    assets.UltBack = ultBack
     
     local ultStroke = inst_new("UIStroke")
     ultStroke.Thickness = 1
@@ -313,6 +284,7 @@ local function CreateAssets(p)
     assets.UltFill = ultFill
     assets.UltLines = applyBrawlhallaTicks(ultBack, false)
 
+    -- 2. PHYSICAL CHARACTER SIDEBARS
     local bodyBill = inst_new("BillboardGui")
     bodyBill.AlwaysOnTop = true
     bodyBill.Size = ud2_new(5.4, 0, 4.8, 0)
@@ -320,7 +292,7 @@ local function CreateAssets(p)
     bodyBill.Parent = ScreenGui
     assets.BodyBill = bodyBill
 
-    -- Health Sidebar
+    -- Left Sidebar: Health
     local hBack = inst_new("Frame")
     hBack.Size = ud2_new(0, 5, 1, 0)
     hBack.Position = ud2_new(0, 0, 0, 0)
@@ -335,6 +307,7 @@ local function CreateAssets(p)
     hBackStroke.Thickness = 1
     hBackStroke.Color = COLOR_BLACK
     hBackStroke.Parent = hBack
+    assets.HealthBackStroke = hBackStroke
     
     local hFill = inst_new("Frame")
     hFill.Size = ud2_new(1, 0, 1, 0)
@@ -348,7 +321,7 @@ local function CreateAssets(p)
     assets.HealthFill = hFill
     assets.HealthLines = applyBrawlhallaTicks(hBack, true)
 
-    -- Evade Sidebar
+    -- Right Sidebar: Evade
     local eBack = inst_new("Frame")
     eBack.Size = ud2_new(0, 5, 1, 0)
     eBack.Position = ud2_new(1, -5, 0, 0)
@@ -363,6 +336,7 @@ local function CreateAssets(p)
     eBackStroke.Thickness = 1
     eBackStroke.Color = COLOR_BLACK
     eBackStroke.Parent = eBack
+    assets.EvadeBackStroke = eBackStroke
     
     local eFill = inst_new("Frame")
     eFill.Size = ud2_new(1, 0, 0, 0)
@@ -375,15 +349,16 @@ local function CreateAssets(p)
     eFill.Parent = eBack
     assets.EvadeFill = eFill
     assets.EvadeLines = applyBrawlhallaTicks(eBack, true)
-
-    -- Ryu Overheat Sidebar
+    
+    -- Right Sidebar Extension: Overheat Bar (Positioned clean next to Evade)
     local ohBack = inst_new("Frame")
     ohBack.Size = ud2_new(0, 5, 1, 0)
-    ohBack.Position = ud2_new(1, -12, 0, 0)
+    ohBack.Position = ud2_new(1, 2, 0, 0)
     ohBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ohBack.BackgroundTransparency = 0.5
     ohBack.BorderSizePixel = 0
     ohBack.ZIndex = 1
+    ohBack.Visible = false
     ohBack.Parent = bodyBill
     assets.OverheatBack = ohBack
     
@@ -402,11 +377,13 @@ local function CreateAssets(p)
     ohFill.Parent = ohBack
     assets.OverheatFill = ohFill
     assets.OverheatLines = applyBrawlhallaTicks(ohBack, true)
-    
+
+    -- Connections and runtime storage
     assets.Connections = {}
     assets.CharacterConnections = {} 
     assets.KillValueConnections = {} 
     
+    -- AFK Detection Coordinates
     assets.LastPosition = v3_new(0, 0, 0)
     assets.LastMoveTime = o_clock()
     assets.IsAFK = false
@@ -417,6 +394,7 @@ local function CreateAssets(p)
     assets.NameDisplay = ""
     assets.CashDisplay = ""
     assets.GroupRoleTag = ""
+    assets.FriendStatus = "None"
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
@@ -425,18 +403,49 @@ local function CreateAssets(p)
     return assets
 end
 
-local function CleanupCacheEntry(target, assets)
+local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.Connections) do conn:Disconnect() end
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     if assets.Line then assets.Line:Destroy() end
     if assets.Bill then assets.Bill:Destroy() end
     if assets.BodyBill then assets.BodyBill:Destroy() end
-    Cache[target] = nil
+    Cache[p] = nil
 end
 
 local function SetupPlayerSignals(p, assets)
-    if not p then return end
+    -- Asynchronous Friend & Mutual Relation Processing
+    task.spawn(function()
+        for _ = 1, 10 do
+            if next(MyFriends) then break end
+            t_wait(0.5)
+        end
+        
+        if MyFriends[p.UserId] then
+            assets.FriendStatus = "Friend"
+            return
+        end
+        
+        local success, pages = pcall(function() return Players:GetFriendsAsync(p.UserId) end)
+        if success and pages then
+            local isMutual = false
+            while true do
+                for _, item in ipairs(pages:GetCurrentPage()) do
+                    if MyFriends[item.Id] then
+                        isMutual = true
+                        break
+                    end
+                end
+                if isMutual or pages.IsFinished then break end
+                local advanceSuccess = pcall(function() pages:AdvanceToNextPageAsync() end)
+                if not advanceSuccess then break end
+            end
+            if isMutual then
+                assets.FriendStatus = "Mutual"
+            end
+        end
+    end)
+
     task.spawn(function()
         local success, rank = pcall(p.GetRankInGroup, p, TARGET_GROUP)
         if success and type(rank) == "number" and rank > 0 then
@@ -452,6 +461,7 @@ local function SetupPlayerSignals(p, assets)
     local function trackValueInstance(killsVal)
         for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
         table_clear(assets.KillValueConnections)
+
         if not killsVal then return end
 
         local function updateKills()
@@ -519,6 +529,7 @@ end
 local function SetupCharacterSignals(assets, char, hum)
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
     table_clear(assets.CharacterConnections)
+
     if not hum then return end
 
     local function updateBarsInline()
@@ -561,6 +572,23 @@ function ESP.Init(State)
         ScreenGui.Enabled = true
     end
 
+    -- Hook Charles Mark Replication Remote
+    local KnitFolder = ReplicatedStorage:FindFirstChild("Knit")
+    local EffectsEvent = KnitFolder and KnitFolder:FindFirstChild("Knit") 
+        and KnitFolder.Knit:FindFirstChild("Services")
+        and KnitFolder.Knit.Services:FindFirstChild("CharlesService")
+        and KnitFolder.Knit.Services.CharlesService:FindFirstChild("RE")
+        and KnitFolder.Knit.Services.CharlesService.RE:FindFirstChild("Effects")
+
+    if EffectsEvent then
+        local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markInstance)
+            if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markInstance) == "Instance" then
+                ActiveMarks[charInstance] = markInstance
+            end
+        end)
+        table_insert(State.Connections, markConn)
+    end
+
     local conn = RunService.RenderStepped:Connect(function()
         if not toggleObject.Value then return end
 
@@ -578,53 +606,24 @@ function ESP.Init(State)
         local globalRainbowColor = Color3.fromHSV((gameClock * 0.4) % 1, 1, 1)
         local globalRainbowHex = s_format("%02x%02x%02x", m_floor(globalRainbowColor.R * 255), m_floor(globalRainbowColor.G * 255), m_floor(globalRainbowColor.B * 255))
 
-        -- Synchronize and validate tracking context maps
-        for char, assets in pairs(Cache) do
-            local isMarked = MarkedCharacters[char] and MarkedCharacters[char].Parent
-            local isPlayerChar = false
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= lp and p.Character == char then
-                    isPlayerChar = true
-                    break
-                end
-            end
-            if not char or not char.Parent or (not isPlayerChar and not isMarked) then
-                CleanupCacheEntry(char, assets)
-            end
+        for p, assets in pairs(Cache) do
+            if not p or not p.Parent then CleanupCacheEntry(p, assets) end
         end
 
-        -- Collect all valid target models
-        local processList = {}
         for _, p in pairs(Players:GetPlayers()) do
             if p == lp then continue end
             local char = p.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
-                processList[char] = p
-            end
-        end
-
-        for npcChar, markInst in pairs(MarkedCharacters) do
-            if npcChar and npcChar.Parent and markInst and markInst.Parent then
-                if not processList[npcChar] and npcChar:FindFirstChild("HumanoidRootPart") and npcChar:FindFirstChild("Humanoid") then
-                    processList[npcChar] = "NPC"
-                end
-            end
-        end
-
-        -- Core rendering operations loop
-        for char, pSource in pairs(processList) do
-            local p = (pSource ~= "NPC") and pSource or nil
-            local hum = char:FindFirstChild("Humanoid")
-            local root = char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChild("Humanoid")
+            local root = char and char:FindFirstChild("HumanoidRootPart")
 
             if root and hum then
-                local c = Cache[char]
+                local c = Cache[p]
                 if not c then 
                     c = CreateAssets(p)
-                    Cache[char] = c 
+                    Cache[p] = c 
                     c.LastPosition = root.Position
                     c.LastMoveTime = gameClock
-                    if p then SetupPlayerSignals(p, c) end
+                    SetupPlayerSignals(p, c)
                     SetupCharacterSignals(c, char, hum)
                 end
                 
@@ -656,11 +655,12 @@ function ESP.Init(State)
                         c.IsAFK = true
                     end
 
+                    -- Real-time distance tracking for dynamic scaling operations
                     local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
                     local dist = (currentRootPos - root.Position).Magnitude
                     c.LastDist = dist
 
-                    -- Adaptive, legible text distance matrix scaling
+                    -- Distance-based sizing factor logic (keeps text readable and sets lower bounds)
                     if c.MovesetScale then
                         local scaleFactor = 0.5
                         if dist > 20 then
@@ -701,34 +701,34 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- Ryu Dynamic Overheat Interface Calculation
-                    local processedOverheat = false
-                    if char:GetAttribute("Moveset") == "Ryu" then
-                        local infoFolder = char:FindFirstChild("Info")
-                        local overheatObj = infoFolder and infoFolder:FindFirstChild("Overheat")
-                        if overheatObj then
-                            processedOverheat = true
-                            local ohValue = tonumber(overheatObj.Value) or 0
-                            local ohPerc = m_clamp(ohValue / 50, 0, 1)
+                    -- Real-Time Ryu Overheat Logic Integration
+                    if char:GetAttribute("Moveset") == "Ryu" and char:FindFirstChild("Info") and char.Info:FindFirstChild("Overheat") then
+                        local ohVal = char.Info.Overheat.Value
+                        local ohRatio = m_clamp(ohVal / 50, 0, 1)
+                        
+                        if ohRatio <= 0.02 then
+                            c.OverheatBack.Visible = false
+                        else
+                            c.OverheatBack.Visible = true
+                            c.OverheatFill.Size = ud2_new(1, 0, ohRatio, 0)
                             
-                            if ohPerc <= 0.02 then
-                                c.OverheatBack.Visible = false
+                            local ohColor
+                            if ohVal >= 50 then
+                                ohColor = COLOR_YELLOW
+                                for i = 1, 9 do c.OverheatLines[i].Visible = false end
                             else
-                                c.OverheatBack.Visible = true
-                                c.OverheatFill.Size = ud2_new(1, 0, ohPerc, 0)
-                                if ohValue >= 50 then
-                                    c.OverheatFill.BackgroundColor3 = COLOR_YELLOW
-                                else
-                                    c.OverheatFill.BackgroundColor3 = c3_fromHex("#86D7FF"):Lerp(c3_new(1, 0.05, 0.5), ohPerc)
-                                end
+                                local lightBlue = c3_new(0, 0.66, 1)
+                                local pink = c3_new(1, 0, 0.5)
+                                ohColor = lightBlue:Lerp(pink, ohRatio)
+                                for i = 1, 9 do c.OverheatLines[i].Visible = true end
                             end
+                            c.OverheatFill.BackgroundColor3 = ohColor
                         end
-                    end
-                    if not processedOverheat then
+                    else
                         c.OverheatBack.Visible = false
                     end
 
-                    local rawUlt = p and p:GetAttribute("Ultimate") or char:GetAttribute("Ultimate")
+                    local rawUlt = p:GetAttribute("Ultimate")
                     local ultValue = type(rawUlt) == "number" and rawUlt or 0
                     c.UltFill.Size = ud2_new(m_clamp(ultValue / 100, 0, 1), 0, 1, 0)
 
@@ -758,8 +758,10 @@ function ESP.Init(State)
                                     local itemFrame = c.MovesetItems[slotKey]
                                     if itemFrame then
                                         itemFrame.Visible = true
+                                        
                                         itemFrame.Key.Key.Text = tostring(slotKey)
 
+                                        -- Compute Dynamic Naming Configuration
                                         local finalMoveName = move.Name
                                         if not string.find(finalMoveName, "%a") then
                                             local serviceAttr = move:GetAttribute("Service")
@@ -767,8 +769,10 @@ function ESP.Init(State)
                                                 finalMoveName = string.gsub(serviceAttr, "Service", "")
                                             end
                                         end
+
                                         itemFrame.ItemName.Text = finalMoveName
 
+                                        -- Dynamic Tip Attribute Assignment logic
                                         local tipAttr = move:GetAttribute("Tip")
                                         if tipAttr ~= nil then
                                             itemFrame.Tip.Text = tostring(tipAttr)
@@ -776,6 +780,7 @@ function ESP.Init(State)
                                             itemFrame.Tip.Text = ""
                                         end
 
+                                        -- Dynamic Cooldown scaling from object duration value property
                                         local lastUsedStamp = move:GetAttribute("LastUse")
                                         local totalCdDuration = tonumber(move.Value)
                                         local cdVisualFrame = itemFrame.Cooldown
@@ -805,7 +810,7 @@ function ESP.Init(State)
                         
                         local movesetName = "Custom"
                         local cm = char:GetAttribute("Moveset")
-                        local pm = p and p:GetAttribute("Moveset")
+                        local pm = p:GetAttribute("Moveset")
                         local movesetFolder = char:FindFirstChild("Moveset")
                         local fullyCustom = isCustom(movesetFolder)
                         local usesCustomLook = false
@@ -842,26 +847,24 @@ function ESP.Init(State)
                         c.UltFill.BackgroundColor3 = c3_fromHex("#" .. hexColor)
                         
                         if hexColor == "000000" and not usesCustomLook then
-                            c.MainUltBack.BackgroundColor3 = c3_new(0.18, 0.18, 0.18)
+                            c.UltBack.BackgroundColor3 = c3_new(0.18, 0.18, 0.18)
                             if ultValue < 100 then c.UltStroke.Color = COLOR_WHITE end
                         else
-                            c.MainUltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
+                            c.UltBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
                         end
 
-                        local rawCash = p and p:GetAttribute("Cash") or 0
+                        local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
                         c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
 
                         local permBadges = ""
-                        if p then
-                            if p:GetAttribute("PS_Owner") == true then
-                                permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
-                            elseif p:GetAttribute("PS_Perms") == true then
-                                permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
-                            end
-                            if p:GetAttribute("Workshop") == true then
-                                permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
-                            end
+                        if p:GetAttribute("PS_Owner") == true then
+                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
+                        elseif p:GetAttribute("PS_Perms") == true then
+                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
+                        end
+                        if p:GetAttribute("Workshop") == true then
+                            permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
                         end
 
                         local rawJackpot = char:GetAttribute("JackpotInRow")
@@ -871,44 +874,45 @@ function ESP.Init(State)
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
                         local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
-                        -- Process dynamic modifier stack strings
+                        -- Process Charles Mark Tag State
                         local markTag = ""
-                        local currentMarkInst = MarkedCharacters[char]
-                        if currentMarkInst and currentMarkInst.Parent then
-                            markTag = "<font color='#A77DCB'>[MARK]</font> "
-                        end
-
-                        local itfgTag = ""
-                        local itfgVal = char:GetAttribute("ITFG")
-                        if type(itfgVal) == "number" and itfgVal > 0 then
-                            itfgTag = s_format("<font color='#AAAAFF'>[ITFG %d/2]</font> ", m_clamp(itfgVal, 1, 2))
-                        end
-
-                        local execTag = ""
-                        local execVal = char:GetAttribute("EXEC")
-                        if type(execVal) == "number" and execVal > 0 then
-                            execTag = s_format("<font color='#FFFF00'>[EXEC %d/3]</font> ", m_clamp(execVal, 1, 3))
-                        end
-
-                        -- Process friendship dynamic color rules
-                        local targetName = p and p.Name or char.Name
-                        local nameColorHex = "ffffff"
-                        if p then
-                            local relationStatus = FriendCache[p] or "None"
-                            if relationStatus == "Friend" then
-                                nameColorHex = "00ff00"
-                            elseif relationStatus == "Mutual" then
-                                nameColorHex = "86D7FF"
+                        local currentMark = ActiveMarks[char]
+                        if currentMark then
+                            if currentMark.Parent and char.Parent then
+                                markTag = "<font color='#9D8D6D'>[MARK]</font> "
+                            else
+                                ActiveMarks[char] = nil
                             end
                         end
 
-                        local nameString
-                        if isDead then
-                            nameString = s_format("%s%s%s%s%s%s%s%s<font color='#FF0000'>[DEAD]</font> <font color='#%s'>%s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, nameColorHex, targetName)
-                        else
-                            nameString = s_format("%s%s%s%s%s%s%s%s<font color='#%s'>%s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, nameColorHex, (dist < 50) and targetName or "<b>" .. targetName .. "</b>")
+                        -- Process Mahito Idle Transfiguration Tag State
+                        local itfgTag = ""
+                        local itfgVal = char:GetAttribute("ITFG")
+                        if type(itfgVal) == "number" and itfgVal >= 1 and itfgVal <= 2 then
+                            itfgTag = s_format("<font color='#AAAAFF'>[ITFG %d/2]</font> ", itfgVal)
                         end
-                        c.NameDisplay = nameString
+
+                        -- Process Execution Tag State
+                        local execTag = ""
+                        local execVal = char:GetAttribute("EXEC")
+                        if type(execVal) == "number" and execVal > 0 then
+                            execTag = s_format("<font color='#FFFF00'>[EXEC %d/2]</font> ", execVal)
+                        end
+
+                        if isDead then
+                            c.NameDisplay = s_format("%s%s%s%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, p.Name)
+                        else
+                            -- Sort User Profile Hex Wrapping based on Relationships
+                            local nameColorHex = "FFFFFF"
+                            if c.FriendStatus == "Friend" then
+                                nameColorHex = "00FF00"
+                            elseif c.FriendStatus == "Mutual" then
+                                nameColorHex = "00FFFF"
+                            end
+
+                            local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
+                            c.NameDisplay = s_format("%s%s%s%s%s%s%s%s<font color='#%s'>%s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, nameColorHex, nameStr)
+                        end
                         
                         local distCol = getGradientColor(dist / 800)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
@@ -926,6 +930,7 @@ function ESP.Init(State)
                     end
                     
                     local currentDist = c.LastDist
+
                     local eX, eY = p2.X, p2.Y
                     local diffX, diffY = eX - sX, eY - sY
                     local mag = (diffX * diffX + diffY * diffY) ^ 0.5
@@ -955,10 +960,10 @@ function ESP.Init(State)
                     c.BodyBill.Enabled = false
                     c.Text.Visible = false
                 end
-            elseif Cache[char] then
-                Cache[char].Line.Visible = false
-                Cache[char].Bill.Enabled = false
-                Cache[char].BodyBill.Enabled = false
+            elseif Cache[p] then
+                Cache[p].Line.Visible = false
+                Cache[p].Bill.Enabled = false
+                Cache[p].BodyBill.Enabled = false
             end
         end
     end)
