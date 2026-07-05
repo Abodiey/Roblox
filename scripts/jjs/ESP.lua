@@ -70,23 +70,7 @@ ScreenGui.Parent = CoreGui
 
 local Cache = {}
 local ActiveMarks = {}
-local MyFriends = {}
 local FrameTick = 0 
-
--- Populate LocalPlayer Friend Registry Asynchronously
-task.spawn(function()
-    local success, pages = pcall(function() return Players:GetFriendsAsync(lp.UserId) end)
-    if success and pages then
-        while true do
-            for _, item in ipairs(pages:GetCurrentPage()) do
-                MyFriends[item.Id] = true
-            end
-            if pages.IsFinished then break end
-            local advanceSuccess = pcall(function() pages:AdvanceToNextPageAsync() end)
-            if not advanceSuccess then break end
-        end
-    end
-end)
 
 -- Design Palette Constants
 local COLOR_RED = c3_new(1, 0.1, 0.1)
@@ -350,7 +334,7 @@ local function CreateAssets(p)
     assets.EvadeFill = eFill
     assets.EvadeLines = applyBrawlhallaTicks(eBack, true)
     
-    -- Right Sidebar Extension: Overheat Bar (Positioned clean next to Evade)
+    -- Right Sidebar Extension: Overheat Bar (Positioned cleanly next to Evade)
     local ohBack = inst_new("Frame")
     ohBack.Size = ud2_new(0, 5, 1, 0)
     ohBack.Position = ud2_new(1, 2, 0, 0)
@@ -394,7 +378,8 @@ local function CreateAssets(p)
     assets.NameDisplay = ""
     assets.CashDisplay = ""
     assets.GroupRoleTag = ""
-    assets.FriendStatus = "None"
+    assets.IsFriend = false
+    assets.IsMutual = false
     assets.LineColor = COLOR_GREEN
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
@@ -414,34 +399,23 @@ local function CleanupCacheEntry(p, assets)
 end
 
 local function SetupPlayerSignals(p, assets)
-    -- Asynchronous Friend & Mutual Relation Processing
+    -- Safe Relationship Processing completely removing GetCurrentPage dependency
     task.spawn(function()
-        for _ = 1, 10 do
-            if next(MyFriends) then break end
-            t_wait(0.5)
-        end
-        
-        if MyFriends[p.UserId] then
-            assets.FriendStatus = "Friend"
+        local directSuccess, directRes = pcall(function() return lp:IsFriendsWith(p.UserId) end)
+        if directSuccess and directRes then
+            assets.IsFriend = true
             return
         end
-        
-        local success, pages = pcall(function() return Players:GetFriendsAsync(p.UserId) end)
-        if success and pages then
-            local isMutual = false
-            while true do
-                for _, item in ipairs(pages:GetCurrentPage()) do
-                    if MyFriends[item.Id] then
-                        isMutual = true
-                        break
-                    end
+
+        -- Scan current server players for shared mutual relationships safely
+        for _, other in ipairs(Players:GetPlayers()) do
+            if other ~= lp and other ~= p then
+                local s1, r1 = pcall(function() return lp:IsFriendsWith(other.UserId) end)
+                local s2, r2 = pcall(function() return p:IsFriendsWith(other.UserId) end)
+                if s1 and r1 and s2 and r2 then
+                    assets.IsMutual = true
+                    break
                 end
-                if isMutual or pages.IsFinished then break end
-                local advanceSuccess = pcall(function() pages:AdvanceToNextPageAsync() end)
-                if not advanceSuccess then break end
-            end
-            if isMutual then
-                assets.FriendStatus = "Mutual"
             end
         end
     end)
@@ -533,7 +507,7 @@ local function SetupCharacterSignals(assets, char, hum)
     if not hum then return end
 
     local function updateBarsInline()
-        if not assets.HealthFill then return end
+        if not assets.HealthFill or assets.LastDist < 10 then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
         
         if hpPerc <= 0.02 then
@@ -572,7 +546,7 @@ function ESP.Init(State)
         ScreenGui.Enabled = true
     end
 
-    -- Hook Charles Mark Replication Remote
+    -- Hook Charles Mark Replication Remote Stream
     local KnitFolder = ReplicatedStorage:FindFirstChild("Knit")
     local EffectsEvent = KnitFolder and KnitFolder:FindFirstChild("Knit") 
         and KnitFolder.Knit:FindFirstChild("Services")
@@ -581,9 +555,9 @@ function ESP.Init(State)
         and KnitFolder.Knit.Services.CharlesService.RE:FindFirstChild("Effects")
 
     if EffectsEvent then
-        local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markInstance)
-            if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markInstance) == "Instance" then
-                ActiveMarks[charInstance] = markInstance
+        local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markValueObject)
+            if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markValueObject) == "Instance" then
+                ActiveMarks[charInstance] = markValueObject
             end
         end)
         table_insert(State.Connections, markConn)
@@ -655,12 +629,14 @@ function ESP.Init(State)
                         c.IsAFK = true
                     end
 
-                    -- Real-time distance tracking for dynamic scaling operations
+                    -- Real-time distance tracking for dynamic overrides
                     local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
                     local dist = (currentRootPos - root.Position).Magnitude
                     c.LastDist = dist
+                    
+                    local hideNameAndHealth = (dist < 10)
 
-                    -- Distance-based sizing factor logic (keeps text readable and sets lower bounds)
+                    -- Distance-based sizing factor logic
                     if c.MovesetScale then
                         local scaleFactor = 0.5
                         if dist > 20 then
@@ -669,10 +645,11 @@ function ESP.Init(State)
                         c.MovesetScale.Scale = scaleFactor
                     end
 
-                    local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
-                    if liveHpPerc <= 0.02 then
+                    -- Distance Conditional Health Bar Controller
+                    if hideNameAndHealth or hum.Health / hum.MaxHealth <= 0.02 then
                         c.HealthBack.Visible = false
                     else
+                        local liveHpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
                         c.HealthBack.Visible = true
                         c.HealthFill.Size = ud2_new(1, 0, liveHpPerc, 0)
                         if liveHpPerc >= 0.99 then
@@ -758,21 +735,10 @@ function ESP.Init(State)
                                     local itemFrame = c.MovesetItems[slotKey]
                                     if itemFrame then
                                         itemFrame.Visible = true
-                                        
                                         itemFrame.Key.Key.Text = tostring(slotKey)
+                                        itemFrame.ItemName.Text = move.Name
 
-                                        -- Compute Dynamic Naming Configuration
-                                        local finalMoveName = move.Name
-                                        if not string.find(finalMoveName, "%a") then
-                                            local serviceAttr = move:GetAttribute("Service")
-                                            if type(serviceAttr) == "string" then
-                                                finalMoveName = string.gsub(serviceAttr, "Service", "")
-                                            end
-                                        end
-
-                                        itemFrame.ItemName.Text = finalMoveName
-
-                                        -- Dynamic Tip Attribute Assignment logic
+                                        -- Validate and update move tip configuration directly
                                         local tipAttr = move:GetAttribute("Tip")
                                         if tipAttr ~= nil then
                                             itemFrame.Tip.Text = tostring(tipAttr)
@@ -855,7 +821,14 @@ function ESP.Init(State)
 
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
-                        c.CashDisplay = (cashValue > 0) and s_format("<font color='#00FF00'>$%s</font> | ", formatVal(cashValue)) or ""
+                        
+                        -- Process Conditional Unshortened / Hidden Money Configurations
+                        if cashValue > 0 then
+                            local cashStr = hideNameAndHealth and tostring(cashValue) or formatVal(cashValue)
+                            c.CashDisplay = s_format("<font color='#00FF00'>$%s</font> | ", cashStr)
+                        else
+                            c.CashDisplay = ""
+                        end
 
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
@@ -874,12 +847,12 @@ function ESP.Init(State)
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
                         local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
-                        -- Process Charles Mark Tag State
+                        -- Process Charles Mark Tag State Lifecycle from ValueObject
                         local markTag = ""
-                        local currentMark = ActiveMarks[char]
-                        if currentMark then
-                            if currentMark.Parent and char.Parent then
-                                markTag = "<font color='#9D8D6D'>[MARK]</font> "
+                        local currentMarkObj = ActiveMarks[char]
+                        if currentMarkObj then
+                            if currentMarkObj.Parent and char.Parent then
+                                markTag = "<font color='#9D8D6D'><b>[MARK]</b></font> "
                             else
                                 ActiveMarks[char] = nil
                             end
@@ -889,29 +862,43 @@ function ESP.Init(State)
                         local itfgTag = ""
                         local itfgVal = char:GetAttribute("ITFG")
                         if type(itfgVal) == "number" and itfgVal >= 1 and itfgVal <= 2 then
-                            itfgTag = s_format("<font color='#AAAAFF'>[ITFG %d/2]</font> ", itfgVal)
+                            itfgTag = s_format("<font color='#DF00FF'><b>[IT %d/2]</b></font> ", itfgVal)
                         end
 
-                        -- Process Execution Tag State
+                        -- Process Ultra Bright Yellow Execution Tag State
                         local execTag = ""
                         local execVal = char:GetAttribute("EXEC")
                         if type(execVal) == "number" and execVal > 0 then
-                            execTag = s_format("<font color='#FFFF00'>[EXEC %d/2]</font> ", execVal)
+                            execTag = s_format("<font color='#FFFF00'><b>[EXEC %d/2]</b></font> ", execVal)
                         end
 
-                        if isDead then
-                            c.NameDisplay = s_format("%s%s%s%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, p.Name)
+                        -- Process Burst Tag State
+                        local burstTag = ""
+                        if char:GetAttribute("Burst") ~= nil then
+                            burstTag = "<font color='#FFFFFF'><b>[BURST]</b></font> "
+                        end
+
+                        -- Build and order tags precisely at the end
+                        local trailingBrackets = ""
+                        if markTag ~= "" then trailingBrackets = trailingBrackets .. markTag end
+                        if itfgTag ~= "" then trailingBrackets = trailingBrackets .. itfgTag end
+                        if execTag ~= "" then trailingBrackets = trailingBrackets .. execTag end
+                        if burstTag ~= "" then trailingBrackets = trailingBrackets .. burstTag end
+
+                        if hideNameAndHealth then
+                            c.NameDisplay = trailingBrackets
+                        elseif isDead then
+                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
                         else
-                            -- Sort User Profile Hex Wrapping based on Relationships
                             local nameColorHex = "FFFFFF"
-                            if c.FriendStatus == "Friend" then
+                            if c.IsFriend then
                                 nameColorHex = "00FF00"
-                            elseif c.FriendStatus == "Mutual" then
+                            elseif c.IsMutual then
                                 nameColorHex = "00FFFF"
                             end
 
                             local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
-                            c.NameDisplay = s_format("%s%s%s%s%s%s%s%s<font color='#%s'>%s</font>", afkTag, leftTag, jackpotTag, markTag, itfgTag, execTag, c.GroupRoleTag, permBadges, nameColorHex, nameStr)
+                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
                         local distCol = getGradientColor(dist / 800)
@@ -940,7 +927,8 @@ function ESP.Init(State)
                     c.Line.Position = ud2_new(0, (sX + eX) * 0.5, 0, (sY + eY) * 0.5)
                     c.Line.Rotation = m_deg(m_atan2(diffY, diffX))
 
-                    local killString = formatVal(c.CachedKills)
+                    -- Process Conditional Unshortened Kill Strings
+                    local killString = hideNameAndHealth and tostring(c.CachedKills) or formatVal(c.CachedKills)
                     if c.IsHidingKills then
                         killString = s_format("%s <font color='#FF3333'><b>[HIDDEN]</b></font>", killString)
                     end
