@@ -33,6 +33,18 @@ local s_format = string.format
 local os = os
 local o_clock = os.clock
 
+-- Localize Roblox Datatypes
+local Vector2 = Vector2
+local v2_new = Vector2.new
+local Vector3 = Vector3
+local v3_new = Vector3.new
+local UDim2 = UDim2
+local ud2_new = UDim2.new
+local Color3 = Color3
+local c3_fromHex = Color3.fromHex
+local c3_new = Color3.new
+local Enum = Enum
+
 local lp = Players.LocalPlayer
 if not lp then
     task.spawn(function()
