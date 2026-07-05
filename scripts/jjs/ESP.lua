@@ -7,6 +7,7 @@ local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local workspace = cloneref(game:GetService("Workspace"))
+local StarterGui = cloneref(game:GetService("StarterGui"))
 
 -- Localize Global Engine Functions
 local task = task
@@ -31,18 +32,6 @@ local string = string
 local s_format = string.format
 local os = os
 local o_clock = os.clock
-
--- Localize Roblox Datatypes
-local Vector2 = Vector2
-local v2_new = Vector2.new
-local Vector3 = Vector3
-local v3_new = Vector3.new
-local UDim2 = UDim2
-local ud2_new = UDim2.new
-local Color3 = Color3
-local c3_fromHex = Color3.fromHex
-local c3_new = Color3.new
-local Enum = Enum
 
 local lp = Players.LocalPlayer
 if not lp then
@@ -170,11 +159,11 @@ local function CreateAssets(p)
     line.Parent = ScreenGui
     assets.Line = line
     
-    -- 1. OVERHEAD BILLBOARD (Text & Ultimate Bar Only)
+    -- 1. OVERHEAD BILLBOARD (Text, Ultimate Bar, and Moveset Hotbar)
     local bill = inst_new("BillboardGui")
     bill.AlwaysOnTop = true
-    bill.Size = ud2_new(0, 200, 0, 42)
-    bill.ExtentsOffset = v3_new(0, 3.3, 0)
+    bill.Size = ud2_new(0, 240, 0, 95) -- Expanded to map out the hotbar elements safely
+    bill.ExtentsOffset = v3_new(0, 4.0, 0)
     bill.Parent = ScreenGui
     assets.Bill = bill
     
@@ -185,12 +174,38 @@ local function CreateAssets(p)
     
     local blockLayout = inst_new("UIListLayout")
     blockLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    blockLayout.Padding = UDim.new(0, 2)
+    blockLayout.Padding = UDim.new(0, 3)
     blockLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     blockLayout.Parent = mainFrame
 
+    -- Dynamic Hotbar Replication
+    local mainGui = StarterGui:FindFirstChild("Main")
+    local movesetPreset = mainGui and mainGui:FindFirstChild("Controls") and mainGui.Controls:FindFirstChild("Moveset")
+    local itemPreset = mainGui and mainGui:FindFirstChild("Preset") and mainGui.Preset:FindFirstChild("Item")
+
+    if movesetPreset and itemPreset then
+        local movesetFrame = movesetPreset:Clone()
+        movesetFrame.LayoutOrder = 0 -- Displays at the top tier above name tags
+        movesetFrame.Parent = mainFrame
+        
+        -- Purge anything that isn't the UIListLayout structure
+        for _, obj in ipairs(movesetFrame:GetChildren()) do
+            if not obj:IsA("UIListLayout") then
+                obj:Destroy()
+            end
+        end
+
+        assets.MovesetItems = {}
+        for index = 1, 4 do
+            local item = itemPreset:Clone()
+            item.Visible = false
+            item.Parent = movesetFrame
+            assets.MovesetItems[index] = item
+        end
+    end
+
     local txt = inst_new("TextLabel")
-    txt.Size = ud2_new(1, 0, 1, -8)
+    txt.Size = ud2_new(1, 0, 0, 24)
     txt.BackgroundTransparency = 1
     txt.TextColor3 = COLOR_WHITE
     txt.RichText = true
@@ -207,7 +222,8 @@ local function CreateAssets(p)
     assets.Stroke = stroke
     
     local ultBack = inst_new("Frame")
-    ultBack.Size = ud2_new(1, 0, 0, 5)
+    maxSize = ud2_new(1, 0, 0, 5)
+    ultBack.Size = maxSize
     ultBack.BackgroundColor3 = c3_new(0.05, 0.05, 0.05)
     ultBack.BackgroundTransparency = 0.5
     ultBack.BorderSizePixel = 0
@@ -231,7 +247,7 @@ local function CreateAssets(p)
     assets.UltFill = ultFill
     assets.UltLines = applyBrawlhallaTicks(ultBack, false)
 
-    -- 2. PHYSICAL CHARACTER SIDEBARS (Widened to 5.4 studs to clear animations)
+    -- 2. PHYSICAL CHARACTER SIDEBARS
     local bodyBill = inst_new("BillboardGui")
     bodyBill.AlwaysOnTop = true
     bodyBill.Size = ud2_new(5.4, 0, 4.8, 0)
@@ -572,6 +588,67 @@ function ESP.Init(State)
                         end
                     end
 
+                    -- Real-Time Dynamic Hotbar Mapping & Cooldown Progressions
+                    if c.MovesetItems then
+                        for index = 1, 4 do
+                            c.MovesetItems[index].Visible = false
+                        end
+
+                        local movesetFolder = char:FindFirstChild("Moveset")
+                        if movesetFolder then
+                            for _, move in ipairs(movesetFolder:GetChildren()) do
+                                local slotKey = move:GetAttribute("Key")
+                                if type(slotKey) == "number" and slotKey >= 1 and slotKey <= 4 then
+                                    local itemFrame = c.MovesetItems[slotKey]
+                                    if itemFrame then
+                                        itemFrame.Visible = true
+                                        
+                                        -- Assign Key Text
+                                        if itemFrame:FindFirstChild("Key") and itemFrame.Key:FindFirstChild("Key") then
+                                            itemFrame.Key.Key.Text = tostring(slotKey)
+                                        end
+
+                                        -- Compute Dynamic Naming Configuration
+                                        local finalMoveName = move.Name
+                                        if not string.find(finalMoveName, "%a") then
+                                            local serviceAttr = move:GetAttribute("Service")
+                                            if type(serviceAttr) == "string" then
+                                                finalMoveName = string.gsub(serviceAttr, "Service", "")
+                                            end
+                                        end
+
+                                        -- Locate and bind Title string securely
+                                        for _, childObj in ipairs(itemFrame:GetChildren()) do
+                                            if childObj:IsA("TextLabel") then
+                                                childObj.Text = finalMoveName
+                                                break
+                                            end
+                                        end
+
+                                        -- Dynamic Cooldown Scaling Operations
+                                        local lastUsedStamp = move:GetAttribute("LastUse")
+                                        local totalCdDuration = move:GetAttribute("Cooldown")
+                                        local cdVisualFrame = itemFrame:FindFirstChild("Cooldown")
+
+                                        if cdVisualFrame and type(lastUsedStamp) == "number" and type(totalCdDuration) == "number" and totalCdDuration > 0 then
+                                            local serverNow = workspace:GetServerTimeNow()
+                                            local remainingCd = (lastUsedStamp + totalCdDuration) - serverNow
+                                            
+                                            if remainingCd > 0 then
+                                                local fillRatio = m_clamp(remainingCd / totalCdDuration, 0, 1)
+                                                cdVisualFrame.Size = ud2_new(1, 0, fillRatio, 0)
+                                            else
+                                                cdVisualFrame.Size = ud2_new(1, 0, 0, 0)
+                                            end
+                                        elseif cdVisualFrame then
+                                            cdVisualFrame.Size = ud2_new(1, 0, 0, 0)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+
                     if shouldUpdateHeavy then
                         local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
                         local dist = (currentRootPos - root.Position).Magnitude
@@ -698,6 +775,7 @@ function ESP.Init(State)
                     c.BodyBill.Enabled = false
                     c.Text.Visible = false
                 end
+            -- Gracefully handle streaming/fallback visibility if structural components alter context
             elseif Cache[p] then
                 Cache[p].Line.Visible = false
                 Cache[p].Bill.Enabled = false
