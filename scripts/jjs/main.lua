@@ -1,12 +1,38 @@
 --[[
-    https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans
-    if you have any idea how to do teleport bypass, dm me on discord
-
     Catstar Pro
 ]]--
 while not game.GameId or game.GameId == 0 do task.wait() end
 if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
+
+local WindUI
+
+-- Daily library caching routine
+local File, Day = "WindUI_Cache.lua", "--" .. os.date("%d")
+local Content = isfile and isfile(File) and readfile(File)
+
+if not Content or Content:sub(1, #Day) ~= Day then
+    local WindUrl = "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
+    
+    local ReqSuccess, Response = pcall(function()
+        return request({
+            Url = WindUrl,
+            Method = "GET"
+        })
+    end)
+    
+    if ReqSuccess and type(Response) == "table" and Response.StatusCode == 200 and Response.Body then
+        Content = Day .. "\n" .. Response.Body
+        if writefile then
+            writefile(File, Content)
+        end
+    end
+end
+
+if not Content or Content == "" then 
+    warn("Could not load WindUI") 
+    return 
+end
 
 getgenv().cloneref = cloneref or function(O) return O end
 local cloneref = cloneref
@@ -31,7 +57,6 @@ task.defer(function()
     })
 end)
 
-local Rayfield
 local BaseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
 
 local SettingsFolder = CoreGui:FindFirstChild("CatstarSettings")
@@ -42,7 +67,7 @@ SettingsFolder.Name = "CatstarSettings"
 SettingsFolder.Parent = CoreGui
 
 local TogglesFolder = Instance.new("Folder")
-SettingsFolder.Name = "Toggles"
+TogglesFolder.Name = "Toggles"
 TogglesFolder.Parent = SettingsFolder
 
 local VariablesFolder = Instance.new("Folder")
@@ -181,86 +206,84 @@ task.spawn(function()
     end
 end)
 
-local File, Day = "RF_Cache.lua", "--" .. os.date("%d")
-local Content = isfile(File) and readfile(File)
+WindUI = loadstring(Content)()
 
-if not Content or Content:sub(1, #Day) ~= Day then
-    local RayUrl = "https://sirius.menu/rayfield"
-    
-    local ReqSuccess, Response = pcall(function()
-        return request({
-            Url = RayUrl,
-            Method = "GET"
-        })
-    end)
-    
-    if ReqSuccess and type(Response) == "table" and Response.StatusCode == 200 and Response.Body then
-        Content = Day .. "\n" .. Response.Body
-        writefile(File, Content)
-    end
-end
-
-if not Content or Content == "" then 
-    warn("Could not load Rayfield") 
-    return 
-end
-Rayfield = loadstring(Content)()
-
-local Window = Rayfield:CreateWindow({
-    Name = "CATSTAR PRO V6.2",
-    ConfigurationSaving = { Enabled = true, FolderName = "CatstarPro", DisableRayfieldPrompts = true }
+-- Window Setup
+local Window = WindUI:CreateWindow({
+    Title = "CATSTAR PRO V6.2",
+    Icon = "rbxassetid://4483362458",
+    Folder = "CatstarPro",
+    Size = UDim2.fromOffset(580, 460)
 })
 
-local MainTab = Window:CreateTab("Main", 4483362458)
+-- UI Toggle Keybind
+Window:SetToggleKey(Enum.KeyCode.RightControl)
+
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "rbxassetid://4483362458"
+})
+
+-- Automatically select Main Tab
+MainTab:Select()
 
 local UiLayout = {
-    {Type = "Section",  Name = "Combat Modules"},
-    {Type = "Toggle",   Module = "BlackFlash",   Args = {Name = "Auto BlackFlash", CurrentValue = CatstarState.Toggles.BlackFlash.Value, Callback = function(V) CatstarState.Toggles.BlackFlash.Value = V end}},
-    {Type = "Toggle",   Module = "Ratio",        Args = {Name = "Auto Nanami Ratio", CurrentValue = CatstarState.Toggles.Ratio.Value, Callback = function(V) CatstarState.Toggles.Ratio.Value = V end}},
-    {Type = "Toggle",   Module = "AutoBurst",    Args = {Name = "Auto Burst", CurrentValue = CatstarState.Toggles.AutoBurst.Value, Callback = function(V) CatstarState.Toggles.AutoBurst.Value = V end}},
-    {Type = "Toggle",   Module = "QTE",          Args = {Name = "Auto QTE", CurrentValue = CatstarState.Toggles.QTE.Value, Callback = function(V) CatstarState.Toggles.QTE.Value = V end}},
+    {Type = "Section",  Title = "Combat Modules"},
+    {Type = "Toggle",   Module = "BlackFlash",        Args = {Title = "Auto BlackFlash", Value = CatstarState.Toggles.BlackFlash.Value, Callback = function(V) CatstarState.Toggles.BlackFlash.Value = V end}},
+    {Type = "Toggle",   Module = "Ratio",             Args = {Title = "Auto Nanami Ratio", Value = CatstarState.Toggles.Ratio.Value, Callback = function(V) CatstarState.Toggles.Ratio.Value = V end}},
+    {Type = "Toggle",   Module = "AutoBurst",         Args = {Title = "Auto Burst", Value = CatstarState.Toggles.AutoBurst.Value, Callback = function(V) CatstarState.Toggles.AutoBurst.Value = V end}},
+    {Type = "Toggle",   Module = "QTE",               Args = {Title = "Auto QTE", Value = CatstarState.Toggles.QTE.Value, Callback = function(V) CatstarState.Toggles.QTE.Value = V end}},
     
-    {Type = "Section",  Name = "Aimbot Settings"},
-    {Type = "Keybind",  Module = "Aimbot",       Args = {Name = "Aimbot Keybind", CurrentKeybind = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
-    {Type = "Toggle",   Module = "Aimbot",       Args = {Name = "Team Check", CurrentValue = CatstarState.Toggles.TeamCheck.Value, Callback = function(V) CatstarState.Toggles.TeamCheck.Value = V end}},
+    {Type = "Section",  Title = "Aimbot Settings"},
+    {Type = "Keybind",  Module = "Aimbot",            Args = {Title = "Aimbot Keybind", Value = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
+    {Type = "Toggle",   Module = "Aimbot",            Args = {Title = "Team Check", Value = CatstarState.Toggles.TeamCheck.Value, Callback = function(V) CatstarState.Toggles.TeamCheck.Value = V end}},
 
-    {Type = "Section",  Name = "Movement & Protection"},
-    {Type = "Toggle",   Module = "Noclip",       Args = {Name = "Noclip through Players", CurrentValue = CatstarState.Toggles.Noclip.Value, Callback = function(V) CatstarState.Toggles.Noclip.Value = V end}},
-    {Type = "Toggle",   Module = "DomainNoclip", Args = {Name = "Noclip through Domains", CurrentValue = CatstarState.Toggles.DomainNoclip.Value, Callback = function(V) CatstarState.Toggles.DomainNoclip.Value = V end}},
-    {Type = "Toggle",   Module = "AntiVoid",     Args = {Name = "Anti Void", CurrentValue = CatstarState.Toggles.AntiVoid.Value, Callback = function(V) CatstarState.Toggles.AntiVoid.Value = V end}},
-    {Type = "Toggle",   Module = "AntiBlackhole",Args = {Name = "Anti Blackhole", CurrentValue = CatstarState.Toggles.AntiBlackhole.Value, Callback = function(V) CatstarState.Toggles.AntiBlackhole.Value = V end}},
-    {Type = "Toggle",   Module = "InstantInteract",Args = {Name = "Instant Interact", CurrentValue = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
+    {Type = "Section",  Title = "Movement & Protection"},
+    {Type = "Toggle",   Module = "Noclip",            Args = {Title = "Noclip through Players", Value = CatstarState.Toggles.Noclip.Value, Callback = function(V) CatstarState.Toggles.Noclip.Value = V end}},
+    {Type = "Toggle",   Module = "DomainNoclip",      Args = {Title = "Noclip through Domains", Value = CatstarState.Toggles.DomainNoclip.Value, Callback = function(V) CatstarState.Toggles.DomainNoclip.Value = V end}},
+    {Type = "Toggle",   Module = "AntiVoid",          Args = {Title = "Anti Void", Value = CatstarState.Toggles.AntiVoid.Value, Callback = function(V) CatstarState.Toggles.AntiVoid.Value = V end}},
+    {Type = "Toggle",   Module = "AntiBlackhole",     Args = {Title = "Anti Blackhole", Value = CatstarState.Toggles.AntiBlackhole.Value, Callback = function(V) CatstarState.Toggles.AntiBlackhole.Value = V end}},
+    {Type = "Toggle",   Module = "InstantInteract",   Args = {Title = "Instant Interact", Value = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
     
-    {Type = "Section",  Name = "Emote Exploits"},
-    {Type = "Toggle",   Module = "DiamondInTheSky",Args = {Name = "Faster Diamond In The Sky", CurrentValue = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
-    {Type = "Slider",   Module = "DiamondInTheSky", Args = {Name = "Diamond In The Sky Speed", Range = {1, 50}, Increment = 1, CurrentValue = CatstarState.Variables.SpeedMultiplier.Value, Flag = "DiamondInTheSkySpeed", Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}},
+    {Type = "Section",  Title = "Emote Exploits"},
+    {Type = "Toggle",   Module = "DiamondInTheSky",   Args = {Title = "Faster Diamond In The Sky", Value = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
+    {Type = "Slider",   Module = "DiamondInTheSky",   Args = {
+        Title = "Diamond In The Sky Speed", 
+        Step = 1, 
+        Value = {
+            Min = 1, 
+            Max = 50, 
+            Default = CatstarState.Variables.SpeedMultiplier.Value
+        }, 
+        Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end
+    }},
     
-    {Type = "Section",  Name = "Utility Mechanics"},
-    {Type = "Button",   Module = "Train",        InitArg = "Component", Args = {Name = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Clicked() end end}},
-    {Type = "Button",   Module = "Rejoin",       InitName = "None", Args = {Name = "Rejoin Server", Callback = function() if Modules.Rejoin then Modules.Rejoin.Clicked() end end}},
+    {Type = "Section",  Title = "Utility Mechanics"},
+    {Type = "Button",   Module = "Train",            InitArg = "Component", Args = {Title = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Clicked() end end}},
+    {Type = "Button",   Module = "Rejoin",           InitName = "None", Args = {Title = "Rejoin Server", Callback = function() if Modules.Rejoin then Modules.Rejoin.Clicked() end end}},
 
-    {Type = "Section",  Name = "Visual Mechanics"},
-    {Type = "Toggle",   Module = "ESP",          Args = {Name = "Player ESP", CurrentValue = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
-    {Type = "Toggle",   Module = "DummyESP",     Args = {Name = "Dummy ESP", CurrentValue = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
-    {Type = "Toggle",   Module = "ItemESP",      Args = {Name = "Item ESP", CurrentValue = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
-    {Type = "Toggle",   Module = "Aura",         Args = {Name = "Message Aura", CurrentValue = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
+    {Type = "Section",  Title = "Visual Mechanics"},
+    {Type = "Toggle",   Module = "ESP",               Args = {Title = "Player ESP", Value = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
+    {Type = "Toggle",   Module = "DummyESP",          Args = {Title = "Dummy ESP", Value = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
+    {Type = "Toggle",   Module = "ItemESP",           Args = {Title = "Item ESP", Value = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
+    {Type = "Toggle",   Module = "Aura",              Args = {Title = "Message Aura", Value = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
     
-    {Type = "Section",  Name = "Targeting & Spectating"},
-    {Type = "Input",    Module = "Targeting",    InitName = "None", Args = {Name = "Search Player", PlaceholderText = "Enter name...", Callback = function(T) CatstarState.Variables.TargetIdentifier.Value = T end}},
-    {Type = "Button",   Module = "Targeting",    InitName = "None", Args = {Name = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Clicked(CatstarState) end end}},
+    {Type = "Section",  Title = "Targeting & Spectating"},
+    {Type = "Input",    Module = "Targeting",        InitName = "None", Args = {Title = "Search Player", Placeholder = "Enter name...", Value = CatstarState.Variables.TargetIdentifier.Value, Callback = function(T) CatstarState.Variables.TargetIdentifier.Value = T end}},
+    {Type = "Button",   Module = "Targeting",        InitName = "None", Args = {Title = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Clicked(CatstarState) end end}},
 
-    {Type = "Section",  Name = "Unlocks"},
-    {Type = "Toggle",   Module = "Gamepasses",   Args = {Name = "Free Gamepasses", CurrentValue = CatstarState.Toggles.Gamepasses.Value, Callback = function(V) CatstarState.Toggles.Gamepasses.Value = V end}},
-    {Type = "Toggle",   Module = "KillSound",    Args = {Name = "Free Kill Sound", CurrentValue = CatstarState.Toggles.KillSound.Value, Callback = function(V) CatstarState.Toggles.KillSound.Value = V end}},
+    {Type = "Section",  Title = "Unlocks"},
+    {Type = "Toggle",   Module = "Gamepasses",        Args = {Title = "Free Gamepasses", Value = CatstarState.Toggles.Gamepasses.Value, Callback = function(V) CatstarState.Toggles.Gamepasses.Value = V end}},
+    {Type = "Toggle",   Module = "KillSound",         Args = {Title = "Free Kill Sound", Value = CatstarState.Toggles.KillSound.Value, Callback = function(V) CatstarState.Toggles.KillSound.Value = V end}},
 }
 
 local InitializedModules = {}
 
 for _, Element in ipairs(UiLayout) do
     if Element.Type == "Section" then
-        MainTab:CreateSection(Element.Name)
+        MainTab:Section({ Title = Element.Title })
     else
-        local Component = MainTab["Create" .. Element.Type](MainTab, Element.Args)
+        local Component = MainTab[Element.Type](MainTab, Element.Args)
         
         task.spawn(function()
             local TargetModule = Element.Module
