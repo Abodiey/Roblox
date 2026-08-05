@@ -181,13 +181,9 @@ task.spawn(function()
 end)
 
 local Modules = {}
-local ModuleStatus = {}
+local ModuleFailed = {}
 
 local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainNoclip", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
-
-for _, Name in ipairs(ModuleList) do
-    ModuleStatus[Name] = "Loading"
-end
 
 task.spawn(function()
     if not Players.LocalPlayer then
@@ -198,9 +194,8 @@ task.spawn(function()
             local Result = Load(Name)
             if Result then
                 Modules[Name] = Result
-                ModuleStatus[Name] = "Ready"
             else
-                ModuleStatus[Name] = "Failed"
+                ModuleFailed[Name] = true
             end
         end)
     end
@@ -228,24 +223,24 @@ local MainTab = Window:Tab({
 MainTab:Select()
 
 local UiLayout = {
-    {Type = "Section",  Title = "Combat Modules"},
+    {Type = "Section",  Args = {Title = "Combat Modules"}},
     {Type = "Toggle",   Module = "BlackFlash",        Args = {Title = "Auto BlackFlash", Value = CatstarState.Toggles.BlackFlash.Value, Callback = function(V) CatstarState.Toggles.BlackFlash.Value = V end}},
     {Type = "Toggle",   Module = "Ratio",             Args = {Title = "Auto Nanami Ratio", Value = CatstarState.Toggles.Ratio.Value, Callback = function(V) CatstarState.Toggles.Ratio.Value = V end}},
     {Type = "Toggle",   Module = "AutoBurst",         Args = {Title = "Auto Burst", Value = CatstarState.Toggles.AutoBurst.Value, Callback = function(V) CatstarState.Toggles.AutoBurst.Value = V end}},
     {Type = "Toggle",   Module = "QTE",               Args = {Title = "Auto QTE", Value = CatstarState.Toggles.QTE.Value, Callback = function(V) CatstarState.Toggles.QTE.Value = V end}},
     
-    {Type = "Section",  Title = "Aimbot Settings"},
+    {Type = "Section",  Args = {Title = "Aimbot Settings"}},
     {Type = "Keybind",  Module = "Aimbot",            Args = {Title = "Aimbot Keybind", Value = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
     {Type = "Toggle",   Module = "Aimbot",            Args = {Title = "Team Check", Value = CatstarState.Toggles.TeamCheck.Value, Callback = function(V) CatstarState.Toggles.TeamCheck.Value = V end}},
 
-    {Type = "Section",  Title = "Movement & Protection"},
+    {Type = "Section",  Args = {Title = "Movement & Protection"}},
     {Type = "Toggle",   Module = "Noclip",            Args = {Title = "Noclip through Players", Value = CatstarState.Toggles.Noclip.Value, Callback = function(V) CatstarState.Toggles.Noclip.Value = V end}},
     {Type = "Toggle",   Module = "DomainNoclip",      Args = {Title = "Noclip through Domains", Value = CatstarState.Toggles.DomainNoclip.Value, Callback = function(V) CatstarState.Toggles.DomainNoclip.Value = V end}},
     {Type = "Toggle",   Module = "AntiVoid",          Args = {Title = "Anti Void", Value = CatstarState.Toggles.AntiVoid.Value, Callback = function(V) CatstarState.Toggles.AntiVoid.Value = V end}},
     {Type = "Toggle",   Module = "AntiBlackhole",     Args = {Title = "Anti Blackhole", Value = CatstarState.Toggles.AntiBlackhole.Value, Callback = function(V) CatstarState.Toggles.AntiBlackhole.Value = V end}},
     {Type = "Toggle",   Module = "InstantInteract",   Args = {Title = "Instant Interact", Value = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
     
-    {Type = "Section",  Title = "Emote Exploits"},
+    {Type = "Section",  Args = {Title = "Emote Exploits"}},
     {Type = "Toggle",   Module = "DiamondInTheSky",   Args = {Title = "Faster Diamond In The Sky", Value = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
     {Type = "Slider",   Module = "DiamondInTheSky",   Args = {
         Title = "Diamond In The Sky Speed", 
@@ -258,21 +253,21 @@ local UiLayout = {
         Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end
     }},
     
-    {Type = "Section",  Title = "Utility Mechanics"},
+    {Type = "Section",  Args = {Title = "Utility Mechanics"}},
     {Type = "Button",   Module = "Train",            InitArg = "Component", Args = {Title = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Clicked() end end}},
     {Type = "Button",   Module = "Rejoin",           InitName = "None", Args = {Title = "Rejoin Server", Callback = function() if Modules.Rejoin then Modules.Rejoin.Clicked() end end}},
 
-    {Type = "Section",  Title = "Visual Mechanics"},
+    {Type = "Section",  Args = {Title = "Visual Mechanics"}},
     {Type = "Toggle",   Module = "ESP",               Args = {Title = "Player ESP", Value = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",          Args = {Title = "Dummy ESP", Value = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
     {Type = "Toggle",   Module = "ItemESP",           Args = {Title = "Item ESP", Value = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
     {Type = "Toggle",   Module = "Aura",              Args = {Title = "Message Aura", Value = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
     
-    {Type = "Section",  Title = "Targeting & Spectating"},
+    {Type = "Section",  Args = {Title = "Targeting & Spectating"}},
     {Type = "Input",    Module = "Targeting",        InitName = "None", Args = {Title = "Search Player", Placeholder = "Enter name...", Value = CatstarState.Variables.TargetIdentifier.Value, Callback = function(T) CatstarState.Variables.TargetIdentifier.Value = T end}},
     {Type = "Button",   Module = "Targeting",        InitName = "None", Args = {Title = "Spectate", Callback = function() if Modules.Targeting then Modules.Targeting.Clicked(CatstarState) end end}},
 
-    {Type = "Section",  Title = "Unlocks"},
+    {Type = "Section",  Args = {Title = "Unlocks"}},
     {Type = "Toggle",   Module = "Gamepasses",        Args = {Title = "Free Gamepasses", Value = CatstarState.Toggles.Gamepasses.Value, Callback = function(V) CatstarState.Toggles.Gamepasses.Value = V end}},
     {Type = "Toggle",   Module = "KillSound",         Args = {Title = "Free Kill Sound", Value = CatstarState.Toggles.KillSound.Value, Callback = function(V) CatstarState.Toggles.KillSound.Value = V end}},
 }
@@ -280,16 +275,14 @@ local UiLayout = {
 local InitializedModules = {}
 
 for _, Element in ipairs(UiLayout) do
-    if Element.Type == "Section" then
-        MainTab:Section({ Title = Element.Title })
-    else
-        local Component = MainTab[Element.Type](MainTab, Element.Args)
-        
+    local Component = MainTab[Element.Type](MainTab, Element.Args)
+    
+    if Element.Module then
         task.spawn(function()
             local TargetModule = Element.Module
             
             local StartTime = os.clock()
-            while ModuleStatus[TargetModule] == "Loading" and (os.clock() - StartTime) < 15 do
+            while not Modules[TargetModule] and not ModuleFailed[TargetModule] and (os.clock() - StartTime) < 15 do
                 task.wait()
             end
             
@@ -302,7 +295,6 @@ for _, Element in ipairs(UiLayout) do
                     InitializedModules[TargetModule] = true
                     
                     if type(Mod) == "table" and type(Mod[runName]) == "function" then
-                        -- Safe multi-argument routing matching signature (Component, State)
                         if Element.InitArg == "Component" then
                             Mod[runName](Component, CatstarState)
                         else
@@ -312,13 +304,13 @@ for _, Element in ipairs(UiLayout) do
                         warn(TargetModule .. " does not have a ." .. runName .. " function")
                     end
                 end
-            elseif ModuleStatus[TargetModule] == "Failed" or not Mod then
+            elseif ModuleFailed[TargetModule] or not Mod then
                 warn("UI linked to failed module payload: " .. tostring(TargetModule))
             end
         end)
-        
-        task.wait()
     end
+    
+    task.wait()
 end
 
 StarterGui:SetCore("SendNotification", {
