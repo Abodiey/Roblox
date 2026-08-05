@@ -6,10 +6,8 @@ if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
 local WindUI
-
--- Daily library caching routine
 local File, Day = "WindUI_Cache.lua", "--" .. os.date("%d")
-local Content = isfile and isfile(File) and readfile(File)
+local Content = writefile and readfile and isfile and isfile(File) and readfile(File)
 
 if not Content or Content:sub(1, #Day) ~= Day then
     local WindUrl = "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
@@ -22,8 +20,9 @@ if not Content or Content:sub(1, #Day) ~= Day then
     end)
     
     if Success and type(Response) == "table" and Response.StatusCode == 200 and Response.Body and type(Response.Body) == "string" then
-        Content = Day .. "\n" .. Response.Body
+        Content = Response.Body
         if writefile then
+            Content = Day .. "\n" .. Response.Body
             writefile(File, Content)
         end
     end
