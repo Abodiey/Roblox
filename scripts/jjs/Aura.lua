@@ -11,7 +11,7 @@ local RLI = "\u{2067}"
 local PDI = "\u{2069}" 
 
 local lastMsg = {}
-local localPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 local CHECK_INTERVAL = 0.1
 local lastCheck = 0
 
@@ -33,10 +33,13 @@ local function isProbablyEnglish(text)
 end
 
 function Aura.Init(State)
-    local BubbleConfig = TextChatService:WaitForChild("BubbleChatConfiguration")
-    BubbleConfig.MaxDistance = 500 
-    BubbleConfig.MinimizeDistance = 400
-    BubbleConfig.TextSize = 20
+    task.spawn(function()
+        local BubbleConfig = TextChatService:WaitForChild("BubbleChatConfiguration", 99)
+        if not BubbleConfig then return end
+        BubbleConfig.MaxDistance = 500 
+        BubbleConfig.MinimizeDistance = 400
+        BubbleConfig.TextSize = 20
+    end)
     
     local conn = RunService.Heartbeat:Connect(function(deltaTime)
         lastCheck = lastCheck + deltaTime
@@ -46,7 +49,7 @@ function Aura.Init(State)
         local charFolder = workspace:FindFirstChild("Characters")
         if not State.Toggles.MsgAura.Value or not charFolder then return end
         
-        local currentLocalChar = localPlayer.Character
+        local currentLocalChar = LocalPlayer.Character
         local generalChannel = TextChatService:FindFirstChild("TextChannels") and TextChatService.TextChannels:FindFirstChild("RBXGeneral")
 
         if not generalChannel then return end
