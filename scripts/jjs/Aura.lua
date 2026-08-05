@@ -33,7 +33,7 @@ local function isProbablyEnglish(text)
 end
 
 function Aura.Init(State)
-    local BubbleConfig = TextChatService.BubbleChatConfiguration
+    local BubbleConfig = TextChatService:WaitForChild("BubbleChatConfiguration")
     BubbleConfig.MaxDistance = 500 
     BubbleConfig.MinimizeDistance = 400
     BubbleConfig.TextSize = 20
