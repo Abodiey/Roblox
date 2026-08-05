@@ -14,14 +14,14 @@ local Content = isfile and isfile(File) and readfile(File)
 if not Content or Content:sub(1, #Day) ~= Day then
     local WindUrl = "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
     
-    local ReqSuccess, Response = pcall(function()
+    local Success, Response = pcall(function()
         return request({
             Url = WindUrl,
             Method = "GET"
         })
     end)
     
-    if ReqSuccess and type(Response) == "table" and Response.StatusCode == 200 and Response.Body then
+    if Success and type(Response) == "table" and Response.StatusCode == 200 and Response.Body and type(Response.Body) == "string" then
         Content = Day .. "\n" .. Response.Body
         if writefile then
             writefile(File, Content)
