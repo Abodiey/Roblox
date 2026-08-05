@@ -217,7 +217,7 @@ local Window = WindUI:CreateWindow({
 })
 
 -- UI Toggle Keybind
-Window:SetToggleKey(Enum.KeyCode.RightControl)
+Window:SetToggleKey(Enum.KeyCode.K)
 
 local MainTab = Window:Tab({
     Title = "Main",
