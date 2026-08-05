@@ -1,64 +1,45 @@
 local Train = {}
 
--- Localize Services & Core API
-local cloneref = cloneref
-local game = game
-local workspace = cloneref(game:GetService("Workspace"))
-
--- Localize Global Engine Functions
-local table = table
-local table_insert = table.insert
-
--- Kept outside as the global baseline reference
 local Map = workspace:WaitForChild("Map")
 
-function Train.Init(ButtonComponent, State)
-    -- Dynamically look for "Destructible", "Model", and descendants inside the function
+local function GetPrompt()
     local Destructible = Map:FindFirstChild("Destructible")
     local Main = Destructible and Destructible:FindFirstChild("Model")
     Main = Main and Main:FindFirstChild("StationControl")
 
-    -- Find the parent container that holds the prompt
     local ButtonTrain = Main and Main:FindFirstChild("ButtonTrain")
     local Button1 = ButtonTrain and ButtonTrain:FindFirstChild("Button")
     local PromptParent = Button1 and Button1:FindFirstChild("Button")
 
-    if not Main or not PromptParent then
-        if ButtonComponent then 
-            ButtonComponent:Set("Spawn Train (Map Error)") 
-        end
-        return
-    end
+    return PromptParent and PromptParent:FindFirstChild("Button")
+end
 
+function Train.Init(ButtonComponent, State)
     local function UpdateButtonText()
         if not ButtonComponent then return end
-        if not PromptParent:IsDescendantOf(game) then return end
-
-        local Prompt = PromptParent:FindFirstChild("Button")
-        if Prompt then
-            ButtonComponent:Set("Spawn Train (Ready)")
+        
+        if GetPrompt() then
+            ButtonComponent:SetTitle("Spawn Train (Ready)")
         else
-            ButtonComponent:Set("Spawn Train (On Cooldown)")
+            ButtonComponent:SetTitle("Spawn Train (On Cooldown)")
         end
     end
 
-    -- Initial state check
     UpdateButtonText()
-    
-    -- Listen for the prompt appearing or disappearing, route connections to the passed State table
-    local ChildAddedConnection = PromptParent.ChildAdded:Connect(function(child)
-        if child.Name == "Button" then
-            UpdateButtonText()
-        end
-    end)
-    table_insert(State.Connections, ChildAddedConnection)
 
-    local ChildRemovedConnection = PromptParent.ChildRemoved:Connect(function(child)
-        if child.Name == "Button" then
+    local MapConnection = Map.DescendantAdded:Connect(function(descendant)
+        if descendant.Name == "Button" then
             UpdateButtonText()
         end
     end)
-    table_insert(State.Connections, ChildRemovedConnection)
+    table.insert(State.Connections, MapConnection)
+
+    local MapRemoveConnection = Map.DescendantRemoving:Connect(function(descendant)
+        if descendant.Name == "Button" then
+            task.defer(UpdateButtonText)
+        end
+    end)
+    table.insert(State.Connections, MapRemoveConnection)
 end
 
 function Train.Clicked()
@@ -66,10 +47,7 @@ function Train.Clicked()
     local Main = Destructible and Destructible:FindFirstChild("Model")
     Main = Main and Main:FindFirstChild("StationControl")
 
-    local ButtonTrain = Main and Main:FindFirstChild("ButtonTrain")
-    local Button1 = ButtonTrain and ButtonTrain:FindFirstChild("Button")
-    local PromptParent = Button1 and Button1:FindFirstChild("Button")
-    local Prompt = PromptParent and PromptParent:FindFirstChild("Button")
+    local Prompt = GetPrompt()
 
     local Event = Main and Main:FindFirstChild("Handle")
     Event = Event and Event:FindFirstChild("Train")
