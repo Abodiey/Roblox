@@ -124,6 +124,7 @@ local ToggleDefaults = {
 
 local VariableDefaults = {
     SpeedMultiplier = 15,
+    Reach = 15,
     LockedTarget = nil,
     TargetIdentifier = ""
 }
@@ -227,6 +228,8 @@ local UiLayout = {
     {Type = "Toggle",   Module = "Ratio",             Args = {Title = "Auto Nanami Ratio", Value = CatstarState.Toggles.Ratio.Value, Callback = function(V) CatstarState.Toggles.Ratio.Value = V end}},
     {Type = "Toggle",   Module = "AutoBurst",         Args = {Title = "Auto Burst", Value = CatstarState.Toggles.AutoBurst.Value, Callback = function(V) CatstarState.Toggles.AutoBurst.Value = V end}},
     {Type = "Toggle",   Module = "QTE",               Args = {Title = "Auto QTE", Value = CatstarState.Toggles.QTE.Value, Callback = function(V) CatstarState.Toggles.QTE.Value = V end}},
+    {Type = "Toggle",   Module = "Reach",             Args = {Title = "Reach", Value = CatstarState.Toggles.Reach.Value, Callback = function(V) CatstarState.Toggles.Reach.Value = V end}},
+    {Type = "Slider",   Module = "Reach",             Args = {Title = "Reach Distance", Step = 1, Value = {Min = 1, Max = 15, Default = CatstarState.Variables.Reach.Value}, Callback = function(V) CatstarState.Variables.Reach.Value = V end}},
     
     {Type = "Section",  Args = {Title = "Aimbot Settings"}},
     {Type = "Keybind",  Module = "Aimbot",            Args = {Title = "Aimbot Keybind", Value = "C", Callback = function() if Modules.Aimbot then Modules.Aimbot.Toggle(CatstarState) end end}},
@@ -241,16 +244,7 @@ local UiLayout = {
     
     {Type = "Section",  Args = {Title = "Emote Exploits"}},
     {Type = "Toggle",   Module = "DiamondInTheSky",   Args = {Title = "Faster Diamond In The Sky", Value = CatstarState.Toggles.DiamondInTheSky.Value, Callback = function(V) CatstarState.Toggles.DiamondInTheSky.Value = V end}},
-    {Type = "Slider",   Module = "DiamondInTheSky",   Args = {
-        Title = "Diamond In The Sky Speed", 
-        Step = 1, 
-        Value = {
-            Min = 1, 
-            Max = 50, 
-            Default = CatstarState.Variables.SpeedMultiplier.Value
-        }, 
-        Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end
-    }},
+    {Type = "Slider",   Module = "DiamondInTheSky",   Args = {Title = "Diamond In The Sky Speed", Step = 1, Value = {Min = 1, Max = 50, Default = CatstarState.Variables.SpeedMultiplier.Value}, Callback = function(V) CatstarState.Variables.SpeedMultiplier.Value = V end}},
     
     {Type = "Section",  Args = {Title = "Utility Mechanics"}},
     {Type = "Button",   Module = "Train",            InitArg = "Component", Args = {Title = "Spawn Train", Callback = function() if Modules.Train then Modules.Train.Clicked() end end}},
