@@ -3,43 +3,50 @@ local DomainESP = {}
 local Domains = workspace:WaitForChild("Domains")
 local activeEsp = {}
 
--- Max distance (in studs) to render the 3D box lines
-local CULL_DISTANCE = 500
+-- Max distance (in studs) to render the 3D lines
+local CULL_DISTANCE = 1000 -- Balls are big, keep cull distance high
 
-local function create3DBox(domain)
+local function createSphereEsp(domain)
     if activeEsp[domain] then return end
 
-    -- Create 12 lines for the 3D bounding box
-    local lines = {}
-    for i = 1, 12 do
-        local line = Drawing.new("Line")
-        line.Thickness = 1.5
-        line.Transparency = 1
-        line.Visible = false
-        lines[i] = line
+    -- Spheres are big. Assume size is uniform, get diameter.
+    -- Size/2 is radius.
+    local sphereRadius = math.max(domain.Size.X, domain.Size.Y, domain.Size.Z) / 2
+
+    -- Create two circles to represent the sphere structure
+    local circles = {}
+    for i = 1, 2 do
+        local circle = Drawing.new("Circle")
+        circle.Thickness = 2
+        circle.NumSides = 96 -- Makes it very smooth/circular
+        circle.Transparency = 1
+        circle.Filled = false
+        circle.Visible = false
+        circles[i] = circle
     end
 
     -- Create text label
     local textLabel = Drawing.new("Text")
     textLabel.Text = "Domain"
-    textLabel.Size = 16
+    textLabel.Size = 20 -- Larger text for big domains
     textLabel.Center = true
     textLabel.Outline = true
     textLabel.Color = Color3.fromRGB(255, 255, 255)
     textLabel.Visible = false
 
     local espData = {
-        Lines = lines,
+        Circles = circles,
         Text = textLabel,
+        Radius = sphereRadius,
         Connections = {}
     }
     activeEsp[domain] = espData
 
-    -- Update box color based on collisions
+    -- Update structure color based on collisions
     local function updateColor()
         local color = domain.CanCollide and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 255, 0)
-        for _, line in ipairs(lines) do
-            line.Color = color
+        for _, circle in ipairs(circles) do
+            circle.Color = color
         end
     end
     updateColor()
@@ -48,15 +55,15 @@ local function create3DBox(domain)
     table.insert(espData.Connections, propConn)
 end
 
-local function remove3DBox(domain)
+local function removeEsp(domain)
     local espData = activeEsp[domain]
     if not espData then return end
 
     for _, conn in ipairs(espData.Connections) do
         conn:Disconnect()
     end
-    for _, line in ipairs(espData.Lines) do
-        line:Remove()
+    for _, circle in ipairs(espData.Circles) do
+        circle:Remove()
     end
     if espData.Text then
         espData.Text:Remove()
@@ -66,14 +73,21 @@ local function remove3DBox(domain)
 end
 
 function DomainESP.Init(State)
+    -- Verify toggle structure exists, otherwise create dummy
+    if not State.Toggles or not State.Toggles.DomainESP then
+        warn("DomainESP toggle not found in State. Creating dummy toggle.")
+        State.Toggles = State.Toggles or {}
+        State.Toggles.DomainESP = { Value = true } -- Default enabled if not defined
+    end
+    
     local toggleObject = State.Toggles.DomainESP
 
     -- Render loop to update positions and visibility
     local renderConn = game:GetService("RunService").RenderStepped:Connect(function()
         if not toggleObject.Value then
             for _, espData in pairs(activeEsp) do
-                for _, line in ipairs(espData.Lines) do
-                    line.Visible = false
+                for _, circle in ipairs(espData.Circles) do
+                    circle.Visible = false
                 end
                 if espData.Text then
                     espData.Text.Visible = false
@@ -83,16 +97,21 @@ function DomainESP.Init(State)
         end
 
         local camera = workspace.CurrentCamera
-        local cameraPos = camera.CFrame.Position
+        local cameraCF = camera.CFrame
+        local cameraPos = cameraCF.Position
+        local sphereRadius = 0
+        local worldCenter = Vector3.new()
 
         for domain, espData in pairs(activeEsp) do
             if domain then
-                local cframe = domain.CFrame
-                local size = domain.Size / 2
-                local distance = (cframe.Position - cameraPos).Magnitude
+                worldCenter = domain.Position
+                sphereRadius = espData.Radius
+                local distVec = worldCenter - cameraPos
+                local distance = distVec.Magnitude
 
-                -- 1. Handle Text Label (No Distance Culling)
-                local textWorldPos = cframe.Position + Vector3.new(0, size.Y + 1, 0)
+                -- 1. Handle Text Label (Always visible if in front)
+                -- Position it slightly above the radius
+                local textWorldPos = worldCenter + Vector3.new(0, sphereRadius + 2, 0)
                 local textPoint, textOnScreen = camera:WorldToViewportPoint(textWorldPos)
 
                 if textOnScreen and textPoint.Z > 0 then
@@ -102,52 +121,41 @@ function DomainESP.Init(State)
                     espData.Text.Visible = false
                 end
 
-                -- 2. Handle 3D Box Lines (Culled past CULL_DISTANCE)
+                -- 2. Handle Sphere Circles (Culled by distance)
                 if distance <= CULL_DISTANCE then
-                    local corners = {
-                        cframe * Vector3.new(-size.X, -size.Y, -size.Z),
-                        cframe * Vector3.new(size.X, -size.Y, -size.Z),
-                        cframe * Vector3.new(size.X, -size.Y, size.Z),
-                        cframe * Vector3.new(-size.X, -size.Y, size.Z),
-                        cframe * Vector3.new(-size.X, size.Y, -size.Z),
-                        cframe * Vector3.new(size.X, size.Y, -size.Z),
-                        cframe * Vector3.new(size.X, size.Y, size.Z),
-                        cframe * Vector3.new(-size.X, size.Y, size.Z)
-                    }
+                    -- Get the center point of the sphere on screen
+                    local screenCenterPoint, screenOnScreen = camera:WorldToViewportPoint(worldCenter)
 
-                    local screenPoints = {}
-                    local visibilities = {}
+                    -- Only process if center is roughly in front
+                    if screenOnScreen and screenCenterPoint.Z > 0 then
+                        -- Math to find the correct 2D radius for the circle on screen
+                        -- A larger sphere closer to the screen covers more screen space.
+                        local adjRadius = (sphereRadius / distance) * (camera.ViewportSize.Y / 2)
 
-                    for i = 1, 8 do
-                        local point, _ = camera:WorldToViewportPoint(corners[i])
-                        screenPoints[i] = Vector2.new(point.X, point.Y)
-                        -- point.Z > 0 means the point is in front of the camera plane
-                        visibilities[i] = point.Z > 0
-                    end
+                        -- Circles structure optimization:
+                        local circHorizontal = espData.Circles[1]
+                        local circVertical = espData.Circles[2]
 
-                    local edgePairs = {
-                        {1, 2}, {2, 3}, {3, 4}, {4, 1}, -- Bottom face
-                        {5, 6}, {6, 7}, {7, 8}, {8, 5}, -- Top face
-                        {1, 5}, {2, 6}, {3, 7}, {4, 8}  -- Vertical edges
-                    }
+                        circHorizontal.Position = Vector2.new(screenCenterPoint.X, screenCenterPoint.Y)
+                        circHorizontal.Radius = adjRadius
+                        circHorizontal.Visible = true
 
-                    for i, edge in ipairs(edgePairs) do
-                        local p1, p2 = edge[1], edge[2]
-                        local line = espData.Lines[i]
-
-                        -- Only render line if both connected corners are in front of the camera
-                        if visibilities[p1] and visibilities[p2] then
-                            line.From = screenPoints[p1]
-                            line.To = screenPoints[p2]
-                            line.Visible = true
-                        else
-                            line.Visible = false
-                        end
+                        -- Optional: Slightly offset second circle to make it look 3D
+                        circVertical.Position = Vector2.new(screenCenterPoint.X, screenCenterPoint.Y)
+                        -- Scale the vertical axis based on angle (foreshortening)
+                        -- As you look down/up, the vertical ring appears more elliptical.
+                        local angleFactor = math.abs(distVec.Unit:Dot(Vector3.new(0, 1, 0)))
+                        circVertical.Radius = adjRadius * (1 - angleFactor * 0.4) 
+                        circVertical.Visible = true
+                    else
+                        -- Center off-screen, hide circles
+                        espData.Circles[1].Visible = false
+                        espData.Circles[2].Visible = false
                     end
                 else
-                    -- Hide lines when beyond cull distance
-                    for _, line in ipairs(espData.Lines) do
-                        line.Visible = false
+                    -- Beyond cull distance
+                    for _, circle in ipairs(espData.Circles) do
+                        circle.Visible = false
                     end
                 end
             end
@@ -156,15 +164,15 @@ function DomainESP.Init(State)
     table.insert(State.Connections, renderConn)
 
     -- Stream management
-    local childAddedConn = Domains.ChildAdded:Connect(create3DBox)
+    local childAddedConn = Domains.ChildAdded:Connect(createSphereEsp)
     table.insert(State.Connections, childAddedConn)
 
-    local childRemovedConn = Domains.ChildRemoved:Connect(remove3DBox)
+    local childRemovedConn = Domains.ChildRemoved:Connect(removeEsp)
     table.insert(State.Connections, childRemovedConn)
 
     -- Initial scan
     for _, child in ipairs(Domains:GetChildren()) do
-        create3DBox(child)
+        createSphereEsp(child)
     end
 end
 
