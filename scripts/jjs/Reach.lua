@@ -10,7 +10,7 @@ local trackedRemotes = setmetatable({}, { __mode = "k" })
 
 local character = LocalPlayer.Character
 local localRoot = character and character:WaitForChild("HumanoidRootPart", 9999)
-local mtHook = nil
+local oldNamecall = nil
 
 -- Character Setup
 local function setupCharacter(newChar)
@@ -56,7 +56,7 @@ local function getClosestCharacter()
 end
 
 -- Hook Initialization
-mtHook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
     local method = getnamecallmethod()
 
     if method == "FireServer" and not checkcaller() then
@@ -79,8 +79,10 @@ mtHook = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
             end
         end
     end
-
-    return mtHook(self, ...)
+            
+    -- FIX: Explicitly restore the namecall method register before passing back to the original engine hook pipeline.
+    setnamecallmethod(method)
+    return oldNamecall(self, ...)
 end))
 
 -- Module Core Initialization
