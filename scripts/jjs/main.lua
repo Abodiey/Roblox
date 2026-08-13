@@ -146,36 +146,53 @@ local CatstarState = StateStructure
 
 local function Load(Name)
     local Url = BaseUrl .. Name .. ".lua"
+    local MaxRetries = 3
+    local DelayTime = 1
+    local Response = nil
+    local Success = false
 
-    local ReqSuccess, Response = pcall(function()
-        return request({
-            Url = Url,
-            Method = "GET"
-        })
-    end)
-    
-    local Success = ReqSuccess and type(Response) == "table" and Response.StatusCode == 200
-    if not Success then
-        local ErrorMsg = not ReqSuccess and tostring(Response) or (Response and "Status " .. tostring(Response.StatusCode) or "Unknown error")
-        warn("Failed to fetch " .. Name .. ": " .. ErrorMsg) 
+    for Attempt = 1, MaxRetries do
+        local ReqSuccess, ReqResponse = pcall(function()
+            return request({
+                Url = Url,
+                Method = "GET"
+            })
+        end)
+
+        if ReqSuccess and type(ReqResponse) == "table" and ReqResponse.StatusCode == 200 then
+            Response = ReqResponse
+            Success = true
+            break
+        end
+
+        local ErrorMsg = not ReqSuccess and tostring(ReqResponse) or (ReqResponse and "Status " .. tostring(ReqResponse.StatusCode) or "Unknown error")
+        warn(string.format("Attempt %d/%d failed for %s: %s", Attempt, MaxRetries, Name, ErrorMsg))
+
+        if Attempt < MaxRetries then
+            task.wait(DelayTime)
+            DelayTime = DelayTime * 2 -- Exponential backoff (1s, 2s, 4s...)
+        end
+    end
+
+    if not Success or not Response then
+        warn("Failed to fetch " .. Name .. " after max retries.")
         return nil 
     end
-    
+
     local Chunk, CompileError = loadstring(Response.Body, "=" .. Name)
     if CompileError then 
         warn("Syntax error in " .. Name .. ": " .. CompileError) 
         return nil 
     end
-    
+
     local RuntimeSuccess, Result = xpcall(Chunk, debug.traceback)
     if not RuntimeSuccess then 
         warn("Runtime error in " .. Name .. ":\n" .. tostring(Result)) 
         return nil 
     end
-    
+
     return Result
 end
-
 task.spawn(function()
     Load("fixes")
 end)
