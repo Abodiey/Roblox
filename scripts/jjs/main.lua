@@ -108,7 +108,7 @@ local ToggleDefaults = {
     AutoBurst = true,
     BlackFlash = false, 
     DiamondInTheSky = true,
-    DomainNoclip = false,
+    DomainESP = false,
     DummyESP = true, 
     ESP = true, 
     Gamepasses = true,
@@ -119,26 +119,27 @@ local ToggleDefaults = {
     Noclip = true, 
     QTE = true,
     Ratio = false,
-    TeamCheck = true
+    Reach = true,
+    TeamCheck = true,
 }
 
 local VariableDefaults = {
     SpeedMultiplier = 15,
     Reach = 15,
     LockedTarget = nil,
-    TargetIdentifier = ""
+    TargetIdentifier = "",
 }
 
 local ClassMap = {
     ["boolean"] = "BoolValue",
     ["number"] = "NumberValue",
-    ["string"] = "StringValue"
+    ["string"] = "StringValue",
 }
 
 local StateStructure = {
     Connections = setmetatable({}, { __mode = "v" }),
     Toggles = BindToFolder(TogglesFolder, ClassMap, ToggleDefaults),
-    Variables = BindToFolder(VariablesFolder, ClassMap, VariableDefaults)
+    Variables = BindToFolder(VariablesFolder, ClassMap, VariableDefaults),
 }
 
 getgenv().CatstarState = StateStructure
@@ -200,7 +201,7 @@ end)
 local Modules = {}
 local ModuleFailed = {}
 
-local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainNoclip", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
+local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 task.spawn(function()
     if not Players.LocalPlayer then
@@ -245,7 +246,7 @@ local UiLayout = {
     {Type = "Toggle",   Module = "Ratio",             Args = {Title = "Auto Nanami Ratio", Value = CatstarState.Toggles.Ratio.Value, Callback = function(V) CatstarState.Toggles.Ratio.Value = V end}},
     {Type = "Toggle",   Module = "AutoBurst",         Args = {Title = "Auto Burst", Value = CatstarState.Toggles.AutoBurst.Value, Callback = function(V) CatstarState.Toggles.AutoBurst.Value = V end}},
     {Type = "Toggle",   Module = "QTE",               Args = {Title = "Auto QTE", Value = CatstarState.Toggles.QTE.Value, Callback = function(V) CatstarState.Toggles.QTE.Value = V end}},
-    {Type = "Toggle",   Module = "Reach",             Args = {Title = "Reach", Value = CatstarState.Toggles.Reach.Value, Callback = function(V) CatstarState.Toggles.Reach.Value = V end}},
+    {Type = "Toggle",   Module = "Reach",             Args = {Title = "Front Dash Reach", Value = CatstarState.Toggles.Reach.Value, Callback = function(V) CatstarState.Toggles.Reach.Value = V end}},
     {Type = "Slider",   Module = "Reach",             Args = {Title = "Reach Distance", Step = 1, Value = {Min = 1, Max = 15, Default = CatstarState.Variables.Reach.Value}, Callback = function(V) CatstarState.Variables.Reach.Value = V end}},
     
     {Type = "Section",  Args = {Title = "Aimbot Settings"}},
@@ -254,7 +255,6 @@ local UiLayout = {
 
     {Type = "Section",  Args = {Title = "Movement & Protection"}},
     {Type = "Toggle",   Module = "Noclip",            Args = {Title = "Noclip through Players", Value = CatstarState.Toggles.Noclip.Value, Callback = function(V) CatstarState.Toggles.Noclip.Value = V end}},
-    {Type = "Toggle",   Module = "DomainNoclip",      Args = {Title = "Noclip through Domains", Value = CatstarState.Toggles.DomainNoclip.Value, Callback = function(V) CatstarState.Toggles.DomainNoclip.Value = V end}},
     {Type = "Toggle",   Module = "AntiVoid",          Args = {Title = "Anti Void", Value = CatstarState.Toggles.AntiVoid.Value, Callback = function(V) CatstarState.Toggles.AntiVoid.Value = V end}},
     {Type = "Toggle",   Module = "AntiBlackhole",     Args = {Title = "Anti Blackhole", Value = CatstarState.Toggles.AntiBlackhole.Value, Callback = function(V) CatstarState.Toggles.AntiBlackhole.Value = V end}},
     {Type = "Toggle",   Module = "InstantInteract",   Args = {Title = "Instant Interact", Value = CatstarState.Toggles.InstantInteract.Value, Callback = function(V) CatstarState.Toggles.InstantInteract.Value = V end}},
@@ -269,6 +269,7 @@ local UiLayout = {
 
     {Type = "Section",  Args = {Title = "Visual Mechanics"}},
     {Type = "Toggle",   Module = "ESP",               Args = {Title = "Player ESP", Value = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
+    {Type = "Toggle",   Module = "DomainESP",         Args = {Title = "Domain ESP", Value = CatstarState.Toggles.DomainESP.Value, Callback = function(V) CatstarState.Toggles.DomainESP.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",          Args = {Title = "Dummy ESP", Value = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
     {Type = "Toggle",   Module = "ItemESP",           Args = {Title = "Item ESP", Value = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
     {Type = "Toggle",   Module = "Aura",              Args = {Title = "Message Aura", Value = CatstarState.Toggles.MsgAura.Value, Callback = function(V) CatstarState.Toggles.MsgAura.Value = V end}},
