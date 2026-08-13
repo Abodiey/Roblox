@@ -56,27 +56,30 @@ local function getClosestCharacter()
 end
 
 -- Hook Initialization
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = getnamecallmethod()
+task.delay(30, function()
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
 
-    if method == "FireServer" and not checkcaller() and isEnabled and trackedRemotes[self] then
-        local Args = table.pack(...)
+        if method == "FireServer" and not checkcaller() then
+            if isEnabled and trackedRemotes[self] then
+                local Args = table.pack(...)
 
-        if Args.n == 2 and Args[1] == nil and typeof(Args[2]) == "CFrame" then
-            local target = getClosestCharacter()
+                if Args.n == 2 and Args[1] == nil and typeof(Args[2]) == "CFrame" then
+                    local target = getClosestCharacter()
 
-            if target then
-                -- Pass modified arguments directly into oldNamecall instead of re-firing
-                setnamecallmethod(method)
-                return oldNamecall(self, {target}, Args[2])
+                    if target then
+                        setnamecallmethod(method)
+                        return oldNamecall(self, {target}, Args[2])
+                    end
+                end
             end
         end
-    end
 
-    setnamecallmethod(method)
-    return oldNamecall(self, ...)
-end))
+        setnamecallmethod(method)
+        return oldNamecall(self, ...)
+    end))
+end)
 
 -- Module Core Initialization
 function Reach.Init(State)
