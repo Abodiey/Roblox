@@ -69,7 +69,7 @@ function DomainESP.Init(State)
     local toggleObject = State.Toggles.DomainESP
 
     -- Render loop to update positions and visibility
-    local renderConn = cloneref(game:GetService("RunService")).RenderStepped:Connect(function()
+    local renderConn = game:GetService("RunService").RenderStepped:Connect(function()
         if not toggleObject.Value then
             for _, espData in pairs(activeEsp) do
                 for _, line in ipairs(espData.Lines) do
@@ -95,7 +95,7 @@ function DomainESP.Init(State)
                 local textWorldPos = cframe.Position + Vector3.new(0, size.Y + 1, 0)
                 local textPoint, textOnScreen = camera:WorldToViewportPoint(textWorldPos)
 
-                if textOnScreen then
+                if textOnScreen and textPoint.Z > 0 then
                     espData.Text.Position = Vector2.new(textPoint.X, textPoint.Y)
                     espData.Text.Visible = true
                 else
@@ -116,31 +116,31 @@ function DomainESP.Init(State)
                     }
 
                     local screenPoints = {}
-                    local allOnScreen = true
+                    local visibilities = {}
 
                     for i = 1, 8 do
-                        local point, onScreen = camera:WorldToViewportPoint(corners[i])
-                        if not onScreen then
-                            allOnScreen = false
-                        end
+                        local point, _ = camera:WorldToViewportPoint(corners[i])
                         screenPoints[i] = Vector2.new(point.X, point.Y)
+                        -- point.Z > 0 means the point is in front of the camera plane
+                        visibilities[i] = point.Z > 0
                     end
 
-                    if allOnScreen then
-                        local edgePairs = {
-                            {1, 2}, {2, 3}, {3, 4}, {4, 1},
-                            {5, 6}, {6, 7}, {7, 8}, {8, 5},
-                            {1, 5}, {2, 6}, {3, 7}, {4, 8}
-                        }
+                    local edgePairs = {
+                        {1, 2}, {2, 3}, {3, 4}, {4, 1}, -- Bottom face
+                        {5, 6}, {6, 7}, {7, 8}, {8, 5}, -- Top face
+                        {1, 5}, {2, 6}, {3, 7}, {4, 8}  -- Vertical edges
+                    }
 
-                        for i, edge in ipairs(edgePairs) do
-                            local line = espData.Lines[i]
-                            line.From = screenPoints[edge[1]]
-                            line.To = screenPoints[edge[2]]
+                    for i, edge in ipairs(edgePairs) do
+                        local p1, p2 = edge[1], edge[2]
+                        local line = espData.Lines[i]
+
+                        -- Only render line if both connected corners are in front of the camera
+                        if visibilities[p1] and visibilities[p2] then
+                            line.From = screenPoints[p1]
+                            line.To = screenPoints[p2]
                             line.Visible = true
-                        end
-                    else
-                        for _, line in ipairs(espData.Lines) do
+                        else
                             line.Visible = false
                         end
                     end
