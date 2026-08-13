@@ -2,7 +2,7 @@ local Reach = {}
 
 -- Services & References
 local Players = cloneref(game:GetService("Players"))
-local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() or Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
 
 -- Workspace & Tracking setup
 local CharactersFolder = workspace:WaitForChild("Characters", 999)
@@ -35,13 +35,13 @@ local isEnabled = false
 
 -- Helper Functions
 local function getClosestCharacter()
-    if not character or not localRoot or not CharactersFolder then return nil end
+    if not character or not localRoot then return nil end
 
     local closest, shortest = nil, maxDistance
 
     for _, char in ipairs(CharactersFolder:GetChildren()) do
         if char ~= character then
-            local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+            local root = char:FindFirstChild("HumanoidRootPart")
             if root then
                 local d = (root.Position - localRoot.Position).Magnitude
                 if d <= shortest then
