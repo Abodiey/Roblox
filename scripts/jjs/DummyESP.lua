@@ -1,43 +1,32 @@
 local DummyESP = {}
+
 local Characters = workspace:WaitForChild("Characters")
-local CoreGui = cloneref(game:GetService("CoreGui"))
+local RunService = game:GetService("RunService")
 
-while CoreGui:FindFirstChild("DummyHighlightESP") do
-    CoreGui.DummyHighlightESP:Destroy()
-    task.wait()
-end
-
-local BBQ = Instance.new("BillboardGui")
-BBQ.Name = "DummyHighlightESP"
-BBQ.Size = UDim2.new(4, 0, 6, 0)
-BBQ.AlwaysOnTop = true
-BBQ.ResetOnSpawn = false
-BBQ.Enabled = false
-
-local strokeFrame = Instance.new("Frame")
-strokeFrame.Size = UDim2.new(1, 0, 1, 0)
-strokeFrame.BackgroundTransparency = 1
-
-local uiStroke = Instance.new("UIStroke")
-uiStroke.Thickness = 2
-uiStroke.Color = Color3.fromRGB(0, 255, 0) 
-
-BBQ.Parent = CoreGui
-strokeFrame.Parent = BBQ
-uiStroke.Parent = strokeFrame
+-- Pre-allocate a single Drawing Square object for streamproof rendering
+local box = Drawing.new("Square")
+box.Thickness = 2
+box.Filled = false
+box.Transparency = 1
+box.Color = Color3.fromRGB(0, 255, 0)
+box.Visible = false
 
 local childAddedConn = nil
 local childRemovedConn = nil
 local attributeConn = nil
 local toggleConn = nil
+local renderConn = nil
 
-local function updateESPColor(dummy)
-    if not dummy then return end
+local currentDummy = nil
+local currentHRP = nil
+
+local function updateESPColor()
+    if not currentDummy then return end
     
-    if dummy:GetAttribute("Dead") == true then
-        uiStroke.Color = Color3.fromRGB(255, 0, 0) 
+    if currentDummy:GetAttribute("Dead") == true then
+        box.Color = Color3.fromRGB(255, 0, 0)
     else
-        uiStroke.Color = Color3.fromRGB(0, 255, 0) 
+        box.Color = Color3.fromRGB(0, 255, 0)
     end
 end
 
@@ -59,23 +48,24 @@ local function refreshTargetDummy()
     end
 
     if targetDummy then
+        currentDummy = targetDummy
         task.spawn(function()
             local hrp = targetDummy:WaitForChild("HumanoidRootPart", 5)
-            
             if targetDummy and targetDummy.Parent and hrp then
-                BBQ.Adornee = hrp
-                updateESPColor(targetDummy)
-                BBQ.Enabled = true
+                currentHRP = hrp
+                updateESPColor()
 
-                attributeConn = targetDummy:GetAttributeChangedSignal("Dead"):Connect(function()
-                    updateESPColor(targetDummy)
-                end)
+                attributeConn = targetDummy:GetAttributeChangedSignal("Dead"):Connect(updateESPColor)
+            else
+                currentDummy = nil
+                currentHRP = nil
+                box.Visible = false
             end
         end)
     else
-        BBQ.Enabled = false
-        BBolGui = nil
-        BBQ.Adornee = nil
+        currentDummy = nil
+        currentHRP = nil
+        box.Visible = false
     end
 end
 
@@ -83,13 +73,47 @@ local function cleanupESP()
     if childAddedConn then childAddedConn:Disconnect() childAddedConn = nil end
     if childRemovedConn then childRemovedConn:Disconnect() childRemovedConn = nil end
     if attributeConn then attributeConn:Disconnect() attributeConn = nil end
+    if renderConn then renderConn:Disconnect() renderConn = nil end
 
-    BBQ.Enabled = false
-    BBQ.Adornee = nil
+    currentDummy = nil
+    currentHRP = nil
+    box.Visible = false
 end
 
 function DummyESP.Init(State)
     local toggleObject = State.Toggles.DummyESP
+
+    -- Dedicated rendering connection replacing BillboardGui positioning
+    renderConn = RunService.RenderStepped:Connect(function()
+        if not toggleObject.Value or not currentHRP or not currentHRP.Parent then
+            box.Visible = false
+            return
+        end
+
+        local camera = workspace.CurrentCamera
+        if not camera then 
+            box.Visible = false
+            return 
+        end
+
+        local hrpPos = currentHRP.Position
+        local screenPos, onScreen = camera:WorldToViewportPoint(hrpPos)
+
+        if onScreen and screenPos.Z > 0 then
+            -- Scale box dimensions based on camera distance to replicate BillboardGui scaling
+            local distance = (camera.CFrame.Position - hrpPos).Magnitude
+            local factor = 1000 / distance
+            local width = math.clamp(4 * factor, 10, 300)
+            local height = math.clamp(6 * factor, 15, 450)
+
+            box.Size = Vector2.new(width, height)
+            box.Position = Vector2.new(screenPos.X - (width * 0.5), screenPos.Y - (height * 0.5))
+            box.Visible = true
+        else
+            box.Visible = false
+        end
+    end)
+    table.insert(State.Connections, renderConn)
 
     local function handleStateChange()
         if toggleObject.Value then
