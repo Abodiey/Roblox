@@ -3,7 +3,7 @@ local DummyESP = {}
 local Characters = workspace:WaitForChild("Characters")
 local RunService = game:GetService("RunService")
 
--- Pre-allocate a single Drawing Square object for streamproof rendering
+-- Pre-allocated streamproof drawing instance
 local box = Drawing.new("Square")
 box.Thickness = 2
 box.Filled = false
@@ -16,6 +16,7 @@ local childRemovedConn = nil
 local attributeConn = nil
 local toggleConn = nil
 local renderConn = nil
+local hrpAncestryConn = nil
 
 local currentDummy = nil
 local currentHRP = nil
@@ -27,6 +28,23 @@ local function updateESPColor()
         box.Color = Color3.fromRGB(255, 0, 0)
     else
         box.Color = Color3.fromRGB(0, 255, 0)
+    end
+end
+
+local function bindToHRP(hrp)
+    if hrpAncestryConn then
+        hrpAncestryConn:Disconnect()
+        hrpAncestryConn = nil
+    end
+
+    currentHRP = hrp
+    if hrp then
+        hrpAncestryConn = hrp.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                currentHRP = nil
+                box.Visible = false
+            end
+        end)
     end
 end
 
@@ -49,22 +67,26 @@ local function refreshTargetDummy()
 
     if targetDummy then
         currentDummy = targetDummy
-        task.spawn(function()
-            local hrp = targetDummy:WaitForChild("HumanoidRootPart", 5)
-            if targetDummy and targetDummy.Parent and hrp then
-                currentHRP = hrp
-                updateESPColor()
+        updateESPColor()
 
-                attributeConn = targetDummy:GetAttributeChangedSignal("Dead"):Connect(updateESPColor)
-            else
-                currentDummy = nil
-                currentHRP = nil
-                box.Visible = false
-            end
-        end)
+        attributeConn = targetDummy:GetAttributeChangedSignal("Dead"):Connect(updateESPColor)
+
+        -- Check if HRP exists immediately, otherwise listen for it dynamically
+        local hrp = targetDummy:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            bindToHRP(hrp)
+        else
+            bindToHRP(nil)
+            task.spawn(function()
+                local foundHRP = targetDummy:WaitForChild("HumanoidRootPart", 15)
+                if currentDummy == targetDummy and foundHRP then
+                    bindToHRP(foundHRP)
+                end
+            end)
+        end
     else
         currentDummy = nil
-        currentHRP = nil
+        bindToHRP(nil)
         box.Visible = false
     end
 end
@@ -74,6 +96,7 @@ local function cleanupESP()
     if childRemovedConn then childRemovedConn:Disconnect() childRemovedConn = nil end
     if attributeConn then attributeConn:Disconnect() attributeConn = nil end
     if renderConn then renderConn:Disconnect() renderConn = nil end
+    if hrpAncestryConn then hrpAncestryConn:Disconnect() hrpAncestryConn = nil end
 
     currentDummy = nil
     currentHRP = nil
@@ -83,9 +106,25 @@ end
 function DummyESP.Init(State)
     local toggleObject = State.Toggles.DummyESP
 
-    -- Dedicated rendering connection replacing BillboardGui positioning
+    -- Dedicated render connection
     renderConn = RunService.RenderStepped:Connect(function()
-        if not toggleObject.Value or not currentHRP or not currentHRP.Parent then
+        if not toggleObject.Value then
+            box.Visible = false
+            return
+        end
+
+        -- Auto-retry finding HRP if dummy exists but HRP was lost during respawn
+        if currentDummy and (not currentHRP or not currentHRP.Parent) then
+            local hrp = currentDummy:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                bindToHRP(hrp)
+            else
+                box.Visible = false
+                return
+            end
+        end
+
+        if not currentHRP then
             box.Visible = false
             return
         end
@@ -100,9 +139,8 @@ function DummyESP.Init(State)
         local screenPos, onScreen = camera:WorldToViewportPoint(hrpPos)
 
         if onScreen and screenPos.Z > 0 then
-            -- Scale box dimensions based on camera distance to replicate BillboardGui scaling
             local distance = (camera.CFrame.Position - hrpPos).Magnitude
-            local factor = 1000 / distance
+            local factor = 1000 / math.max(distance, 1)
             local width = math.clamp(4 * factor, 10, 300)
             local height = math.clamp(6 * factor, 15, 450)
 
@@ -130,7 +168,7 @@ function DummyESP.Init(State)
             if not childRemovedConn then
                 childRemovedConn = Characters.ChildRemoved:Connect(function(child)
                     if child and child.Name == "Dummy" then
-                        refreshTargetDummy()
+                        task.defer(refreshTargetDummy)
                     end
                 end)
             end
