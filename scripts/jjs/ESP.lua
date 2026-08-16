@@ -187,6 +187,132 @@ local function removeBarGroup(bar)
     end
 end
 
+-- ============================================================================
+-- DRAWING.NEW RICHTEXT PARSER & LAYOUT ENGINE
+-- Splits standard RichText tags into individual Drawing.new("Text") elements
+-- ============================================================================
+
+local function parseRichTextLine(lineStr, defaultColor)
+    local segments = {}
+    local colorStack = { defaultColor }
+    local pos = 1
+    local len = #lineStr
+
+    while pos <= len do
+        local tagStart, tagEnd, tagName, tagAttr = lineStr:find("<(%/?%a+)%s*([^>]*)>", pos)
+        if not tagStart then
+            local text = lineStr:sub(pos)
+            if #text > 0 then
+                table_insert(segments, {
+                    Text = text,
+                    Color = colorStack[#colorStack] or defaultColor
+                })
+            end
+            break
+        end
+
+        -- Add text segment before tag
+        if tagStart > pos then
+            local text = lineStr:sub(pos, tagStart - 1)
+            if #text > 0 then
+                table_insert(segments, {
+                    Text = text,
+                    Color = colorStack[#colorStack] or defaultColor
+                })
+            end
+        end
+
+        local isClosing = tagName:sub(1, 1) == "/"
+        local cleanTagName = isClosing and tagName:sub(2):lower() or tagName:lower()
+
+        if cleanTagName == "font" then
+            if isClosing then
+                if #colorStack > 1 then
+                    table.remove(colorStack)
+                end
+            else
+                local hex = tagAttr:match("color%s*=%s*['\"]#?([%x%X]+)['\"]") or tagAttr:match("color%s*=%s*#?([%x%X]+)")
+                if hex then
+                    local success, col = pcall(c3_fromHex, "#" .. hex)
+                    if success and col then
+                        table_insert(colorStack, col)
+                    else
+                        table_insert(colorStack, colorStack[#colorStack])
+                    end
+                else
+                    table_insert(colorStack, colorStack[#colorStack])
+                end
+            end
+        end
+
+        pos = tagEnd + 1
+    end
+
+    return segments
+end
+
+local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultColor)
+    local lines = {}
+    for line in rawText:gmatch("[^\r\n]+") do
+        table_insert(lines, line)
+    end
+
+    if #lines == 0 then
+        for _, obj in ipairs(pool) do
+            obj.Visible = false
+        end
+        return
+    end
+
+    local poolIdx = 0
+    local currentY = topY
+    local lineHeight = fontSize + 2
+
+    for _, lineStr in ipairs(lines) do
+        local segments = parseRichTextLine(lineStr, defaultColor)
+        local totalLineWidth = 0
+        local segWidths = {}
+
+        for i, seg in ipairs(segments) do
+            poolIdx = poolIdx + 1
+            local textObj = pool[poolIdx]
+            if not textObj then
+                textObj = Drawing.new("Text")
+                textObj.Center = false
+                pool[poolIdx] = textObj
+            end
+
+            textObj.Size = fontSize
+            textObj.Outline = false -- Disabled drop shadows across all text elements
+            textObj.Text = seg.Text
+            local w = textObj.TextBounds.X
+            segWidths[i] = w
+            totalLineWidth = totalLineWidth + w
+        end
+
+        local currentX = centerX - (totalLineWidth / 2)
+        local lineStartIdx = poolIdx - #segments + 1
+
+        for i, seg in ipairs(segments) do
+            local textObj = pool[lineStartIdx + i - 1]
+            textObj.Position = v2_new(currentX, currentY)
+            textObj.Color = seg.Color
+            textObj.Visible = true
+            currentX = currentX + segWidths[i]
+        end
+
+        currentY = currentY + lineHeight
+    end
+
+    for i = poolIdx + 1, #pool do
+        pool[i].Visible = false
+    end
+end
+
+-- ============================================================================
+-- ASSET CREATION & CACHE LIFECYCLE
+-- ============================================================================
+
 local function CreateAssets(p)
     local assets = {}
 
@@ -198,15 +324,8 @@ local function CreateAssets(p)
         Visible = false
     })
 
-    -- Main Overhead Text Display
-    assets.Text = createDrawing("Text", {
-        Size = 13,
-        Center = true,
-        Outline = true,
-        OutlineColor = COLOR_BLACK,
-        Color = COLOR_WHITE,
-        Visible = false
-    })
+    -- RichText Segment Pool for Overhead Multi-Line Text
+    assets.TextPool = {}
 
     -- Overhead Ultimate Progress Bar
     assets.UltBar = createBarGroup()
@@ -227,7 +346,7 @@ local function CreateAssets(p)
             Back = createDrawing("Square", { Filled = true, Color = c3_new(0.1, 0.1, 0.1), Transparency = 0.6, Visible = false }),
             Fill = createDrawing("Square", { Filled = true, Color = COLOR_CYAN, Transparency = 0.6, Visible = false }),
             Outline = createDrawing("Square", { Filled = false, Color = COLOR_BLACK, Thickness = 1, Visible = false }),
-            Label = createDrawing("Text", { Size = 10, Center = true, Outline = true, OutlineColor = COLOR_BLACK, Color = COLOR_WHITE, Visible = false }),
+            Label = createDrawing("Text", { Size = 10, Center = true, Outline = false, Color = COLOR_WHITE, Visible = false }),
             Data = { Visible = false, Key = tostring(i), Name = "", Tip = "", CooldownRatio = 0 }
         }
     end
@@ -251,6 +370,8 @@ local function CreateAssets(p)
     assets.IsFriend = false
     assets.IsMutual = false
     assets.LineColor = COLOR_GREEN
+    assets.HexKillColor = "ffffff"
+    assets.HexDistColor = "ffffff"
     assets.IsHidingKills = false
     
     return assets
@@ -258,7 +379,11 @@ end
 
 local function HideAllAssets(assets)
     if assets.Line then assets.Line.Visible = false end
-    if assets.Text then assets.Text.Visible = false end
+    if assets.TextPool then
+        for _, textObj in ipairs(assets.TextPool) do
+            textObj.Visible = false
+        end
+    end
     if assets.UltBar then setBarGroupVisible(assets.UltBar, false) end
     if assets.HealthBar then setBarGroupVisible(assets.HealthBar, false) end
     if assets.EvadeBar then setBarGroupVisible(assets.EvadeBar, false) end
@@ -281,7 +406,12 @@ local function CleanupCacheEntry(p, assets)
     for _, conn in ipairs(assets.KillValueConnections) do conn:Disconnect() end
     
     safeRemove(assets.Line)
-    safeRemove(assets.Text)
+    
+    if assets.TextPool then
+        for _, textObj in ipairs(assets.TextPool) do
+            safeRemove(textObj)
+        end
+    end
     
     if assets.UltBar then removeBarGroup(assets.UltBar) end
     if assets.HealthBar then removeBarGroup(assets.HealthBar) end
@@ -327,7 +457,7 @@ local function SetupPlayerSignals(p, assets)
             local successRole, role = pcall(p.GetRoleInGroup, p, TARGET_GROUP)
             if successRole then
                 role = tostring(role)
-                assets.GroupRoleTag = s_format("[%s] ", role)
+                assets.GroupRoleTag = s_format("<font color='#00AAFF'>[%s]</font> ", role)
                 return
             end
         end
@@ -341,6 +471,8 @@ local function SetupPlayerSignals(p, assets)
 
         local function updateKills()
             assets.CachedKills = tonumber(killsVal.Value) or 0
+            local killCol = getGradientColor(1 - (assets.CachedKills / 1000))
+            assets.HexKillColor = s_format("%02x%02x%02x", m_floor(killCol.R * 255), m_floor(killCol.G * 255), m_floor(killCol.B * 255))
         end
         table_insert(assets.KillValueConnections, killsVal:GetPropertyChangedSignal("Value"):Connect(updateKills))
         updateKills()
@@ -470,6 +602,7 @@ function ESP.Init(State)
         local gameClock = o_clock()
 
         local globalRainbowColor = Color3.fromHSV((gameClock * 0.4) % 1, 1, 1)
+        local globalRainbowHex = s_format("%02x%02x%02x", m_floor(globalRainbowColor.R * 255), m_floor(globalRainbowColor.G * 255), m_floor(globalRainbowColor.B * 255))
 
         for p, assets in pairs(Cache) do
             if not p or not p.Parent then CleanupCacheEntry(p, assets) end
@@ -492,7 +625,7 @@ function ESP.Init(State)
                     SetupCharacterSignals(c, char, hum)
                 end
                 
-                -- Project root, top (head), and bottom (feet) to screen 2D space
+                -- Project root, head, and feet positions to viewport
                 local root2D, visRoot = cam:WorldToViewportPoint(root.Position)
                 local head2D, visHead = cam:WorldToViewportPoint(root.Position + v3_new(0, 3.2, 0))
                 local feet2D, visFeet = cam:WorldToViewportPoint(root.Position - v3_new(0, 3.6, 0))
@@ -503,7 +636,7 @@ function ESP.Init(State)
                     local boxX = root2D.X - (boxWidth / 2)
                     local boxY = head2D.Y
 
-                    -- Calculate origin for Tracer Line
+                    -- Calculate Tracer origin position
                     local sX, sY
                     if myRoot then
                         local p1, visP1 = cam:WorldToViewportPoint(myRoot.Position)
@@ -527,7 +660,7 @@ function ESP.Init(State)
                     
                     local hideNameAndHealth = (dist < 10)
 
-                    -- 1. Render Health Bar (Left of bounding box)
+                    -- 1. Render Left Sidebar: Health Bar
                     local hWidth = 4
                     local hX = boxX - hWidth - 4
                     local hY = boxY
@@ -562,7 +695,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 2. Render Evade Bar (Right of bounding box)
+                    -- 2. Render Right Sidebar: Evade Bar
                     local eWidth = 4
                     local eX = boxX + boxWidth + 4
                     local eY = boxY
@@ -600,7 +733,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 3. Render Overheat Bar (Right extension beside Evade)
+                    -- 3. Render Right Extension: Overheat Bar (Ryu Character)
                     local ohX = eX + eWidth + 3
                     if char:GetAttribute("Moveset") == "Ryu" and char:FindFirstChild("Info") and char.Info:FindFirstChild("Overheat") then
                         local ohVal = char.Info.Overheat.Value
@@ -639,7 +772,7 @@ function ESP.Init(State)
                         setBarGroupVisible(c.OverheatBar, false)
                     end
 
-                    -- 4. Render Ultimate Bar (Horizontal bar directly above head)
+                    -- 4. Render Overhead Ultimate Progress Bar
                     local uHeight = 4
                     local uW = boxWidth
                     local uX = boxX
@@ -675,7 +808,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Render Hotbar Moveset Slots (Above Ult Bar)
+                    -- 5. Render Hotbar Moveset Slots
                     local slotW = (uW - 6) / 4
                     local slotH = 12
                     local slotY = uY - slotH - 3
@@ -784,6 +917,7 @@ function ESP.Init(State)
 
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         if usesCustomLook then
+                            hexColor = globalRainbowHex
                             c.UltBar.Fill.Color = globalRainbowColor
                         else
                             c.UltBar.Fill.Color = c3_fromHex("#" .. hexColor)
@@ -801,33 +935,33 @@ function ESP.Init(State)
                         
                         if cashValue > 0 then
                             local cashStr = hideNameAndHealth and tostring(cashValue) or formatVal(cashValue)
-                            c.CashDisplay = s_format("$%s | ", cashStr)
+                            c.CashDisplay = s_format("<font color='#00FF00'>$%s</font> | ", cashStr)
                         else
                             c.CashDisplay = ""
                         end
 
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
-                            permBadges = permBadges .. "[👑 Owner] "
+                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
                         elseif p:GetAttribute("PS_Perms") == true then
-                            permBadges = permBadges .. "[⚙️ Admin] "
+                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
                         end
                         if p:GetAttribute("Workshop") == true then
-                            permBadges = permBadges .. "[🛠️ Workshop] "
+                            permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
                         end
 
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
-                        local jackpotTag = (jackpotCount > 0) and s_format("[%sx JP] ", jackpotCount) or ""
+                        local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
                         
-                        local leftTag = inUlt and "[ULT] " or ""
-                        local afkTag = c.IsAFK and "[AFK] " or ""
+                        local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
+                        local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
                         local markTag = ""
                         local currentMarkObj = ActiveMarks[char]
                         if currentMarkObj then
                             if currentMarkObj.Parent and char.Parent then
-                                markTag = "[MARK] "
+                                markTag = "<font color='#9D8D6D'><b>[MARK]</b></font> "
                             else
                                 ActiveMarks[char] = nil
                             end
@@ -836,18 +970,18 @@ function ESP.Init(State)
                         local itfgTag = ""
                         local itfgVal = char:GetAttribute("ITFG")
                         if type(itfgVal) == "number" and itfgVal >= 1 and itfgVal <= 2 then
-                            itfgTag = s_format("[IT %d/2] ", itfgVal)
+                            itfgTag = s_format("<font color='#DF00FF'><b>[IT %d/2]</b></font> ", itfgVal)
                         end
 
                         local execTag = ""
                         local execVal = char:GetAttribute("EXEC")
                         if type(execVal) == "number" and execVal > 0 then
-                            execTag = s_format("[EXEC %d/2] ", execVal)
+                            execTag = s_format("<font color='#FFFF00'><b>[EXEC %d/2]</b></font> ", execVal)
                         end
 
                         local burstTag = ""
                         if char:GetAttribute("Burst") ~= nil then
-                            burstTag = "[BURST] "
+                            burstTag = "<font color='#FFFFFF'><b>[BURST]</b></font> "
                         end
 
                         local trailingBrackets = ""
@@ -859,15 +993,29 @@ function ESP.Init(State)
                         if hideNameAndHealth then
                             c.NameDisplay = trailingBrackets
                         elseif isDead then
-                            c.NameDisplay = s_format("%s%s%s%s[DEAD] %s %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
                         else
-                            c.NameDisplay = s_format("%s%s%s%s%s%s %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, p.Name, trailingBrackets)
+                            local nameColorHex = "FFFFFF"
+                            if c.IsFriend then
+                                nameColorHex = "00FF00"
+                            elseif c.IsMutual then
+                                nameColorHex = "00FFFF"
+                            end
+
+                            local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
+                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
+                        local distCol = getGradientColor(dist / 800)
+                        c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
                         if movesetName and movesetName ~= "" then
-                            c.CachedMoveset = s_format("%s | ", tostring(movesetName))
+                            if DARK_MOVESETS[movesetName] and not usesCustomLook then
+                                c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
+                            else
+                                c.CachedMoveset = s_format("<font color='#%s'>%s</font> | ", hexColor, tostring(movesetName))
+                            end
                         else
                             c.CachedMoveset = ""
                         end
@@ -879,22 +1027,24 @@ function ESP.Init(State)
                     c.Line.From = v2_new(sX, sY)
                     c.Line.To = v2_new(root2D.X, feet2D.Y)
 
-                    -- 6. Render Main Overhead Text Label
+                    -- 6. Render Main Overhead Text Label via Drawing RichText Parser
                     local killString = hideNameAndHealth and tostring(c.CachedKills) or formatVal(c.CachedKills)
                     if c.IsHidingKills then
-                        killString = s_format("%s [HIDDEN]", killString)
+                        killString = s_format("%s <font color='#FF3333'><b>[HIDDEN]</b></font>", killString)
                     end
 
-                    local textY = hasActiveMoveset and (slotY - 15) or (uY - 15)
-                    c.Text.Visible = true
-                    c.Text.Position = v2_new(root2D.X, textY)
-                    c.Text.Text = s_format("%s\n%s%s%s • %sm", 
+                    local rawText = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
                         c.NameDisplay, 
                         c.CachedMoveset,
                         c.CashDisplay,
+                        c.HexKillColor, 
                         killString, 
+                        c.HexDistColor, 
                         tostring(m_floor(c.LastDist))
                     )
+
+                    local textY = hasActiveMoveset and (slotY - 26) or (uY - 26)
+                    renderRichText(c.TextPool, rawText, root2D.X, textY, 13, COLOR_WHITE)
                 else
                     HideAllAssets(c)
                 end
