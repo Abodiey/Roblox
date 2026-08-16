@@ -65,6 +65,7 @@ local COLOR_WHITE = c3_new(1, 1, 1)
 local COLOR_BLACK = c3_new(0, 0, 0)
 local COLOR_GOLD = c3_new(1, 0.85, 0)
 local COLOR_PURPLE = c3_new(0.68, 0.1, 1)
+local COLOR_LIGHT_BLUE = Color3.fromRGB(50, 180, 255)
 
 -- JJK Character Moveset Color Map
 local MOVESET_COLORS = {
@@ -265,7 +266,7 @@ local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultCol
     end
 
     local poolIdx = 0
-    local currentY = topY
+    local currentY = m_floor(topY)
     local lineHeight = fontSize + 2
 
     for _, lineStr in ipairs(lines) do
@@ -283,19 +284,20 @@ local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultCol
             end
 
             textObj.Size = fontSize
-            textObj.Outline = false -- Disabled drop shadows across all text elements
+            textObj.Outline = true -- Re-enabled sharp drop shadow
+            textObj.OutlineColor = COLOR_BLACK
             textObj.Text = seg.Text
             local w = textObj.TextBounds.X
             segWidths[i] = w
             totalLineWidth = totalLineWidth + w
         end
 
-        local currentX = centerX - (totalLineWidth / 2)
+        local currentX = m_floor(centerX - (totalLineWidth / 2))
         local lineStartIdx = poolIdx - #segments + 1
 
         for i, seg in ipairs(segments) do
             local textObj = pool[lineStartIdx + i - 1]
-            textObj.Position = v2_new(currentX, currentY)
+            textObj.Position = v2_new(m_floor(currentX), currentY)
             textObj.Color = seg.Color
             textObj.Visible = true
             currentX = currentX + segWidths[i]
@@ -344,9 +346,9 @@ local function CreateAssets(p)
     for i = 1, 4 do
         assets.MovesetItems[i] = {
             Back = createDrawing("Square", { Filled = true, Color = c3_new(0.1, 0.1, 0.1), Transparency = 0.6, Visible = false }),
-            Fill = createDrawing("Square", { Filled = true, Color = COLOR_CYAN, Transparency = 0.6, Visible = false }),
+            Fill = createDrawing("Square", { Filled = true, Color = COLOR_LIGHT_BLUE, Transparency = 0.5, Visible = false }),
             Outline = createDrawing("Square", { Filled = false, Color = COLOR_BLACK, Thickness = 1, Visible = false }),
-            Label = createDrawing("Text", { Size = 10, Center = true, Outline = false, Color = COLOR_WHITE, Visible = false }),
+            Label = createDrawing("Text", { Size = 10, Center = true, Outline = true, OutlineColor = COLOR_BLACK, Color = COLOR_WHITE, Visible = false }),
             Data = { Visible = false, Key = tostring(i), Name = "", Tip = "", CooldownRatio = 0 }
         }
     end
@@ -631,18 +633,19 @@ function ESP.Init(State)
                 local feet2D, visFeet = cam:WorldToViewportPoint(root.Position - v3_new(0, 3.6, 0))
 
                 if visRoot and root2D.Z > 0 then
-                    local boxHeight = m_abs(feet2D.Y - head2D.Y)
-                    local boxWidth = m_clamp(boxHeight * 0.55, 16, 220)
-                    local boxX = root2D.X - (boxWidth / 2)
-                    local boxY = head2D.Y
+                    -- Lock layout parameters using integer pixel bounds to eliminate distortion/shifting
+                    local boxHeight = m_floor(m_clamp(m_abs(feet2D.Y - head2D.Y), 18, 500))
+                    local boxWidth = m_floor(m_clamp(boxHeight * 0.55, 18, 260))
+                    local boxX = m_floor(root2D.X - (boxWidth / 2))
+                    local boxY = m_floor(head2D.Y)
 
                     -- Calculate Tracer origin position
                     local sX, sY
                     if myRoot then
                         local p1, visP1 = cam:WorldToViewportPoint(myRoot.Position)
-                        sX, sY = p1.X, p1.Y
+                        sX, sY = m_floor(p1.X), m_floor(p1.Y)
                     else
-                        sX, sY = viewportSize.X * 0.5, viewportSize.Y
+                        sX, sY = m_floor(viewportSize.X * 0.5), m_floor(viewportSize.Y)
                     end
 
                     local currentPos = root.Position
@@ -677,7 +680,7 @@ function ESP.Init(State)
                         c.HealthBar.Outline.Position = v2_new(hX, hY)
                         c.HealthBar.Outline.Size = v2_new(hWidth, hH)
 
-                        local fillH = hH * liveHpPerc
+                        local fillH = m_floor(hH * liveHpPerc)
                         c.HealthBar.Fill.Position = v2_new(hX, hY + (hH - fillH))
                         c.HealthBar.Fill.Size = v2_new(hWidth, fillH)
 
@@ -687,7 +690,7 @@ function ESP.Init(State)
                         else
                             c.HealthBar.Fill.Color = COLOR_BRIGHT_GREEN:Lerp(COLOR_RED, 1 - liveHpPerc)
                             for i = 1, 9 do
-                                local lineY = hY + (hH * 0.1 * i)
+                                local lineY = m_floor(hY + (hH * 0.1 * i))
                                 c.HealthBar.Lines[i].From = v2_new(hX, lineY)
                                 c.HealthBar.Lines[i].To = v2_new(hX + hWidth, lineY)
                                 c.HealthBar.Lines[i].Visible = true
@@ -715,7 +718,7 @@ function ESP.Init(State)
                         c.EvadeBar.Outline.Position = v2_new(eX, eY)
                         c.EvadeBar.Outline.Size = v2_new(eWidth, eH)
 
-                        local eFillH = eH * evadePerc
+                        local eFillH = m_floor(eH * evadePerc)
                         c.EvadeBar.Fill.Position = v2_new(eX, eY + (eH - eFillH))
                         c.EvadeBar.Fill.Size = v2_new(eWidth, eFillH)
 
@@ -725,7 +728,7 @@ function ESP.Init(State)
                         else
                             c.EvadeBar.Fill.Color = COLOR_CYAN:Lerp(COLOR_DARK_BLUE, 1 - evadePerc)
                             for i = 1, 9 do
-                                local lineY = eY + (eH * 0.1 * i)
+                                local lineY = m_floor(eY + (eH * 0.1 * i))
                                 c.EvadeBar.Lines[i].From = v2_new(eX, lineY)
                                 c.EvadeBar.Lines[i].To = v2_new(eX + eWidth, lineY)
                                 c.EvadeBar.Lines[i].Visible = true
@@ -749,7 +752,7 @@ function ESP.Init(State)
                             c.OverheatBar.Outline.Position = v2_new(ohX, eY)
                             c.OverheatBar.Outline.Size = v2_new(eWidth, eH)
 
-                            local ohFillH = eH * ohRatio
+                            local ohFillH = m_floor(eH * ohRatio)
                             c.OverheatBar.Fill.Position = v2_new(ohX, eY + (eH - ohFillH))
                             c.OverheatBar.Fill.Size = v2_new(eWidth, ohFillH)
 
@@ -760,7 +763,7 @@ function ESP.Init(State)
                             else
                                 ohColor = c3_new(0, 0.66, 1):Lerp(c3_new(1, 0, 0.5), ohRatio)
                                 for i = 1, 9 do
-                                    local lineY = eY + (eH * 0.1 * i)
+                                    local lineY = m_floor(eY + (eH * 0.1 * i))
                                     c.OverheatBar.Lines[i].From = v2_new(ohX, lineY)
                                     c.OverheatBar.Lines[i].To = v2_new(ohX + eWidth, lineY)
                                     c.OverheatBar.Lines[i].Visible = true
@@ -789,7 +792,7 @@ function ESP.Init(State)
                     local ultRatio = m_clamp(ultValue / 100, 0, 1)
 
                     c.UltBar.Fill.Position = v2_new(uX, uY)
-                    c.UltBar.Fill.Size = v2_new(uW * ultRatio, uHeight)
+                    c.UltBar.Fill.Size = v2_new(m_floor(uW * ultRatio), uHeight)
 
                     if isThrottledFrame then
                         if ultValue >= 100 then
@@ -800,7 +803,7 @@ function ESP.Init(State)
                             c.UltBar.Outline.Thickness = 1
                             c.UltBar.Outline.Color = COLOR_BLACK
                             for i = 1, 9 do
-                                local lineX = uX + (uW * 0.1 * i)
+                                local lineX = m_floor(uX + (uW * 0.1 * i))
                                 c.UltBar.Lines[i].From = v2_new(lineX, uY)
                                 c.UltBar.Lines[i].To = v2_new(lineX, uY + uHeight)
                                 c.UltBar.Lines[i].Visible = true
@@ -808,10 +811,11 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Render Hotbar Moveset Slots
-                    local slotW = (uW - 6) / 4
-                    local slotH = 12
-                    local slotY = uY - slotH - 3
+                    -- 5. Render Square Hotbar Moveset Slots & Water-Level Cooldown Draining Visual
+                    local slotSize = 22 -- Strict proportional 1:1 square bounds
+                    local totalMovesetWidth = (4 * slotSize) + (3 * 3)
+                    local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
+                    local slotY = uY - slotSize - 4
                     local hasActiveMoveset = false
 
                     if c.MovesetItems then
@@ -849,27 +853,36 @@ function ESP.Init(State)
                         for i = 1, 4 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
-                                local slotX = uX + (i - 1) * (slotW + 2)
+                                local slotX = movesetStartX + (i - 1) * (slotSize + 3)
+
                                 item.Back.Visible = true
                                 item.Back.Position = v2_new(slotX, slotY)
-                                item.Back.Size = v2_new(slotW, slotH)
+                                item.Back.Size = v2_new(slotSize, slotSize)
 
                                 item.Outline.Visible = true
                                 item.Outline.Position = v2_new(slotX, slotY)
-                                item.Outline.Size = v2_new(slotW, slotH)
+                                item.Outline.Size = v2_new(slotSize, slotSize)
 
-                                local cdFillH = slotH * item.Data.CooldownRatio
-                                if cdFillH > 0 then
+                                -- Cooldown overlay draining downward like water level dropping
+                                local cdRatio = item.Data.CooldownRatio
+                                if cdRatio > 0 then
+                                    local cdFillH = m_floor(slotSize * cdRatio)
                                     item.Fill.Visible = true
-                                    item.Fill.Position = v2_new(slotX, slotY + (slotH - cdFillH))
-                                    item.Fill.Size = v2_new(slotW, cdFillH)
+                                    item.Fill.Color = COLOR_LIGHT_BLUE
+                                    item.Fill.Transparency = 0.5
+                                    item.Fill.Size = v2_new(slotSize, cdFillH)
+                                    -- Keep anchored at bottom while height reduces from top down
+                                    item.Fill.Position = v2_new(slotX, slotY + (slotSize - cdFillH))
                                 else
                                     item.Fill.Visible = false
                                 end
 
+                                -- Render key indicator inside square box without move text truncation
                                 item.Label.Visible = true
-                                item.Label.Position = v2_new(slotX + (slotW / 2), slotY + 1)
-                                item.Label.Text = s_format("%s:%s", item.Data.Key, item.Data.Name:sub(1, 3))
+                                item.Label.Outline = true
+                                item.Label.OutlineColor = COLOR_BLACK
+                                item.Label.Text = item.Data.Key
+                                item.Label.Position = v2_new(slotX + m_floor(slotSize / 2), slotY + m_floor((slotSize - item.Label.TextBounds.Y) / 2))
                             else
                                 item.Back.Visible = false
                                 item.Fill.Visible = false
@@ -1010,6 +1023,7 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
+                        -- Render full move name without string truncation
                         if movesetName and movesetName ~= "" then
                             if DARK_MOVESETS[movesetName] and not usesCustomLook then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
@@ -1025,7 +1039,7 @@ function ESP.Init(State)
                     c.Line.Visible = true
                     c.Line.Color = c.LineColor
                     c.Line.From = v2_new(sX, sY)
-                    c.Line.To = v2_new(root2D.X, feet2D.Y)
+                    c.Line.To = v2_new(m_floor(root2D.X), m_floor(feet2D.Y))
 
                     -- 6. Render Main Overhead Text Label via Drawing RichText Parser
                     local killString = hideNameAndHealth and tostring(c.CachedKills) or formatVal(c.CachedKills)
@@ -1044,7 +1058,7 @@ function ESP.Init(State)
                     )
 
                     local textY = hasActiveMoveset and (slotY - 26) or (uY - 26)
-                    renderRichText(c.TextPool, rawText, root2D.X, textY, 13, COLOR_WHITE)
+                    renderRichText(c.TextPool, rawText, m_floor(root2D.X), textY, 13, COLOR_WHITE)
                 else
                     HideAllAssets(c)
                 end
