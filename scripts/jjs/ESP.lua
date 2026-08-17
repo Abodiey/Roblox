@@ -28,6 +28,7 @@ local m_floor = math.floor
 local m_deg = math.deg
 local m_atan2 = math.atan2
 local m_abs = math.abs
+local m_max = math.max
 local string = string
 local s_format = string.format
 local os = os
@@ -284,7 +285,7 @@ local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultCol
             end
 
             textObj.Size = fontSize
-            textObj.Outline = true -- Re-enabled sharp drop shadow
+            textObj.Outline = true -- Sharp drop shadow
             textObj.OutlineColor = COLOR_BLACK
             textObj.Text = seg.Text
             local w = textObj.TextBounds.X
@@ -633,8 +634,16 @@ function ESP.Init(State)
                 local feet2D, visFeet = cam:WorldToViewportPoint(root.Position - v3_new(0, 3.6, 0))
 
                 if visRoot and root2D.Z > 0 then
-                    -- Lock layout parameters using integer pixel bounds to eliminate distortion/shifting
-                    local boxHeight = m_floor(m_clamp(m_abs(feet2D.Y - head2D.Y), 18, 500))
+                    -- Compute distance to target and compute dynamic distance scaling factor clamped within [0.55, 1.35]
+                    local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
+                    local dist = (currentRootPos - root.Position).Magnitude
+                    c.LastDist = dist
+
+                    local scaleFactor = m_clamp(50 / m_max(dist, 10), 0.55, 1.35)
+
+                    -- Lock layout parameters using integer pixel bounds with clamped scaling
+                    local baseBoxHeight = m_abs(feet2D.Y - head2D.Y)
+                    local boxHeight = m_floor(m_clamp(baseBoxHeight * scaleFactor, 18, 500))
                     local boxWidth = m_floor(m_clamp(boxHeight * 0.55, 18, 260))
                     local boxX = m_floor(root2D.X - (boxWidth / 2))
                     local boxY = m_floor(head2D.Y)
@@ -656,16 +665,13 @@ function ESP.Init(State)
                     elseif (gameClock - c.LastMoveTime) >= 300 then
                         c.IsAFK = true
                     end
-
-                    local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
-                    local dist = (currentRootPos - root.Position).Magnitude
-                    c.LastDist = dist
                     
                     local hideNameAndHealth = (dist < 10)
 
                     -- 1. Render Left Sidebar: Health Bar
-                    local hWidth = 4
-                    local hX = boxX - hWidth - 4
+                    local hWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
+                    local hGap = m_floor(m_clamp(4 * scaleFactor, 2, 8))
+                    local hX = boxX - hWidth - hGap
                     local hY = boxY
                     local hH = boxHeight
 
@@ -699,8 +705,9 @@ function ESP.Init(State)
                     end
 
                     -- 2. Render Right Sidebar: Evade Bar
-                    local eWidth = 4
-                    local eX = boxX + boxWidth + 4
+                    local eWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
+                    local eGap = m_floor(m_clamp(4 * scaleFactor, 2, 8))
+                    local eX = boxX + boxWidth + eGap
                     local eY = boxY
                     local eH = boxHeight
 
@@ -737,7 +744,8 @@ function ESP.Init(State)
                     end
 
                     -- 3. Render Right Extension: Overheat Bar (Ryu Character)
-                    local ohX = eX + eWidth + 3
+                    local ohGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
+                    local ohX = eX + eWidth + ohGap
                     if char:GetAttribute("Moveset") == "Ryu" and char:FindFirstChild("Info") and char.Info:FindFirstChild("Overheat") then
                         local ohVal = char.Info.Overheat.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
@@ -776,10 +784,11 @@ function ESP.Init(State)
                     end
 
                     -- 4. Render Overhead Ultimate Progress Bar
-                    local uHeight = 4
+                    local uHeight = m_floor(m_clamp(4 * scaleFactor, 2, 8))
+                    local uGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local uW = boxWidth
                     local uX = boxX
-                    local uY = boxY - uHeight - 3
+                    local uY = boxY - uHeight - uGap
 
                     setBarGroupVisible(c.UltBar, true)
                     c.UltBar.Back.Position = v2_new(uX, uY)
@@ -811,11 +820,11 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Render Square Hotbar Moveset Slots & Water-Level Cooldown Draining Visual
-                    local slotSize = 22 -- Strict proportional 1:1 square bounds
-                    local totalMovesetWidth = (4 * slotSize) + (3 * 3)
-                    local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
-                    local slotY = uY - slotSize - 4
+                    -- 5. Render Hotbar Moveset Slots (Displays full move names, no keybinds, dynamic distance scaling)
+                    local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
+                    local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
+                    local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
+                    local slotY = uY - slotHeight - m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hasActiveMoveset = false
 
                     if c.MovesetItems then
@@ -850,39 +859,68 @@ function ESP.Init(State)
                             end
                         end
 
+                        -- Compute total width dynamically for active move slots
+                        local itemWidths = {}
+                        local totalMovesetWidth = 0
+                        local activeCount = 0
+
                         for i = 1, 4 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
-                                local slotX = movesetStartX + (i - 1) * (slotSize + 3)
+                                activeCount = activeCount + 1
+                                item.Label.Text = item.Data.Name
+                                item.Label.Size = moveFontSize
+                                local textW = item.Label.TextBounds.X
+                                local slotW = m_floor(m_clamp(textW + m_clamp(8 * scaleFactor, 4, 12), 24, 160))
+                                itemWidths[i] = slotW
+                                totalMovesetWidth = totalMovesetWidth + slotW
+                            else
+                                itemWidths[i] = 0
+                            end
+                        end
+
+                        if activeCount > 0 then
+                            totalMovesetWidth = totalMovesetWidth + ((activeCount - 1) * slotGap)
+                        end
+
+                        local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
+                        local currentSlotX = movesetStartX
+
+                        for i = 1, 4 do
+                            local item = c.MovesetItems[i]
+                            if item.Data.Visible then
+                                local slotW = itemWidths[i]
 
                                 item.Back.Visible = true
-                                item.Back.Position = v2_new(slotX, slotY)
-                                item.Back.Size = v2_new(slotSize, slotSize)
+                                item.Back.Position = v2_new(currentSlotX, slotY)
+                                item.Back.Size = v2_new(slotW, slotHeight)
 
                                 item.Outline.Visible = true
-                                item.Outline.Position = v2_new(slotX, slotY)
-                                item.Outline.Size = v2_new(slotSize, slotSize)
+                                item.Outline.Position = v2_new(currentSlotX, slotY)
+                                item.Outline.Size = v2_new(slotW, slotHeight)
 
                                 -- Cooldown overlay draining downward like water level dropping
                                 local cdRatio = item.Data.CooldownRatio
                                 if cdRatio > 0 then
-                                    local cdFillH = m_floor(slotSize * cdRatio)
+                                    local cdFillH = m_floor(slotHeight * cdRatio)
                                     item.Fill.Visible = true
                                     item.Fill.Color = COLOR_LIGHT_BLUE
                                     item.Fill.Transparency = 0.5
-                                    item.Fill.Size = v2_new(slotSize, cdFillH)
-                                    -- Keep anchored at bottom while height reduces from top down
-                                    item.Fill.Position = v2_new(slotX, slotY + (slotSize - cdFillH))
+                                    item.Fill.Size = v2_new(slotW, cdFillH)
+                                    item.Fill.Position = v2_new(currentSlotX, slotY + (slotHeight - cdFillH))
                                 else
                                     item.Fill.Visible = false
                                 end
 
-                                -- Render key indicator inside square box without move text truncation
+                                -- Render full move name label centered inside the moveset box without keybinds
                                 item.Label.Visible = true
                                 item.Label.Outline = true
                                 item.Label.OutlineColor = COLOR_BLACK
-                                item.Label.Text = item.Data.Key
-                                item.Label.Position = v2_new(slotX + m_floor(slotSize / 2), slotY + m_floor((slotSize - item.Label.TextBounds.Y) / 2))
+                                item.Label.Text = item.Data.Name
+                                item.Label.Size = moveFontSize
+                                item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
+
+                                currentSlotX = currentSlotX + slotW + slotGap
                             else
                                 item.Back.Visible = false
                                 item.Fill.Visible = false
@@ -1023,7 +1061,7 @@ function ESP.Init(State)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Render full move name without string truncation
+                        -- Render full moveset label
                         if movesetName and movesetName ~= "" then
                             if DARK_MOVESETS[movesetName] and not usesCustomLook then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
@@ -1057,8 +1095,9 @@ function ESP.Init(State)
                         tostring(m_floor(c.LastDist))
                     )
 
-                    local textY = hasActiveMoveset and (slotY - 26) or (uY - 26)
-                    renderRichText(c.TextPool, rawText, m_floor(root2D.X), textY, 13, COLOR_WHITE)
+                    local mainFontSize = m_floor(m_clamp(13 * scaleFactor, 9, 18))
+                    local textY = hasActiveMoveset and (slotY - mainFontSize - m_floor(m_clamp(10 * scaleFactor, 6, 14))) or (uY - mainFontSize - m_floor(m_clamp(10 * scaleFactor, 6, 14)))
+                    renderRichText(c.TextPool, rawText, m_floor(root2D.X), textY, mainFontSize, COLOR_WHITE)
                 else
                     HideAllAssets(c)
                 end
