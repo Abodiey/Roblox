@@ -68,39 +68,184 @@ local COLOR_GOLD = c3_new(1, 0.85, 0)
 local COLOR_PURPLE = c3_new(0.68, 0.1, 1)
 local COLOR_LIGHT_BLUE = Color3.fromRGB(50, 180, 255)
 
--- JJK Character Moveset Color Map
-local MOVESET_COLORS = {
-    ["Gojo"]       = "55FFFF",
-    ["Itadori"]    = "FF0000",
-    ["Hakari"]     = "55FF7F",
-    ["Megumi"]     = "2D2D2D",
-    ["Mahito"]     = "AAAAFF",
-    ["Choso"]      = "820000",
-    ["Todo"]       = "86D7FF",
-    ["Hiromi"]     = "B3823D",
-    ["Yuta"]       = "FFAAFF",
-    ["Mechamaru"]  = "E10A4B",
-    ["Naoya"]      = "BCBCFF",
-    ["Nanami"]     = "83CBC7",
-    ["Hanami"]     = "ACCBA3",
-    ["Ryu"]        = "AAFFFF",
-    ["Locust"]     = "55AA00",
-    ["Yuki"]       = "000000",
-    ["Charles"]    = "9D8D6D",
-    ["Haruta"]     = "A77DCB",
-    ["MeiMei"]     = "232850",
-    ["Kurourushi"] = "65232C",
-    ["Custom"]     = "00FF80"
+-- Ultimate Names / Colors Data Table
+local ultNamesModule = {
+	Gojo = {
+		"Six Eyes",
+		Color3.fromRGB(85, 255, 255),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Itadori = {
+		"King of Curses",
+		Color3.fromRGB(255, 0, 0),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Hakari = {
+		"Idle Death Gamble",
+		Color3.fromRGB(85, 255, 127),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Megumi = {
+		"Insanity",
+		Color3.fromRGB(45, 45, 45),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Mahito = {
+		"Essence of the Soul",
+		Color3.fromRGB(170, 170, 255),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Choso = {
+		"Duty as a Brother",
+		Color3.fromRGB(130, 0, 0),
+		Color3.fromRGB(0, 0, 0),
+		true
+	},
+	Todo = {
+		"False Memories",
+		Color3.fromRGB(255, 255, 255),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Hiromi = {
+		"Deadly Sentencing",
+		Color3.fromRGB(179, 130, 61),
+		Color3.fromRGB(88, 57, 37),
+		true
+	},
+	Locust = {
+		"Directed Poison",
+		Color3.fromRGB(85, 170, 0),
+		Color3.fromRGB(85, 170, 0),
+		true
+	},
+	Yuki = {
+		"Unrestricted Density",
+		Color3.fromRGB(0, 0, 0),
+		Color3.fromRGB(0, 0, 0),
+		true
+	},
+	Yuta = {
+		"True Love",
+		Color3.fromRGB(255, 170, 255),
+		Color3.fromRGB(255, 0, 127),
+		true
+	},
+	Charles = {
+		"Foresight",
+		Color3.fromRGB(255, 255, 255),
+		Color3.fromRGB(85, 0, 0),
+		true
+	},
+	Mechamaru = {
+		"Absolute",
+		Color3.fromRGB(225, 10, 75),
+		Color3.fromRGB(85, 85, 85),
+		true
+	},
+	Naoya = {
+		"Vengeance",
+		Color3.fromRGB(255, 255, 255),
+		Color3.fromRGB(128, 126, 255),
+		true
+	},
+	Nanami = {
+		"Overtime",
+		Color3.fromRGB(131, 203, 199),
+		Color3.fromRGB(59, 84, 143),
+		true
+	},
+	Haruta = {
+		"Jawbreaker",
+		Color3.fromRGB(167, 125, 203),
+		Color3.fromRGB(112, 85, 143),
+		true
+	},
+	Hanami = {
+		"Unwrap",
+		Color3.fromRGB(172, 203, 163),
+		Color3.fromRGB(79, 69, 49),
+		true
+	},
+	MeiMei = {
+		"Bird Strike",
+		Color3.fromRGB(35, 40, 80),
+		Color3.fromRGB(62, 51, 106),
+		true
+	},
+	Ryu = {
+		"Every Last Drop.",
+		Color3.fromRGB(170, 255, 255),
+		Color3.fromRGB(255, 170, 255),
+		true
+	},
+	Kurourushi = {
+		"Parthenogenesis",
+		Color3.fromRGB(101, 35, 44),
+		Color3.fromRGB(40, 14, 18),
+		true
+	},
+	Reggie = {
+		"Con Artistry",
+		Color3.fromRGB(255, 255, 255),
+		Color3.fromRGB(150, 150, 150),
+		true
+	},
+	Mahoraga = {
+		"Ritual",
+		Color3.fromRGB(255, 255, 255),
+		Color3.fromRGB(0, 170, 255),
+		false
+	},
+	Heian = {
+		"Incomplete Shrine",
+		Color3.fromRGB(85, 0, 0),
+		Color3.fromRGB(0, 170, 255),
+		true
+	},
+	Goku = {
+		"Monkey",
+		Color3.fromRGB(255, 0, 0),
+		Color3.new(255/255, 255/255, 0/255),
+		true
+	},
+	Mokou = {
+		"Immortal Blaze",
+		Color3.fromRGB(255, 170, 0),
+		Color3.new(1, 0.333333, 0),
+		true
+	},
+	Chara = {
+		"SINCE WHEN WERE YOU THE ONE IN CONTROL?",
+		Color3.fromRGB(255, 0, 0),
+		Color3.new(0.333333, 0, 0),
+		true
+	}
 }
 
--- Dark Moveset Identification Table
-local DARK_MOVESETS = {
-    ["Megumi"]     = true,
-    ["Choso"]      = true,
-    ["Yuki"]       = true,
-    ["MeiMei"]     = true,
-    ["Kurourushi"] = true
+-- Dynamically generate MOVESET_COLORS and DARK_MOVESETS by looping over ultNamesModule
+local MOVESET_COLORS = {
+    ["Custom"] = "00FF80"
 }
+local DARK_MOVESETS = {}
+
+for movesetName, dataTable in pairs(ultNamesModule) do
+    local colorObj = dataTable[2]
+    if typeof(colorObj) == "Color3" then
+        MOVESET_COLORS[movesetName] = s_format("%02X%02X%02X", m_floor(colorObj.R * 255), m_floor(colorObj.G * 255), m_floor(colorObj.B * 255))
+        
+        -- Flag dark colors for stroke readability (perceived luminance check)
+        local luminance = (0.299 * colorObj.R) + (0.587 * colorObj.G) + (0.114 * colorObj.B)
+        if luminance < 0.2 then
+            DARK_MOVESETS[movesetName] = true
+        end
+    end
+end
 
 local function getGradientColor(percent)
     percent = m_clamp(percent, 0, 1)
