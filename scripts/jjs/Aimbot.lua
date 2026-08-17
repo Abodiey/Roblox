@@ -13,7 +13,6 @@ while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
--- Fixed R6 target parts
 local R6_PART_NAMES = {
     "Head",
     "Torso",
@@ -24,11 +23,28 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
--- Static pool of 7 boxes (12 lines each) created once
-local FixedBoxPool = {}
+-- Unit box corners pre-defined to eliminate CFrame table allocations in render loop
+local BOX_CORNERS = {
+    Vector3.new(-1,  1, -1),
+    Vector3.new( 1,  1, -1),
+    Vector3.new( 1,  1,  1),
+    Vector3.new(-1,  1,  1),
+    Vector3.new(-1, -1, -1),
+    Vector3.new( 1, -1, -1),
+    Vector3.new( 1, -1,  1),
+    Vector3.new(-1, -1,  1)
+}
 
+local EDGES = {
+    {1, 2}, {2, 3}, {3, 4}, {4, 1},
+    {5, 6}, {6, 7}, {7, 8}, {8, 5},
+    {1, 5}, {2, 6}, {3, 7}, {4, 8}
+}
+
+-- Pre-allocated 84 lines (7 parts x 12 lines)
+local FixedBoxPool = {}
 for i = 1, #R6_PART_NAMES do
-    local lines = {}
+    local lines = table.create(12)
     for j = 1, 12 do
         local line = Drawing.new("Line")
         line.Visible = false
@@ -40,58 +56,43 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
+-- Reusable buffer tables to prevent GC garbage creation during RenderStepped
+local ScreenCornersBuffer = table.create(8)
+
 local function HideAllBoxes()
-    for _, lines in ipairs(FixedBoxPool) do
-        for _, line in ipairs(lines) do
-            line.Visible = false
+    for i = 1, #FixedBoxPool do
+        local lines = FixedBoxPool[i]
+        for j = 1, 12 do
+            lines[j].Visible = false
         end
     end
 end
 
 local function Draw3DPartBox(part, lines)
-    if not part or not part:IsA("BasePart") then
-        for _, line in ipairs(lines) do
-            line.Visible = false
-        end
-        return
-    end
-
     local cf = part.CFrame
-    local size = part.Size / 2
+    local halfSize = part.Size * 0.5
 
-    local corners = {
-        cf * CFrame.new(-size.X,  size.Y, -size.Z),
-        cf * CFrame.new( size.X,  size.Y, -size.Z),
-        cf * CFrame.new( size.X,  size.Y,  size.Z),
-        cf * CFrame.new(-size.X,  size.Y,  size.Z),
-        cf * CFrame.new(-size.X, -size.Y, -size.Z),
-        cf * CFrame.new( size.X, -size.Y, -size.Z),
-        cf * CFrame.new( size.X, -size.Y,  size.Z),
-        cf * CFrame.new(-size.X, -size.Y,  size.Z)
-    }
-
-    local screenCorners = {}
+    -- Compute screen points directly into buffer
     for i = 1, 8 do
-        local pos, onScreen = Camera:WorldToViewportPoint(corners[i].Position)
+        local unit = BOX_CORNERS[i]
+        local worldPos = cf * Vector3.new(unit.X * halfSize.X, unit.Y * halfSize.Y, unit.Z * halfSize.Z)
+        local pos, onScreen = Camera:WorldToViewportPoint(worldPos)
+        
         if not onScreen then
-            for _, line in ipairs(lines) do
-                line.Visible = false
+            for j = 1, 12 do
+                lines[j].Visible = false
             end
             return
         end
-        screenCorners[i] = Vector2.new(pos.X, pos.Y)
+        ScreenCornersBuffer[i] = Vector2.new(pos.X, pos.Y)
     end
 
-    local edges = {
-        {1, 2}, {2, 3}, {3, 4}, {4, 1},
-        {5, 6}, {6, 7}, {7, 8}, {8, 5},
-        {1, 5}, {2, 6}, {3, 7}, {4, 8}
-    }
-
-    for i, edge in ipairs(edges) do
+    -- Assign positions to pre-existing lines directly
+    for i = 1, 12 do
+        local edge = EDGES[i]
         local line = lines[i]
-        line.From = screenCorners[edge[1]]
-        line.To = screenCorners[edge[2]]
+        line.From = ScreenCornersBuffer[edge[1]]
+        line.To = ScreenCornersBuffer[edge[2]]
         line.Visible = true
     end
 end
@@ -157,7 +158,7 @@ function Aimbot.Init(State)
     end)
     table.insert(State.Connections, removeConn)
 
-    local updateConn = RunService.Heartbeat:Connect(function()
+    local updateConn = RunService.RenderStepped:Connect(function()
         if not State.Toggles.Aim.Value then 
             HideAllBoxes() 
             return 
@@ -186,14 +187,15 @@ function Aimbot.Init(State)
 
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
 
-        -- Reuse the pre-allocated 7 boxes directly
-        for idx, partName in ipairs(R6_PART_NAMES) do
-            local child = target:FindFirstChild(partName)
+        -- Render pre-filtered R6 parts
+        for i = 1, #R6_PART_NAMES do
+            local child = target:FindFirstChild(R6_PART_NAMES[i])
             if child and child:IsA("BasePart") then
-                Draw3DPartBox(child, FixedBoxPool[idx])
+                Draw3DPartBox(child, FixedBoxPool[i])
             else
-                for _, line in ipairs(FixedBoxPool[idx]) do
-                    line.Visible = false
+                local lines = FixedBoxPool[i]
+                for j = 1, 12 do
+                    lines[j].Visible = false
                 end
             end
         end
