@@ -23,7 +23,7 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
--- Unit box corners pre-defined to eliminate CFrame table allocations in render loop
+-- Unit box corners pre-defined to eliminate CFrame allocations in render loop
 local BOX_CORNERS = {
     Vector3.new(-1,  1, -1),
     Vector3.new( 1,  1, -1),
@@ -56,7 +56,7 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
--- Reusable buffer tables to prevent GC garbage creation during RenderStepped
+-- Reusable buffer table for screen coordinates
 local ScreenCornersBuffer = table.create(8)
 
 local function HideAllBoxes()
@@ -72,7 +72,6 @@ local function Draw3DPartBox(part, lines)
     local cf = part.CFrame
     local halfSize = part.Size * 0.5
 
-    -- Compute screen points directly into buffer
     for i = 1, 8 do
         local unit = BOX_CORNERS[i]
         local worldPos = cf * Vector3.new(unit.X * halfSize.X, unit.Y * halfSize.Y, unit.Z * halfSize.Z)
@@ -87,7 +86,6 @@ local function Draw3DPartBox(part, lines)
         ScreenCornersBuffer[i] = Vector2.new(pos.X, pos.Y)
     end
 
-    -- Assign positions to pre-existing lines directly
     for i = 1, 12 do
         local edge = EDGES[i]
         local line = lines[i]
@@ -187,7 +185,6 @@ function Aimbot.Init(State)
 
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
 
-        -- Render pre-filtered R6 parts
         for i = 1, #R6_PART_NAMES do
             local child = target:FindFirstChild(R6_PART_NAMES[i])
             if child and child:IsA("BasePart") then
