@@ -13,6 +13,7 @@ while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
+-- Fixed R6 target parts
 local R6_PART_NAMES = {
     "Head",
     "Torso",
@@ -23,26 +24,19 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
--- Unit box corners pre-defined to eliminate CFrame allocations in render loop
-local BOX_CORNERS = {
-    Vector3.new(-1,  1, -1),
-    Vector3.new( 1,  1, -1),
-    Vector3.new( 1,  1,  1),
-    Vector3.new(-1,  1,  1),
-    Vector3.new(-1, -1, -1),
-    Vector3.new( 1, -1, -1),
-    Vector3.new( 1, -1,  1),
-    Vector3.new(-1, -1,  1)
-}
-
-local EDGES = {
+-- Static edge index map (reused across all 3D box computations)
+local BOX_EDGES = {
     {1, 2}, {2, 3}, {3, 4}, {4, 1},
     {5, 6}, {6, 7}, {7, 8}, {8, 5},
     {1, 5}, {2, 6}, {3, 7}, {4, 8}
 }
 
--- Pre-allocated 84 lines (7 parts x 12 lines)
-local FixedBoxPool = {}
+-- Reusable buffer for screen projection (prevents GC allocations every frame)
+local ScreenCornersBuffer = table.create(8)
+
+-- Pre-created static pool of 7 boxes (12 lines each)
+local FixedBoxPool = table.create(#R6_PART_NAMES)
+
 for i = 1, #R6_PART_NAMES do
     local lines = table.create(12)
     for j = 1, 12 do
@@ -56,38 +50,62 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
--- Reusable buffer table for screen coordinates
-local ScreenCornersBuffer = table.create(8)
-
 local function HideAllBoxes()
     for i = 1, #FixedBoxPool do
         local lines = FixedBoxPool[i]
         for j = 1, 12 do
-            lines[j].Visible = false
+            local line = lines[j]
+            if line.Visible then
+                line.Visible = false
+            end
+        end
+    end
+end
+
+local function HideBox(lines)
+    for j = 1, 12 do
+        local line = lines[j]
+        if line.Visible then
+            line.Visible = false
         end
     end
 end
 
 local function Draw3DPartBox(part, lines)
-    local cf = part.CFrame
-    local halfSize = part.Size * 0.5
+    if not part or not part:IsA("BasePart") then
+        HideBox(lines)
+        return
+    end
 
+    local cf = part.CFrame
+    local size = part.Size * 0.5
+    local sx, sy, sz = size.X, size.Y, size.Z
+
+    -- Fast vector transformation via PointToWorldSpace without creating CFrame instances
+    local corners = {
+        cf:PointToWorldSpace(Vector3.new(-sx,  sy, -sz)),
+        cf:PointToWorldSpace(Vector3.new( sx,  sy, -sz)),
+        cf:PointToWorldSpace(Vector3.new( sx,  sy,  sz)),
+        cf:PointToWorldSpace(Vector3.new(-sx,  sy,  sz)),
+        cf:PointToWorldSpace(Vector3.new(-sx, -sy, -sz)),
+        cf:PointToWorldSpace(Vector3.new( sx, -sy, -sz)),
+        cf:PointToWorldSpace(Vector3.new( sx, -sy,  sz)),
+        cf:PointToWorldSpace(Vector3.new(-sx, -sy,  sz))
+    }
+
+    -- Project corners to screen space
     for i = 1, 8 do
-        local unit = BOX_CORNERS[i]
-        local worldPos = cf * Vector3.new(unit.X * halfSize.X, unit.Y * halfSize.Y, unit.Z * halfSize.Z)
-        local pos, onScreen = Camera:WorldToViewportPoint(worldPos)
-        
+        local pos, onScreen = Camera:WorldToViewportPoint(corners[i])
         if not onScreen then
-            for j = 1, 12 do
-                lines[j].Visible = false
-            end
+            HideBox(lines)
             return
         end
         ScreenCornersBuffer[i] = Vector2.new(pos.X, pos.Y)
     end
 
+    -- Draw lines using static edges
     for i = 1, 12 do
-        local edge = EDGES[i]
+        local edge = BOX_EDGES[i]
         local line = lines[i]
         line.From = ScreenCornersBuffer[edge[1]]
         line.To = ScreenCornersBuffer[edge[2]]
@@ -185,15 +203,13 @@ function Aimbot.Init(State)
 
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
 
-        for i = 1, #R6_PART_NAMES do
-            local child = target:FindFirstChild(R6_PART_NAMES[i])
+        -- Optimized 3D Box Rendering loop
+        for idx = 1, #R6_PART_NAMES do
+            local child = target:FindFirstChild(R6_PART_NAMES[idx])
             if child and child:IsA("BasePart") then
-                Draw3DPartBox(child, FixedBoxPool[i])
+                Draw3DPartBox(child, FixedBoxPool[idx])
             else
-                local lines = FixedBoxPool[i]
-                for j = 1, 12 do
-                    lines[j].Visible = false
-                end
+                HideBox(FixedBoxPool[idx])
             end
         end
     end)
