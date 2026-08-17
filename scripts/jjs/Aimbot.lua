@@ -24,18 +24,29 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
--- Static edge index map (reused across all 3D box computations)
-local BOX_EDGES = {
+-- Static lookup tables for 3D box calculations (prevents GC allocations every frame)
+local CORNER_MULTIPLIERS = {
+    Vector3.new(-1,  1, -1),
+    Vector3.new( 1,  1, -1),
+    Vector3.new( 1,  1,  1),
+    Vector3.new(-1,  1,  1),
+    Vector3.new(-1, -1, -1),
+    Vector3.new( 1, -1, -1),
+    Vector3.new( 1, -1,  1),
+    Vector3.new(-1, -1,  1)
+}
+
+local EDGES = {
     {1, 2}, {2, 3}, {3, 4}, {4, 1},
     {5, 6}, {6, 7}, {7, 8}, {8, 5},
     {1, 5}, {2, 6}, {3, 7}, {4, 8}
 }
 
--- Reusable buffer for screen projection (prevents GC allocations every frame)
-local ScreenCornersBuffer = table.create(8)
+-- Screen position cache to avoid array creation inside Draw3DPartBox
+local screenCornersCache = table.create(8)
 
--- Pre-created static pool of 7 boxes (12 lines each)
-local FixedBoxPool = table.create(#R6_PART_NAMES)
+-- Static pool of 7 boxes (12 lines each) created once
+local FixedBoxPool = {}
 
 for i = 1, #R6_PART_NAMES do
     local lines = table.create(12)
@@ -50,65 +61,58 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
+-- Part Caching variables
+local CachedTarget = nil
+local CachedParts = table.create(#R6_PART_NAMES)
+
+local function ClearPartCache()
+    CachedTarget = nil
+    for i = 1, #R6_PART_NAMES do
+        CachedParts[i] = nil
+    end
+end
+
 local function HideAllBoxes()
     for i = 1, #FixedBoxPool do
         local lines = FixedBoxPool[i]
         for j = 1, 12 do
-            local line = lines[j]
-            if line.Visible then
-                line.Visible = false
-            end
-        end
-    end
-end
-
-local function HideBox(lines)
-    for j = 1, 12 do
-        local line = lines[j]
-        if line.Visible then
-            line.Visible = false
+            lines[j].Visible = false
         end
     end
 end
 
 local function Draw3DPartBox(part, lines)
-    if not part or not part:IsA("BasePart") then
-        HideBox(lines)
+    if not part or not part:IsA("BasePart") or not part.Parent then
+        for i = 1, 12 do
+            lines[i].Visible = false
+        end
         return
     end
 
     local cf = part.CFrame
-    local size = part.Size * 0.5
-    local sx, sy, sz = size.X, size.Y, size.Z
+    local halfSize = part.Size * 0.5
 
-    -- Fast vector transformation via PointToWorldSpace without creating CFrame instances
-    local corners = {
-        cf:PointToWorldSpace(Vector3.new(-sx,  sy, -sz)),
-        cf:PointToWorldSpace(Vector3.new( sx,  sy, -sz)),
-        cf:PointToWorldSpace(Vector3.new( sx,  sy,  sz)),
-        cf:PointToWorldSpace(Vector3.new(-sx,  sy,  sz)),
-        cf:PointToWorldSpace(Vector3.new(-sx, -sy, -sz)),
-        cf:PointToWorldSpace(Vector3.new( sx, -sy, -sz)),
-        cf:PointToWorldSpace(Vector3.new( sx, -sy,  sz)),
-        cf:PointToWorldSpace(Vector3.new(-sx, -sy,  sz))
-    }
-
-    -- Project corners to screen space
+    -- Compute world-to-viewport points directly using CFrame:PointToWorldSpace
     for i = 1, 8 do
-        local pos, onScreen = Camera:WorldToViewportPoint(corners[i])
+        local worldPos = cf:PointToWorldSpace(halfSize * CORNER_MULTIPLIERS[i])
+        local pos, onScreen = Camera:WorldToViewportPoint(worldPos)
+
         if not onScreen then
-            HideBox(lines)
+            for j = 1, 12 do
+                lines[j].Visible = false
+            end
             return
         end
-        ScreenCornersBuffer[i] = Vector2.new(pos.X, pos.Y)
+
+        screenCornersCache[i] = Vector2.new(pos.X, pos.Y)
     end
 
-    -- Draw lines using static edges
+    -- Update 12 bounding lines using static EDGES lookup
     for i = 1, 12 do
-        local edge = BOX_EDGES[i]
+        local edge = EDGES[i]
         local line = lines[i]
-        line.From = ScreenCornersBuffer[edge[1]]
-        line.To = ScreenCornersBuffer[edge[2]]
+        line.From = screenCornersCache[edge[1]]
+        line.To = screenCornersCache[edge[2]]
         line.Visible = true
     end
 end
@@ -117,6 +121,7 @@ function Aimbot.Toggle(State)
     if State.Toggles.Aim.Value then 
         State.Toggles.Aim.Value = false
         State.Variables.LockedTarget.Value = nil
+        ClearPartCache()
         HideAllBoxes()
         return 
     end
@@ -170,26 +175,25 @@ function Aimbot.Init(State)
         if currentTarget.Name ~= p.Name then return end
         
         State.Variables.LockedTarget.Value = nil
+        ClearPartCache()
         HideAllBoxes()
     end)
     table.insert(State.Connections, removeConn)
 
+    -- AIMBOT LOOP (Exact logic maintained)
     local updateConn = RunService.RenderStepped:Connect(function()
         if not State.Toggles.Aim.Value then 
-            HideAllBoxes() 
             return 
         end
         
         local target = State.Variables.LockedTarget.Value
         if not target or not target.Parent then 
-            HideAllBoxes() 
             return 
         end
         
         if target:GetAttribute("Dead") then
             State.Variables.LockedTarget.Value = nil
             State.Toggles.Aim.Value = false
-            HideAllBoxes()
             return
         end
 
@@ -197,23 +201,51 @@ function Aimbot.Init(State)
         if not targetPart then
             State.Variables.LockedTarget.Value = nil
             State.Toggles.Aim.Value = false
-            HideAllBoxes()
             return
         end
 
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
+    end)
+    table.insert(State.Connections, updateConn)
 
-        -- Optimized 3D Box Rendering loop
+    -- OPTIMIZED 3D ESP LOOP WITH PART CACHING
+    local espConn = RunService.RenderStepped:Connect(function()
+        if not State.Toggles.Aim.Value then 
+            if CachedTarget then ClearPartCache() end
+            HideAllBoxes() 
+            return 
+        end
+        
+        local target = State.Variables.LockedTarget.Value
+        if not target or not target.Parent or target:GetAttribute("Dead") then 
+            if CachedTarget then ClearPartCache() end
+            HideAllBoxes() 
+            return 
+        end
+
+        -- Update cache if target changed
+        if CachedTarget ~= target then
+            CachedTarget = target
+            for idx = 1, #R6_PART_NAMES do
+                local child = target:FindFirstChild(R6_PART_NAMES[idx])
+                CachedParts[idx] = (child and child:IsA("BasePart")) and child or false
+            end
+        end
+
+        -- Render using cached part references directly
         for idx = 1, #R6_PART_NAMES do
-            local child = target:FindFirstChild(R6_PART_NAMES[idx])
-            if child and child:IsA("BasePart") then
-                Draw3DPartBox(child, FixedBoxPool[idx])
+            local cachedPart = CachedParts[idx]
+            if cachedPart then
+                Draw3DPartBox(cachedPart, FixedBoxPool[idx])
             else
-                HideBox(FixedBoxPool[idx])
+                local lines = FixedBoxPool[idx]
+                for j = 1, 12 do
+                    lines[j].Visible = false
+                end
             end
         end
     end)
-    table.insert(State.Connections, updateConn)
+    table.insert(State.Connections, espConn)
 end
 
 return Aimbot
