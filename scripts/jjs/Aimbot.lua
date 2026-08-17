@@ -13,58 +13,52 @@ while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
--- R6 Whitelisted Character Parts
-local R6_PARTS = {
-    ["Head"] = true,
-    ["Torso"] = true,
-    ["HumanoidRootPart"] = true,
-    ["Left Arm"] = true,
-    ["Right Arm"] = true,
-    ["Left Leg"] = true,
-    ["Right Leg"] = true
+-- Fixed R6 target parts
+local R6_PART_NAMES = {
+    "Head",
+    "Torso",
+    "HumanoidRootPart",
+    "Left Arm",
+    "Right Arm",
+    "Left Leg",
+    "Right Leg"
 }
 
--- Pool of 12 Drawing Lines per part box
-local BoxPool = {}
+-- Static pool of 7 boxes (12 lines each) created once
+local FixedBoxPool = {}
 
-local function CreatePartBox()
+for i = 1, #R6_PART_NAMES do
     local lines = {}
-    for i = 1, 12 do
+    for j = 1, 12 do
         local line = Drawing.new("Line")
         line.Visible = false
         line.Color = Color3.fromRGB(255, 0, 0)
         line.Thickness = 1.5
         line.Transparency = 1
-        lines[i] = line
+        lines[j] = line
     end
-    return lines
+    FixedBoxPool[i] = lines
 end
 
-local function HideLines(lines)
-    for _, line in ipairs(lines) do
-        line.Visible = false
-    end
-end
-
-local function ClearAllBoxes()
-    for _, lines in pairs(BoxPool) do
+local function HideAllBoxes()
+    for _, lines in ipairs(FixedBoxPool) do
         for _, line in ipairs(lines) do
-            line:Remove()
+            line.Visible = false
         end
     end
-    table.clear(BoxPool)
 end
 
 local function Draw3DPartBox(part, lines)
     if not part or not part:IsA("BasePart") then
-        HideLines(lines)
+        for _, line in ipairs(lines) do
+            line.Visible = false
+        end
         return
     end
 
     local cf = part.CFrame
     local size = part.Size / 2
 
-    -- Local 3D bounding vertices
     local corners = {
         cf * CFrame.new(-size.X,  size.Y, -size.Z),
         cf * CFrame.new( size.X,  size.Y, -size.Z),
@@ -77,27 +71,21 @@ local function Draw3DPartBox(part, lines)
     }
 
     local screenCorners = {}
-    local allOnScreen = true
-
     for i = 1, 8 do
         local pos, onScreen = Camera:WorldToViewportPoint(corners[i].Position)
         if not onScreen then
-            allOnScreen = false
-            break
+            for _, line in ipairs(lines) do
+                line.Visible = false
+            end
+            return
         end
         screenCorners[i] = Vector2.new(pos.X, pos.Y)
     end
 
-    if not allOnScreen then
-        HideLines(lines)
-        return
-    end
-
-    -- 12 bounding box edge pairs
     local edges = {
-        {1, 2}, {2, 3}, {3, 4}, {4, 1}, -- Top face
-        {5, 6}, {6, 7}, {7, 8}, {8, 5}, -- Bottom face
-        {1, 5}, {2, 6}, {3, 7}, {4, 8}  -- Vertical connecting pillars
+        {1, 2}, {2, 3}, {3, 4}, {4, 1},
+        {5, 6}, {6, 7}, {7, 8}, {8, 5},
+        {1, 5}, {2, 6}, {3, 7}, {4, 8}
     }
 
     for i, edge in ipairs(edges) do
@@ -112,7 +100,7 @@ function Aimbot.Toggle(State)
     if State.Toggles.Aim.Value then 
         State.Toggles.Aim.Value = false
         State.Variables.LockedTarget.Value = nil
-        ClearAllBoxes()
+        HideAllBoxes()
         return 
     end
 
@@ -165,26 +153,26 @@ function Aimbot.Init(State)
         if currentTarget.Name ~= p.Name then return end
         
         State.Variables.LockedTarget.Value = nil
-        ClearAllBoxes()
+        HideAllBoxes()
     end)
     table.insert(State.Connections, removeConn)
 
     local updateConn = RunService.Heartbeat:Connect(function()
         if not State.Toggles.Aim.Value then 
-            ClearAllBoxes() 
+            HideAllBoxes() 
             return 
         end
         
         local target = State.Variables.LockedTarget.Value
         if not target or not target.Parent then 
-            ClearAllBoxes() 
+            HideAllBoxes() 
             return 
         end
         
         if target:GetAttribute("Dead") then
             State.Variables.LockedTarget.Value = nil
             State.Toggles.Aim.Value = false
-            ClearAllBoxes()
+            HideAllBoxes()
             return
         end
 
@@ -192,32 +180,21 @@ function Aimbot.Init(State)
         if not targetPart then
             State.Variables.LockedTarget.Value = nil
             State.Toggles.Aim.Value = false
-            ClearAllBoxes()
+            HideAllBoxes()
             return
         end
 
         Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
 
-        -- Render 3D boxes strictly for R6 character parts
-        local currentParts = {}
-        for childName, _ in pairs(R6_PARTS) do
-            local child = target:FindFirstChild(childName)
+        -- Reuse the pre-allocated 7 boxes directly
+        for idx, partName in ipairs(R6_PART_NAMES) do
+            local child = target:FindFirstChild(partName)
             if child and child:IsA("BasePart") then
-                currentParts[child] = true
-                if not BoxPool[child] then
-                    BoxPool[child] = CreatePartBox()
+                Draw3DPartBox(child, FixedBoxPool[idx])
+            else
+                for _, line in ipairs(FixedBoxPool[idx]) do
+                    line.Visible = false
                 end
-                Draw3DPartBox(child, BoxPool[child])
-            end
-        end
-
-        -- Clean up cache lines for destroyed or missing parts
-        for part, lines in pairs(BoxPool) do
-            if not currentParts[part] or not part.Parent then
-                for _, line in ipairs(lines) do
-                    line:Remove()
-                end
-                BoxPool[part] = nil
             end
         end
     end)
