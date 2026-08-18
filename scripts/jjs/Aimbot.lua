@@ -13,9 +13,10 @@ while not Player or not Player.Parent or not CoreGui or not Camera do
     task.wait()
 end
 
+local MAX_ESP_DISTANCE = 500
+
 local R6_PART_NAMES = {
     "Head",
-    "Torso",
     "HumanoidRootPart",
     "Left Arm",
     "Right Arm",
@@ -23,7 +24,6 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
--- Unit box corners pre-defined to eliminate CFrame table allocations in render loop
 local BOX_CORNERS = {
     Vector3.new(-1,  1, -1),
     Vector3.new( 1,  1, -1),
@@ -41,8 +41,8 @@ local EDGES = {
     {1, 5}, {2, 6}, {3, 7}, {4, 8}
 }
 
--- Pre-allocated 84 lines (7 parts x 12 lines)
-local FixedBoxPool = {}
+-- Pre-allocated line pool (6 parts x 12 lines = 72 lines)
+local FixedBoxPool = table.create(#R6_PART_NAMES)
 for i = 1, #R6_PART_NAMES do
     local lines = table.create(12)
     for j = 1, 12 do
@@ -56,7 +56,6 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
--- Reusable buffer tables to prevent GC garbage creation during RenderStepped
 local ScreenCornersBuffer = table.create(8)
 
 local function HideAllBoxes()
@@ -68,33 +67,50 @@ local function HideAllBoxes()
     end
 end
 
-local function Draw3DPartBox(part, lines, guiInset)
+local function HidePartBox(lines)
+    for j = 1, 12 do
+        lines[j].Visible = false
+    end
+end
+
+local function Draw3DPartBox(part, lines)
     local cf = part.CFrame
     local halfSize = part.Size * 0.5
+    local hX, hY, hZ = halfSize.X, halfSize.Y, halfSize.Z
 
-    -- Compute screen points directly into buffer with inset adjustment
+    local visibleCount = 0
+
     for i = 1, 8 do
         local unit = BOX_CORNERS[i]
-        local worldPos = cf * Vector3.new(unit.X * halfSize.X, unit.Y * halfSize.Y, unit.Z * halfSize.Z)
+        local worldPos = cf * Vector3.new(unit.X * hX, unit.Y * hY, unit.Z * hZ)
         local pos, onScreen = Camera:WorldToViewportPoint(worldPos)
         
-        if not onScreen then
-            for j = 1, 12 do
-                lines[j].Visible = false
-            end
-            return
+        if onScreen then
+            ScreenCornersBuffer[i] = Vector2.new(pos.X, pos.Y)
+            visibleCount = visibleCount + 1
+        else
+            ScreenCornersBuffer[i] = nil
         end
-        -- Subtract GUI inset so Drawing API aligns correctly with viewport space
-        ScreenCornersBuffer[i] = Vector2.new(pos.X - guiInset.X, pos.Y - guiInset.Y)
     end
 
-    -- Assign positions to pre-existing lines directly
+    if visibleCount == 0 then
+        HidePartBox(lines)
+        return
+    end
+
     for i = 1, 12 do
         local edge = EDGES[i]
+        local p1 = ScreenCornersBuffer[edge[1]]
+        local p2 = ScreenCornersBuffer[edge[2]]
         local line = lines[i]
-        line.From = ScreenCornersBuffer[edge[1]]
-        line.To = ScreenCornersBuffer[edge[2]]
-        line.Visible = true
+
+        if p1 and p2 then
+            line.From = p1
+            line.To = p2
+            line.Visible = true
+        else
+            line.Visible = false
+        end
     end
 end
 
@@ -114,8 +130,7 @@ function Aimbot.Toggle(State)
     Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
-        if obj == Player.Character then continue end
-        if obj:GetAttribute("Dead") then continue end
+        if obj == Player.Character or obj:GetAttribute("Dead") then continue end
         
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
@@ -151,15 +166,13 @@ function Aimbot.Init(State)
 
     local removeConn = Players.PlayerRemoving:Connect(function(p)
         local currentTarget = State.Variables.LockedTarget.Value
-        if not currentTarget then return end
-        if currentTarget.Name ~= p.Name then return end
-        
-        State.Variables.LockedTarget.Value = nil
-        HideAllBoxes()
+        if currentTarget and currentTarget.Name == p.Name then
+            State.Variables.LockedTarget.Value = nil
+            HideAllBoxes()
+        end
     end)
     table.insert(State.Connections, removeConn)
 
-    -- Bind to RenderStep after Camera update to resolve positioning latency
     RunService:UnbindFromRenderStep("AimbotRenderStep")
     RunService:BindToRenderStep("AimbotRenderStep", Enum.RenderPriority.Camera.Value + 1, function()
         Camera = workspace.CurrentCamera
@@ -170,16 +183,11 @@ function Aimbot.Init(State)
         end
         
         local target = State.Variables.LockedTarget.Value
-        if not target or not target.Parent then 
-            HideAllBoxes() 
-            return 
-        end
-        
-        if target:GetAttribute("Dead") then
+        if not target or not target.Parent or target:GetAttribute("Dead") then 
             State.Variables.LockedTarget.Value = nil
             State.Toggles.Aim.Value = false
-            HideAllBoxes()
-            return
+            HideAllBoxes() 
+            return 
         end
 
         local targetPart = target:FindFirstChild("HumanoidRootPart")
@@ -190,21 +198,23 @@ function Aimbot.Init(State)
             return
         end
 
-        -- Update Camera target facing direction
-        Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPart.Position)
+        local camPos = Camera.CFrame.Position
+        local targetPos = targetPart.Position
+        if (camPos - targetPos).Magnitude > MAX_ESP_DISTANCE then
+            HideAllBoxes()
+            return
+        end
 
-        local guiInset = GuiService:GetGuiInset()
+        Camera.CFrame = CFrame.lookAt(camPos, targetPos)
 
-        -- Render pre-filtered R6 parts
         for i = 1, #R6_PART_NAMES do
             local child = target:FindFirstChild(R6_PART_NAMES[i])
+            local lines = FixedBoxPool[i]
+            
             if child and child:IsA("BasePart") then
-                Draw3DPartBox(child, FixedBoxPool[i], guiInset)
+                Draw3DPartBox(child, lines)
             else
-                local lines = FixedBoxPool[i]
-                for j = 1, 12 do
-                    lines[j].Visible = false
-                end
+                HidePartBox(lines)
             end
         end
     end)
