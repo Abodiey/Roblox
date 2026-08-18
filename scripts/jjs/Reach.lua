@@ -66,7 +66,7 @@ task.delay(30, function()
                 local Args = table.pack(...)
 
                 if Args.n == 2 and Args[1] == nil and typeof(Args[2]) == "CFrame" then
-                    local target = CatstarState and CatstarState.Variables.LockedTarget.Value or getClosestCharacter()
+                    local target = getClosestCharacter()
 
                     if target then
                         setnamecallmethod(method)
