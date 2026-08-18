@@ -56,6 +56,16 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
+-- Pre-allocated Target Name Text Object
+local TargetNameText = Drawing.new("Text")
+TargetNameText.Visible = false
+TargetNameText.Size = 14
+TargetNameText.Center = true
+TargetNameText.Outline = true
+TargetNameText.OutlineColor = Color3.fromRGB(255, 255, 255) -- White outline
+TargetNameText.Color = Color3.fromRGB(0, 0, 0)             -- Dark inner text for contrast
+TargetNameText.Transparency = 1
+
 local ScreenCornersBuffer = table.create(8)
 
 local function HideAllBoxes()
@@ -65,6 +75,7 @@ local function HideAllBoxes()
             lines[j].Visible = false
         end
     end
+    TargetNameText.Visible = false
 end
 
 local function HidePartBox(lines)
@@ -207,6 +218,13 @@ function Aimbot.Init(State)
 
         Camera.CFrame = CFrame.lookAt(camPos, targetPos)
 
+        -- Update center target name text display
+        local viewportSize = Camera.ViewportSize
+        TargetNameText.Text = target.Name
+        TargetNameText.Position = Vector2.new(viewportSize.X * 0.5 + 15, viewportSize.Y * 0.5 + 25)
+        TargetNameText.Visible = true
+
+        -- Render 3D boxes for parts
         for i = 1, #R6_PART_NAMES do
             local child = target:FindFirstChild(R6_PART_NAMES[i])
             local lines = FixedBoxPool[i]
