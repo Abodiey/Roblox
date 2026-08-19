@@ -62,8 +62,8 @@ TargetNameText.Visible = false
 TargetNameText.Size = 14
 TargetNameText.Center = true
 TargetNameText.Outline = true
-TargetNameText.OutlineColor = Color3.fromRGB(255, 255, 255) -- White outline
-TargetNameText.Color = Color3.fromRGB(0, 0, 0)             -- Dark inner text for contrast
+TargetNameText.OutlineColor = Color3.fromRGB(0, 0, 0) -- Black outline
+TargetNameText.Color = Color3.fromRGB(255, 255, 255)             -- Bright inner text for contrast
 TargetNameText.Transparency = 1
 
 local ScreenCornersBuffer = table.create(8)
