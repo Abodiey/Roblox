@@ -206,6 +206,7 @@ local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura"
 task.spawn(function()
     if not Players.LocalPlayer then
         Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+        while not Players.LocalPlayer or not Players.LocalPlayer.UserId do task.wait() end 
     end
     for _, Name in ipairs(ModuleList) do
         task.spawn(function()
