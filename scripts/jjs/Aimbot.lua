@@ -15,6 +15,9 @@ end
 
 local MAX_ESP_DISTANCE = 500
 
+local COLOR_DEFAULT = Color3.fromRGB(255, 0, 0)
+local COLOR_IN_SKILL = Color3.fromRGB(255, 140, 0)
+
 local R6_PART_NAMES = {
     "Head",
     "HumanoidRootPart",
@@ -48,7 +51,7 @@ for i = 1, #R6_PART_NAMES do
     for j = 1, 12 do
         local line = Drawing.new("Line")
         line.Visible = false
-        line.Color = Color3.fromRGB(255, 0, 0)
+        line.Color = COLOR_DEFAULT
         line.Thickness = 1.5
         line.Transparency = 1
         lines[j] = line
@@ -56,14 +59,14 @@ for i = 1, #R6_PART_NAMES do
     FixedBoxPool[i] = lines
 end
 
--- Pre-allocated Target Name Text Object
+-- Pre-allocated Target Name Text Object (White Text, Black Outline)
 local TargetNameText = Drawing.new("Text")
 TargetNameText.Visible = false
 TargetNameText.Size = 14
 TargetNameText.Center = true
 TargetNameText.Outline = true
-TargetNameText.OutlineColor = Color3.fromRGB(0, 0, 0) -- Black outline
-TargetNameText.Color = Color3.fromRGB(255, 255, 255)             -- Bright inner text for contrast
+TargetNameText.OutlineColor = Color3.fromRGB(0, 0, 0)       -- Black outline
+TargetNameText.Color = Color3.fromRGB(255, 255, 255)       -- White text
 TargetNameText.Transparency = 1
 
 local ScreenCornersBuffer = table.create(8)
@@ -84,7 +87,7 @@ local function HidePartBox(lines)
     end
 end
 
-local function Draw3DPartBox(part, lines)
+local function Draw3DPartBox(part, lines, boxColor)
     local cf = part.CFrame
     local halfSize = part.Size * 0.5
     local hX, hY, hZ = halfSize.X, halfSize.Y, halfSize.Z
@@ -118,6 +121,7 @@ local function Draw3DPartBox(part, lines)
         if p1 and p2 then
             line.From = p1
             line.To = p2
+            line.Color = boxColor
             line.Visible = true
         else
             line.Visible = false
@@ -218,19 +222,24 @@ function Aimbot.Init(State)
 
         Camera.CFrame = CFrame.lookAt(camPos, targetPos)
 
+        -- Check if target is actively in a skill
+        local infoFolder = target:FindFirstChild("Info")
+        local isInSkill = infoFolder and infoFolder:FindFirstChild("InSkill") ~= nil
+        local currentBoxColor = isInSkill and COLOR_IN_SKILL or COLOR_DEFAULT
+
         -- Update center target name text display
         local viewportSize = Camera.ViewportSize
         TargetNameText.Text = target.Name
-        TargetNameText.Position = Vector2.new(viewportSize.X * 0.5 + 15, viewportSize.Y * 0.5 + 25)
+        TargetNameText.Position = Vector2.new(viewportSize.X * 0.5 + 35, viewportSize.Y * 0.5 + 25)
         TargetNameText.Visible = true
 
-        -- Render 3D boxes for parts
+        -- Render 3D boxes for parts with dynamic state color
         for i = 1, #R6_PART_NAMES do
             local child = target:FindFirstChild(R6_PART_NAMES[i])
             local lines = FixedBoxPool[i]
             
             if child and child:IsA("BasePart") then
-                Draw3DPartBox(child, lines)
+                Draw3DPartBox(child, lines, currentBoxColor)
             else
                 HidePartBox(lines)
             end
