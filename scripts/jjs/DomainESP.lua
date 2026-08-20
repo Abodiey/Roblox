@@ -2,6 +2,7 @@ local DomainESP = {}
 
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 
 local Domains = Workspace:WaitForChild("Domains")
 local activeEsp = {}
@@ -17,7 +18,7 @@ local LOCAL_EDGES = {}
 
 -- 1. Generate Latitude Circles
 for lat = 1, LATITUDE_RINGS do
-	local phi = (lat / (LATITUDE_RINGS + 1)) * math.pi -- From near top pole to bottom pole
+	local phi = (lat / (LATITUDE_RINGS + 1)) * math.pi
 	local ringRadius = math.sin(phi)
 	local y = math.cos(phi)
 
@@ -58,6 +59,40 @@ for lon = 1, LONGITUDE_RIBS do
 end
 
 local TOTAL_LINES = #LOCAL_EDGES
+
+-- Fast detection: iterate players directly and check local position against collider size
+local function getDomainInfo(domain)
+	local collider = domain:FindFirstChild("DomainCollider")
+	if not collider or not collider:IsA("BasePart") then
+		return "Unknown", "Unknown"
+	end
+
+	local colliderCF = collider.CFrame
+	local halfSize = collider.Size * 0.5
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		local character = player.Character
+		if character and character:GetAttribute("OpenedDomain") == true then
+			local hrp = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+			if hrp then
+				-- Convert character position to collider's local space
+				local localPos = colliderCF:PointToObjectSpace(hrp.Position)
+				
+				-- Check if position falls inside the bounding box
+				if math.abs(localPos.X) <= halfSize.X 
+					and math.abs(localPos.Y) <= halfSize.Y 
+					and math.abs(localPos.Z) <= halfSize.Z then
+					
+					local playerName = player.DisplayName or player.Name
+					local moveset = character:GetAttribute("Moveset") or "Unknown"
+					return playerName, tostring(moveset)
+				end
+			end
+		end
+	end
+
+	return "Unknown", "Unknown"
+end
 
 -- Clip a 3D line segment against the camera near plane (Z = -0.1 in camera space)
 local function clipLineToCamera(p1, p2, camCF, invCF)
@@ -170,7 +205,10 @@ function DomainESP.Init(State)
 					local size = domain.Size
 					local radius = math.max(size.X, math.max(size.Y, size.Z)) * 0.5
 
-					-- 1. Text Projection
+					-- 1. Dynamic Text Projection
+					local playerName, moveset = getDomainInfo(domain)
+					espData.Text.Text = string.format("%s's Domain [%s]", playerName, moveset)
+
 					local textPoint, textOnScreen = camera:WorldToViewportPoint(pos + Vector3.new(0, radius + 1, 0))
 					if textOnScreen and textPoint.Z > 0 then
 						espData.Text.Position = Vector2.new(textPoint.X, textPoint.Y)
