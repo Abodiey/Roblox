@@ -60,38 +60,46 @@ end
 
 local TOTAL_LINES = #LOCAL_EDGES
 
--- Fast detection: iterate players directly and check local position against collider size
-local function getDomainInfo(domain)
-	local collider = domain:FindFirstChild("DomainCollider")
-	if not collider or not collider:IsA("BasePart") then
-		return "Unknown", "Unknown"
+-- Locate and return the caster's name and moveset for a given domain
+local function resolveCasterInfo(domain)
+	local targetPart = domain:FindFirstChild("DomainCollider") or domain
+	if not targetPart or not targetPart:IsA("BasePart") then
+		return nil
 	end
 
-	local colliderCF = collider.CFrame
-	local halfSize = collider.Size * 0.5
+	local partCF = targetPart.CFrame
+	local halfSize = targetPart.Size * 0.5
 
 	for _, player in ipairs(Players:GetPlayers()) do
 		local character = player.Character
-		if character and character:GetAttribute("OpenedDomain") == true then
-			local hrp = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
-			if hrp then
-				-- Convert character position to collider's local space
-				local localPos = colliderCF:PointToObjectSpace(hrp.Position)
-				
-				-- Check if position falls inside the bounding box
-				if math.abs(localPos.X) <= halfSize.X 
-					and math.abs(localPos.Y) <= halfSize.Y 
-					and math.abs(localPos.Z) <= halfSize.Z then
+		if character then
+			local info = character:FindFirstChild("Info")
+			local domainTag = info and info:FindFirstChild("DomainTag")
+
+			-- Verify if this player is the caster via DomainTag attribute 'O'
+			if domainTag and domainTag:GetAttribute("O") then
+				local hrp = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+				if hrp then
+					local localPos = partCF:PointToObjectSpace(hrp.Position)
 					
-					local playerName = player.DisplayName or player.Name
-					local moveset = character:GetAttribute("Moveset") or "Unknown"
-					return playerName, tostring(moveset)
+					-- Verify the character is within domain bounds
+					if math.abs(localPos.X) <= halfSize.X 
+						and math.abs(localPos.Y) <= halfSize.Y 
+						and math.abs(localPos.Z) <= halfSize.Z then
+						
+						local playerName = player.DisplayName or player.Name
+						local moveset = character:GetAttribute("Moveset") or "Unknown"
+						return {
+							PlayerName = playerName,
+							Moveset = tostring(moveset)
+						}
+					end
 				end
 			end
 		end
 	end
 
-	return "Unknown", "Unknown"
+	return nil
 end
 
 -- Clip a 3D line segment against the camera near plane (Z = -0.1 in camera space)
@@ -140,6 +148,7 @@ local function createEsp(domain)
 	local espData = {
 		Lines = lines,
 		Text = textLabel,
+		CasterInfo = nil, -- Persistent cache for caster data
 		Connections = {}
 	}
 	activeEsp[domain] = espData
@@ -205,10 +214,17 @@ function DomainESP.Init(State)
 					local size = domain.Size
 					local radius = math.max(size.X, math.max(size.Y, size.Z)) * 0.5
 
-					-- 1. Dynamic Text Projection
-					local playerName, moveset = getDomainInfo(domain)
+					-- Resolve and cache the domain caster if not already found
+					if not espData.CasterInfo then
+						espData.CasterInfo = resolveCasterInfo(domain)
+					end
+
+					local playerName = espData.CasterInfo and espData.CasterInfo.PlayerName or "Unknown"
+					local moveset = espData.CasterInfo and espData.CasterInfo.Moveset or "Unknown"
+
 					espData.Text.Text = string.format("%s's Domain [%s]", playerName, moveset)
 
+					-- 1. Dynamic Text Projection
 					local textPoint, textOnScreen = camera:WorldToViewportPoint(pos + Vector3.new(0, radius + 1, 0))
 					if textOnScreen and textPoint.Z > 0 then
 						espData.Text.Position = Vector2.new(textPoint.X, textPoint.Y)
