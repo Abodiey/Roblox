@@ -5,7 +5,7 @@ local RunService = cloneref(game:GetService("RunService"))
 
 local LocalPlayer = Players.LocalPlayer
 
-local CENTER_POINT = Vector3.zero
+local CENTER_POINT = Vector3.new(20,0,0)
 local MAP_RADIUS = 346
 local TELEPORT_THRESHOLD = 100 
 local WALL_HEIGHT = 500
