@@ -134,10 +134,11 @@ local function safeRemove(drawingObj)
     end
 end
 
--- Generates 9 Drawing lines for interval ticks
-local function applyBrawlhallaTicks()
+-- Generates Drawing lines for interval ticks
+local function applyBrawlhallaTicks(count)
+    count = count or 9
     local lineCache = {}
-    for idx = 1, 9 do
+    for idx = 1, count do
         lineCache[idx] = createDrawing("Line", {
             Color = COLOR_BLACK,
             Thickness = 1,
@@ -149,20 +150,24 @@ local function applyBrawlhallaTicks()
 end
 
 -- Helper to bundle bar components (Background, Outline, Fill, and Ticks)
-local function createBarGroup()
+local function createBarGroupWithTicks(tickCount)
     return {
         Back = createDrawing("Square", { Filled = true, Color = c3_new(0.05, 0.05, 0.05), Transparency = 0.5, Visible = false }),
         Outline = createDrawing("Square", { Filled = false, Color = COLOR_BLACK, Thickness = 1, Visible = false }),
         Fill = createDrawing("Square", { Filled = true, Transparency = 0.8, Visible = false }),
-        Lines = applyBrawlhallaTicks()
+        Lines = applyBrawlhallaTicks(tickCount)
     }
+end
+
+local function createBarGroup()
+    return createBarGroupWithTicks(9)
 end
 
 local function setBarGroupVisible(bar, visible)
     bar.Back.Visible = visible
     bar.Outline.Visible = visible
     bar.Fill.Visible = visible
-    for i = 1, 9 do
+    for i = 1, #bar.Lines do
         bar.Lines[i].Visible = visible
     end
 end
@@ -171,7 +176,7 @@ local function removeBarGroup(bar)
     safeRemove(bar.Back)
     safeRemove(bar.Outline)
     safeRemove(bar.Fill)
-    for i = 1, 9 do
+    for i = 1, #bar.Lines do
         safeRemove(bar.Lines[i])
     end
 end
@@ -329,6 +334,9 @@ local function CreateAssets(p)
     -- Right Body Sidebar Extension: Overheat Bar
     assets.OverheatBar = createBarGroup()
 
+    -- Right Body Sidebar Extension: Miracles Bar (Haruta)
+    assets.MiraclesBar = createBarGroupWithTicks(6)
+
     -- Dynamic Hotbar Drawing Visualizers (4 Slots)
     assets.MovesetItems = {}
     for i = 1, 4 do
@@ -378,6 +386,7 @@ local function HideAllAssets(assets)
     if assets.HealthBar then setBarGroupVisible(assets.HealthBar, false) end
     if assets.EvadeBar then setBarGroupVisible(assets.EvadeBar, false) end
     if assets.OverheatBar then setBarGroupVisible(assets.OverheatBar, false) end
+    if assets.MiraclesBar then setBarGroupVisible(assets.MiraclesBar, false) end
     
     if assets.MovesetItems then
         for i = 1, 4 do
@@ -407,6 +416,7 @@ local function CleanupCacheEntry(p, assets)
     if assets.HealthBar then removeBarGroup(assets.HealthBar) end
     if assets.EvadeBar then removeBarGroup(assets.EvadeBar) end
     if assets.OverheatBar then removeBarGroup(assets.OverheatBar) end
+    if assets.MiraclesBar then removeBarGroup(assets.MiraclesBar) end
 
     if assets.MovesetItems then
         for i = 1, 4 do
@@ -419,6 +429,15 @@ local function CleanupCacheEntry(p, assets)
     end
     
     Cache[p] = nil
+end
+
+
+local function CleanupAllESP()
+    for p, assets in pairs(Cache) do
+        CleanupCacheEntry(p, assets)
+    end
+
+    table_clear(ActiveMarks)
 end
 
 local function SetupPlayerSignals(p, assets)
@@ -577,6 +596,14 @@ function ESP.Init(State)
         table_insert(State.Connections, markConn)
     end
 
+    local playerRemovingConn = Players.PlayerRemoving:Connect(function(player)
+        if player == lp then
+            CleanupAllESP()
+        end
+    end)
+
+    table_insert(State.Connections, playerRemovingConn)
+
     local conn = RunService.RenderStepped:Connect(function()
         if not toggleObject.Value then return end
 
@@ -655,6 +682,37 @@ function ESP.Init(State)
                     
                     local hideNameAndHealth = (dist < 10)
 
+                    -- Compute moveset name once per frame
+                    local movesetName = ""
+                    local movesetFolder = char:FindFirstChild("Moveset")
+                    local fullyCustom = isCustom(movesetFolder)
+                    local cm = char:GetAttribute("Moveset")
+                    local pm = p:GetAttribute("Moveset")
+                    if cm == "Custom" or fullyCustom then
+                        if fullyCustom then
+                            local ultAttr = char:GetAttribute("CustomUlt")
+                            local customChild = movesetFolder and movesetFolder:FindFirstChild("Custom")
+                            local tagAttr = customChild and customChild:GetAttribute("Tag")
+                            if type(ultAttr) == "string" and ultAttr:find("%a") then
+                                movesetName = ultAttr
+                            elseif tagAttr then
+                                movesetName = tagAttr
+                            else
+                                movesetName = "Custom"
+                            end
+                        else
+                            movesetName = pm or "Custom"
+                        end
+                    else
+                        movesetName = cm or pm or ""
+                    end
+
+                    local isRyu = (movesetName == "Ryu")
+                    local isHaruta = (movesetName == "Haruta")
+                    local info = char:FindFirstChild("Info")
+                    local overheatObj = info and info:FindFirstChild("Overheat")
+                    local miraclesObj = info and info:FindFirstChild("Miracles")
+
                     -- 1. Render Left Sidebar: Health Bar
                     local hWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hGap = m_floor(m_clamp(4 * scaleFactor, 2, 8))
@@ -730,11 +788,13 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 3. Render Right Extension: Overheat Bar (Ryu Character)
+                    -- 3. Render Right Extension: Overheat Bar (Ryu) OR Miracles Bar (Haruta)
                     local ohGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local ohX = eX + eWidth + ohGap
-                    if char:GetAttribute("Moveset") == "Ryu" and char:FindFirstChild("Info") and char.Info:FindFirstChild("Overheat") then
-                        local ohVal = char.Info.Overheat.Value
+
+                    if isRyu and overheatObj then
+                        -- Overheat bar (Ryu)
+                        local ohVal = overheatObj.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
                         
                         if ohRatio <= 0.02 then
@@ -766,8 +826,47 @@ function ESP.Init(State)
                             end
                             c.OverheatBar.Fill.Color = ohColor
                         end
-                    else
+                        -- Hide Miracles bar
+                        setBarGroupVisible(c.MiraclesBar, false)
+
+                    elseif isHaruta and miraclesObj then
+                        -- Miracles bar (Haruta)
+                        local mirVal = miraclesObj.Value
+                        local mirRatio = m_clamp(mirVal / 6, 0, 1)
+                        
+                        if mirRatio <= 0.02 then
+                            setBarGroupVisible(c.MiraclesBar, false)
+                        else
+                            setBarGroupVisible(c.MiraclesBar, true)
+
+                            local bar = c.MiraclesBar
+                            local harutaColor = c3_fromHex("#" .. (MOVESET_COLORS["Haruta"] or "A77DCB"))
+
+                            bar.Back.Position = v2_new(ohX, eY)
+                            bar.Back.Size = v2_new(eWidth, eH)
+                            bar.Outline.Position = v2_new(ohX, eY)
+                            bar.Outline.Size = v2_new(eWidth, eH)
+
+                            local mirFillH = m_floor(eH * mirRatio)
+                            bar.Fill.Position = v2_new(ohX, eY + (eH - mirFillH))
+                            bar.Fill.Size = v2_new(eWidth, mirFillH)
+                            bar.Fill.Color = harutaColor
+
+                            -- 6 ticks at each integer level (0-6)
+                            for i = 1, 6 do
+                                local lineY = m_floor(eY + (eH * (i / 6)))
+                                bar.Lines[i].From = v2_new(ohX, lineY)
+                                bar.Lines[i].To = v2_new(ohX + eWidth, lineY)
+                                bar.Lines[i].Visible = true
+                            end
+                        end
+                        -- Hide Overheat bar
                         setBarGroupVisible(c.OverheatBar, false)
+
+                    else
+                        -- Neither: hide both
+                        setBarGroupVisible(c.OverheatBar, false)
+                        setBarGroupVisible(c.MiraclesBar, false)
                     end
 
                     -- 4. Render Overhead Ultimate Progress Bar
@@ -920,41 +1019,12 @@ function ESP.Init(State)
                     if shouldUpdateHeavy then
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
-                        
-                        local movesetName = "Custom"
-                        local cm = char:GetAttribute("Moveset")
-                        local pm = p:GetAttribute("Moveset")
-                        local movesetFolder = char:FindFirstChild("Moveset")
-                        local fullyCustom = isCustom(movesetFolder)
-                        local usesCustomLook = false
-                        
-                        if cm == "Custom" or fullyCustom then
-                            usesCustomLook = true
-                            if fullyCustom then
-                                local ultAttr = char:GetAttribute("CustomUlt")
-                                local customChild = movesetFolder:FindFirstChild("Custom")
-                                local tagAttr = customChild and customChild:GetAttribute("Tag")
-                                
-                                if type(ultAttr) == "string" and ultAttr:find("%a") then
-                                    movesetName = ultAttr
-                                elseif tagAttr then
-                                    movesetName = tagAttr
-                                else
-                                    movesetName = "Custom"
-                                end
-                            else
-                                movesetName = pm or "Custom"
-                            end
-                        else
-                            movesetName = cm or pm or ""
-                        end
-                        
-                        if cm == pm and not (movesetFolder and movesetFolder:FindFirstChild("Custom")) then
-                            movesetName = pm or ""
-                        end
 
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
-                        if usesCustomLook then
+                        local usesCustomLook = false
+                        
+                        if movesetName == "Custom" or fullyCustom then
+                            usesCustomLook = true
                             hexColor = globalRainbowHex
                             c.UltBar.Fill.Color = globalRainbowColor
                         else
@@ -993,13 +1063,9 @@ function ESP.Init(State)
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
                         
                         local miracleTag = ""
-                        if cm == "Haruta" or movesetName == "Haruta" then
-                            local infoFolder = char:FindFirstChild("Info")
-                            local miraclesObj = infoFolder and infoFolder:FindFirstChild("Miracles")
-                            if miraclesObj then
-                                local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
-                                miracleTag = s_format("<font color='#%s'>[%s Miracles]</font> ", harutaHex, tostring(miraclesObj.Value))
-                            end
+                        if isHaruta and miraclesObj then
+                            local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
+                            miracleTag = s_format("<font color='#%s'>[%s Miracles]</font> ", harutaHex, tostring(miraclesObj.Value))
                         end
 
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
