@@ -5,8 +5,8 @@ local cloneref = cloneref or function(o) return o end
 local game = game
 local Players = cloneref(game:GetService("Players"))
 local RunService = cloneref(game:GetService("RunService"))
-local workspace = cloneref(game:GetService("Workspace"))
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local workspace = cloneref(game:GetService("Workspace"))
 
 -- Localize Global Engine Functions
 local task = task
@@ -68,165 +68,7 @@ local COLOR_GOLD = c3_new(1, 0.85, 0)
 local COLOR_PURPLE = c3_new(0.68, 0.1, 1)
 local COLOR_LIGHT_BLUE = Color3.fromRGB(50, 180, 255)
 
--- Ultimate Names / Colors Data Table
-local ultNamesModule = {
-	Gojo = {
-		"Six Eyes",
-		Color3.fromRGB(85, 255, 255),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Itadori = {
-		"King of Curses",
-		Color3.fromRGB(255, 0, 0),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Hakari = {
-		"Idle Death Gamble",
-		Color3.fromRGB(85, 255, 127),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Megumi = {
-		"Insanity",
-		Color3.fromRGB(45, 45, 45),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Mahito = {
-		"Essence of the Soul",
-		Color3.fromRGB(170, 170, 255),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Choso = {
-		"Duty as a Brother",
-		Color3.fromRGB(130, 0, 0),
-		Color3.fromRGB(0, 0, 0),
-		true
-	},
-	Todo = {
-		"False Memories",
-		Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Hiromi = {
-		"Deadly Sentencing",
-		Color3.fromRGB(179, 130, 61),
-		Color3.fromRGB(88, 57, 37),
-		true
-	},
-	Locust = {
-		"Directed Poison",
-		Color3.fromRGB(85, 170, 0),
-		Color3.fromRGB(85, 170, 0),
-		true
-	},
-	Yuki = {
-		"Unrestricted Density",
-		Color3.fromRGB(0, 0, 0),
-		Color3.fromRGB(0, 0, 0),
-		true
-	},
-	Yuta = {
-		"True Love",
-		Color3.fromRGB(255, 170, 255),
-		Color3.fromRGB(255, 0, 127),
-		true
-	},
-	Charles = {
-		"Foresight",
-		Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(85, 0, 0),
-		true
-	},
-	Mechamaru = {
-		"Absolute",
-		Color3.fromRGB(225, 10, 75),
-		Color3.fromRGB(85, 85, 85),
-		true
-	},
-	Naoya = {
-		"Vengeance",
-		Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(128, 126, 255),
-		true
-	},
-	Nanami = {
-		"Overtime",
-		Color3.fromRGB(131, 203, 199),
-		Color3.fromRGB(59, 84, 143),
-		true
-	},
-	Haruta = {
-		"Jawbreaker",
-		Color3.fromRGB(167, 125, 203),
-		Color3.fromRGB(112, 85, 143),
-		true
-	},
-	Hanami = {
-		"Unwrap",
-		Color3.fromRGB(172, 203, 163),
-		Color3.fromRGB(79, 69, 49),
-		true
-	},
-	MeiMei = {
-		"Bird Strike",
-		Color3.fromRGB(35, 40, 80),
-		Color3.fromRGB(62, 51, 106),
-		true
-	},
-	Ryu = {
-		"Every Last Drop.",
-		Color3.fromRGB(170, 255, 255),
-		Color3.fromRGB(255, 170, 255),
-		true
-	},
-	Kurourushi = {
-		"Parthenogenesis",
-		Color3.fromRGB(101, 35, 44),
-		Color3.fromRGB(40, 14, 18),
-		true
-	},
-	Reggie = {
-		"Con Artistry",
-		Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(150, 150, 150),
-		true
-	},
-	Mahoraga = {
-		"Ritual",
-		Color3.fromRGB(255, 255, 255),
-		Color3.fromRGB(0, 170, 255),
-		false
-	},
-	Heian = {
-		"Incomplete Shrine",
-		Color3.fromRGB(85, 0, 0),
-		Color3.fromRGB(0, 170, 255),
-		true
-	},
-	Goku = {
-		"Monkey",
-		Color3.fromRGB(255, 0, 0),
-		Color3.new(255/255, 255/255, 0/255),
-		true
-	},
-	Mokou = {
-		"Immortal Blaze",
-		Color3.fromRGB(255, 170, 0),
-		Color3.new(1, 0.333333, 0),
-		true
-	},
-	Chara = {
-		"SINCE WHEN WERE YOU THE ONE IN CONTROL?",
-		Color3.fromRGB(255, 0, 0),
-		Color3.new(0.333333, 0, 0),
-		true
-	}
-}
+local ultNamesModule = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UltNames"))
 
 -- Dynamically generate MOVESET_COLORS and DARK_MOVESETS by looping over ultNamesModule
 local MOVESET_COLORS = {
@@ -1150,6 +992,16 @@ function ESP.Init(State)
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
                         
+                        local miracleTag = ""
+                        if cm == "Haruta" or movesetName == "Haruta" then
+                            local infoFolder = char:FindFirstChild("Info")
+                            local miraclesObj = infoFolder and infoFolder:FindFirstChild("Miracles")
+                            if miraclesObj then
+                                local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
+                                miracleTag = s_format("<font color='#%s'>[%s Miracles]</font> ", harutaHex, tostring(miraclesObj.Value))
+                            end
+                        end
+
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
                         local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
@@ -1189,7 +1041,7 @@ function ESP.Init(State)
                         if hideNameAndHealth then
                             c.NameDisplay = trailingBrackets
                         elseif isDead then
-                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, miracleTag, c.GroupRoleTag, p.Name, trailingBrackets)
                         else
                             local nameColorHex = "FFFFFF"
                             if c.IsFriend then
@@ -1199,7 +1051,7 @@ function ESP.Init(State)
                             end
 
                             local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
-                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, miracleTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
                         local distCol = getGradientColor(dist / 800)
