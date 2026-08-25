@@ -183,7 +183,6 @@ end
 
 -- ============================================================================
 -- DRAWING.NEW RICHTEXT PARSER & LAYOUT ENGINE
--- Splits standard RichText tags into individual Drawing.new("Text") elements
 -- ============================================================================
 
 local function parseRichTextLine(lineStr, defaultColor)
@@ -205,7 +204,6 @@ local function parseRichTextLine(lineStr, defaultColor)
             break
         end
 
-        -- Add text segment before tag
         if tagStart > pos then
             local text = lineStr:sub(pos, tagStart - 1)
             if #text > 0 then
@@ -277,7 +275,7 @@ local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultCol
             end
 
             textObj.Size = fontSize
-            textObj.Outline = true -- Sharp drop shadow
+            textObj.Outline = true
             textObj.OutlineColor = COLOR_BLACK
             textObj.Text = seg.Text
             local w = textObj.TextBounds.X
@@ -305,7 +303,7 @@ local function renderRichText(pool, rawText, centerX, topY, fontSize, defaultCol
 end
 
 -- ============================================================================
--- ASSET CREATION & CACHE LIFECYCLE
+-- ASSET CREATION & LIFECYCLE
 -- ============================================================================
 
 local function CreateAssets(p)
@@ -319,25 +317,17 @@ local function CreateAssets(p)
         Visible = false
     })
 
-    -- RichText Segment Pool for Overhead Multi-Line Text
+    -- RichText Segment Pool
     assets.TextPool = {}
 
-    -- Overhead Ultimate Progress Bar
+    -- Bars
     assets.UltBar = createBarGroup()
-
-    -- Left Body Sidebar: Health Bar
     assets.HealthBar = createBarGroup()
-
-    -- Right Body Sidebar: Evade Bar
     assets.EvadeBar = createBarGroup()
-
-    -- Right Body Sidebar Extension: Overheat Bar
     assets.OverheatBar = createBarGroup()
-
-    -- Right Body Sidebar Extension: Miracles Bar (Haruta)
     assets.MiraclesBar = createBarGroupWithTicks(6)
 
-    -- Dynamic Hotbar Drawing Visualizers (4 Slots)
+    -- Moveset slots
     assets.MovesetItems = {}
     for i = 1, 4 do
         assets.MovesetItems[i] = {
@@ -349,16 +339,17 @@ local function CreateAssets(p)
         }
     end
 
-    -- Connections and runtime storage
+    -- Connections
     assets.Connections = {}
     assets.CharacterConnections = {} 
     assets.KillValueConnections = {} 
     
-    -- AFK Detection Coordinates
+    -- AFK
     assets.LastPosition = v3_new(0, 0, 0)
     assets.LastMoveTime = o_clock()
     assets.IsAFK = false
     
+    -- Cached display strings
     assets.LastDist = 0
     assets.CachedKills = 0
     assets.CachedMoveset = ""
@@ -371,6 +362,12 @@ local function CreateAssets(p)
     assets.HexKillColor = "ffffff"
     assets.HexDistColor = "ffffff"
     assets.IsHidingKills = false
+
+    -- New fields for account age, friends, and miracles
+    assets.AgeDisplay = ""
+    assets.FriendDisplay = ""
+    assets.MiracleDisplay = ""
+    assets.ExtraInfo = ""  -- combined suffix for line 2
     
     return assets
 end
@@ -439,6 +436,53 @@ local function CleanupAllESP()
 
     table_clear(ActiveMarks)
 end
+
+-- ============================================================================
+-- PLAYER INFO UPDATER (Account Age & Friends)
+-- ============================================================================
+
+local function UpdatePlayerInfo(p, assets)
+    -- Account age (in days)
+    local age = p.AccountAge or 0
+    local ageStr
+    if age >= 1 then
+        ageStr = s_format("%dd", m_floor(age))
+    elseif age * 24 >= 1 then
+        ageStr = s_format("%dh", m_floor(age * 24))
+    else
+        ageStr = s_format("%dm", m_floor(age * 24 * 60))
+    end
+    assets.AgeDisplay = " • Age: " .. ageStr
+
+    -- Friend count (async)
+    task.spawn(function()
+        local success, friends = pcall(function()
+            return p:GetFriendsAsync()
+        end)
+        if success and friends then
+            local count = #friends
+            assets.FriendDisplay = " • Friends: " .. tostring(count)
+        else
+            assets.FriendDisplay = ""
+        end
+    end)
+end
+
+local function StartPeriodicInfoUpdates(p, assets)
+    -- Initial update
+    UpdatePlayerInfo(p, assets)
+    -- Loop every 60 seconds
+    task.spawn(function()
+        while p and p.Parent do
+            t_wait(60)
+            UpdatePlayerInfo(p, assets)
+        end
+    end)
+end
+
+-- ============================================================================
+-- PLAYER & CHARACTER SIGNALS
+-- ============================================================================
 
 local function SetupPlayerSignals(p, assets)
     task.spawn(function()
@@ -538,6 +582,9 @@ local function SetupPlayerSignals(p, assets)
         end
     end
     checkLeaderstats()
+
+    -- Start periodic updates for account age and friends
+    StartPeriodicInfoUpdates(p, assets)
 end
 
 local function SetupCharacterSignals(assets, char, hum)
@@ -566,6 +613,10 @@ local function SetupCharacterSignals(assets, char, hum)
     table_insert(assets.CharacterConnections, hum:GetPropertyChangedSignal("MaxHealth"):Connect(updateBarsInline))
     updateBarsInline()
 end
+
+-- ============================================================================
+-- ESP INIT
+-- ============================================================================
 
 function ESP.Init(State)
     local toggleObject = State.Toggles.ESP
@@ -642,27 +693,24 @@ function ESP.Init(State)
                     SetupCharacterSignals(c, char, hum)
                 end
                 
-                -- Project root, head, and feet positions to viewport
+                -- Project root, head, and feet
                 local root2D, visRoot = cam:WorldToViewportPoint(root.Position)
                 local head2D, visHead = cam:WorldToViewportPoint(root.Position + v3_new(0, 3.2, 0))
                 local feet2D, visFeet = cam:WorldToViewportPoint(root.Position - v3_new(0, 3.6, 0))
 
                 if visRoot and root2D.Z > 0 then
-                    -- Compute distance to target and compute dynamic distance scaling factor clamped within [0.55, 1.35]
                     local currentRootPos = myRoot and myRoot.Position or cam.CFrame.Position
                     local dist = (currentRootPos - root.Position).Magnitude
                     c.LastDist = dist
 
                     local scaleFactor = m_clamp(50 / m_max(dist, 10), 0.55, 1.35)
 
-                    -- Lock layout parameters using integer pixel bounds with clamped scaling
                     local baseBoxHeight = m_abs(feet2D.Y - head2D.Y)
                     local boxHeight = m_floor(m_clamp(baseBoxHeight * scaleFactor, 18, 500))
                     local boxWidth = m_floor(m_clamp(boxHeight * 0.55, 18, 260))
                     local boxX = m_floor(root2D.X - (boxWidth / 2))
                     local boxY = m_floor(head2D.Y)
 
-                    -- Calculate Tracer origin position
                     local sX, sY
                     if myRoot then
                         local p1, visP1 = cam:WorldToViewportPoint(myRoot.Position)
@@ -713,7 +761,7 @@ function ESP.Init(State)
                     local overheatObj = info and info:FindFirstChild("Overheat")
                     local miraclesObj = info and info:FindFirstChild("Miracles")
 
-                    -- 1. Render Left Sidebar: Health Bar
+                    -- 1. Health Bar
                     local hWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hGap = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hX = boxX - hWidth - hGap
@@ -749,7 +797,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 2. Render Right Sidebar: Evade Bar
+                    -- 2. Evade Bar
                     local eWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local eGap = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local eX = boxX + boxWidth + eGap
@@ -788,12 +836,11 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 3. Render Right Extension: Overheat Bar (Ryu) OR Miracles Bar (Haruta)
+                    -- 3. Overheat or Miracles Bar
                     local ohGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local ohX = eX + eWidth + ohGap
 
                     if isRyu and overheatObj then
-                        -- Overheat bar (Ryu)
                         local ohVal = overheatObj.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
                         
@@ -826,11 +873,9 @@ function ESP.Init(State)
                             end
                             c.OverheatBar.Fill.Color = ohColor
                         end
-                        -- Hide Miracles bar
                         setBarGroupVisible(c.MiraclesBar, false)
 
                     elseif isHaruta and miraclesObj then
-                        -- Miracles bar (Haruta)
                         local mirVal = miraclesObj.Value
                         local mirRatio = m_clamp(mirVal / 6, 0, 1)
                         
@@ -852,7 +897,6 @@ function ESP.Init(State)
                             bar.Fill.Size = v2_new(eWidth, mirFillH)
                             bar.Fill.Color = harutaColor
 
-                            -- 6 ticks at each integer level (0-6)
                             for i = 1, 6 do
                                 local lineY = m_floor(eY + (eH * (i / 6)))
                                 bar.Lines[i].From = v2_new(ohX, lineY)
@@ -860,16 +904,14 @@ function ESP.Init(State)
                                 bar.Lines[i].Visible = true
                             end
                         end
-                        -- Hide Overheat bar
                         setBarGroupVisible(c.OverheatBar, false)
 
                     else
-                        -- Neither: hide both
                         setBarGroupVisible(c.OverheatBar, false)
                         setBarGroupVisible(c.MiraclesBar, false)
                     end
 
-                    -- 4. Render Overhead Ultimate Progress Bar
+                    -- 4. Ultimate Bar
                     local uHeight = m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local uGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local uW = boxWidth
@@ -906,7 +948,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Render Hotbar Moveset Slots (Displays full move names, no keybinds, dynamic distance scaling)
+                    -- 5. Moveset Slots
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
@@ -945,7 +987,6 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Compute total width dynamically for active move slots
                         local itemWidths = {}
                         local totalMovesetWidth = 0
                         local activeCount = 0
@@ -985,7 +1026,6 @@ function ESP.Init(State)
                                 item.Outline.Position = v2_new(currentSlotX, slotY)
                                 item.Outline.Size = v2_new(slotW, slotHeight)
 
-                                -- Cooldown overlay draining downward like water level dropping
                                 local cdRatio = item.Data.CooldownRatio
                                 if cdRatio > 0 then
                                     local cdFillH = m_floor(slotHeight * cdRatio)
@@ -998,7 +1038,6 @@ function ESP.Init(State)
                                     item.Fill.Visible = false
                                 end
 
-                                -- Render full move name label centered inside the moveset box without keybinds
                                 item.Label.Visible = true
                                 item.Label.Outline = true
                                 item.Label.OutlineColor = COLOR_BLACK
@@ -1016,6 +1055,7 @@ function ESP.Init(State)
                         end
                     end
 
+                    -- 6. Heavy updates (only every 2 frames)
                     if shouldUpdateHeavy then
                         local isDead = char:GetAttribute("Dead")
                         local inUlt = char:GetAttribute("InUlt")
@@ -1038,9 +1078,9 @@ function ESP.Init(State)
                             c.UltBar.Back.Color = c3_new(0.05, 0.05, 0.05)
                         end
 
+                        -- Cash
                         local rawCash = p:GetAttribute("Cash")
                         local cashValue = type(rawCash) == "number" and rawCash or 0
-                        
                         if cashValue > 0 then
                             local cashStr = hideNameAndHealth and tostring(cashValue) or formatVal(cashValue)
                             c.CashDisplay = s_format("<font color='#00FF00'>$%s</font> | ", cashStr)
@@ -1048,6 +1088,7 @@ function ESP.Init(State)
                             c.CashDisplay = ""
                         end
 
+                        -- Perm badges
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
                             permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
@@ -1058,19 +1099,19 @@ function ESP.Init(State)
                             permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
                         end
 
+                        -- Jackpot
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
-                        
-                        local miracleTag = ""
-                        if isHaruta and miraclesObj then
-                            local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
-                            miracleTag = s_format("<font color='#%s'>[%s Miracles]</font> ", harutaHex, tostring(miraclesObj.Value))
-                        end
 
+                        -- Miracles – removed from name line, will be added to end
+                        -- No longer in name line
+
+                        -- Left tag (ULT)
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
                         local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
+                        -- Mark
                         local markTag = ""
                         local currentMarkObj = ActiveMarks[char]
                         if currentMarkObj then
@@ -1081,18 +1122,21 @@ function ESP.Init(State)
                             end
                         end
 
+                        -- ITFG
                         local itfgTag = ""
                         local itfgVal = char:GetAttribute("ITFG")
                         if type(itfgVal) == "number" and itfgVal >= 1 and itfgVal <= 2 then
                             itfgTag = s_format("<font color='#DF00FF'><b>[IT %d/2]</b></font> ", itfgVal)
                         end
 
+                        -- EXEC
                         local execTag = ""
                         local execVal = char:GetAttribute("EXEC")
                         if type(execVal) == "number" and execVal > 0 then
                             execTag = s_format("<font color='#FFFF00'><b>[EXEC %d/2]</b></font> ", execVal)
                         end
 
+                        -- Burst
                         local burstTag = ""
                         if char:GetAttribute("Burst") ~= nil then
                             burstTag = "<font color='#FFFFFF'><b>[BURST]</b></font> "
@@ -1104,10 +1148,11 @@ function ESP.Init(State)
                         if execTag ~= "" then trailingBrackets = trailingBrackets .. execTag end
                         if burstTag ~= "" then trailingBrackets = trailingBrackets .. burstTag end
 
+                        -- Name line (without miracle)
                         if hideNameAndHealth then
                             c.NameDisplay = trailingBrackets
                         elseif isDead then
-                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, miracleTag, c.GroupRoleTag, p.Name, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
                         else
                             local nameColorHex = "FFFFFF"
                             if c.IsFriend then
@@ -1117,14 +1162,15 @@ function ESP.Init(State)
                             end
 
                             local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
-                            c.NameDisplay = s_format("%s%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, miracleTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
+                        -- Distance color
                         local distCol = getGradientColor(dist / 800)
                         c.HexDistColor = s_format("%02x%02x%02x", m_floor(distCol.R * 255), m_floor(distCol.G * 255), m_floor(distCol.B * 255))
                         c.LineColor = getGradientColor(dist / 600)
                         
-                        -- Render full moveset label
+                        -- Moveset label
                         if movesetName and movesetName ~= "" then
                             if DARK_MOVESETS[movesetName] and not usesCustomLook then
                                 c.CachedMoveset = s_format("<stroke color='#FFFFFF' thickness='1'><font color='#%s'>%s</font></stroke> | ", hexColor, tostring(movesetName))
@@ -1134,28 +1180,45 @@ function ESP.Init(State)
                         else
                             c.CachedMoveset = ""
                         end
+
+                        -- Build extra info (Miracles, Age, Friends)
+                        local extra = ""
+                        -- Miracles: only show number with color
+                        if isHaruta and miraclesObj then
+                            local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
+                            extra = extra .. s_format(" • <font color='#%s'>[M: %s]</font>", harutaHex, tostring(miraclesObj.Value))
+                        end
+                        -- Age and Friends (updated by periodic loop)
+                        if c.AgeDisplay and c.AgeDisplay ~= "" then
+                            extra = extra .. c.AgeDisplay
+                        end
+                        if c.FriendDisplay and c.FriendDisplay ~= "" then
+                            extra = extra .. c.FriendDisplay
+                        end
+                        c.ExtraInfo = extra
                     end
                     
-                    -- Render Tracer Line
+                    -- Tracer
                     c.Line.Visible = true
                     c.Line.Color = c.LineColor
                     c.Line.From = v2_new(sX, sY)
                     c.Line.To = v2_new(m_floor(root2D.X), m_floor(feet2D.Y))
 
-                    -- 6. Render Main Overhead Text Label via Drawing RichText Parser
+                    -- 7. Main Overhead Text
                     local killString = hideNameAndHealth and tostring(c.CachedKills) or formatVal(c.CachedKills)
                     if c.IsHidingKills then
                         killString = s_format("%s <font color='#FF3333'><b>[HIDDEN]</b></font>", killString)
                     end
 
-                    local rawText = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>", 
+                    local rawText = s_format("%s\n%s%s<font color='#%s'>%s</font> • <font color='#%s'>%sm</font>%s", 
                         c.NameDisplay, 
                         c.CachedMoveset,
                         c.CashDisplay,
                         c.HexKillColor, 
                         killString, 
                         c.HexDistColor, 
-                        tostring(m_floor(c.LastDist))
+                        tostring(m_floor(c.LastDist)),
+                        c.ExtraInfo
                     )
 
                     local mainFontSize = m_floor(m_clamp(13 * scaleFactor, 9, 18))
