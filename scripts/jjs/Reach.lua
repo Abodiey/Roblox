@@ -42,7 +42,7 @@ local function getClosestCharacter()
     for _, char in ipairs(CharactersFolder:GetChildren()) do
         if char ~= character then
             local root = char:FindFirstChild("HumanoidRootPart")
-            if root then
+            if root and char:FindFirstChild("Info") and not char.Info:FindFirstChild("Block") then
                 local d = (root.Position - localRoot.Position).Magnitude
                 if d <= shortest then
                     shortest = d
@@ -56,7 +56,7 @@ local function getClosestCharacter()
 end
 
 -- Hook Initialization
-task.delay(30, function()
+task.delay(60, function()
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
