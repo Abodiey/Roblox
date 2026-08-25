@@ -48,14 +48,13 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 local Players = cloneref(game:GetService("Players"))
 
 --Custom Notifications
-local loaded = false
+local loaded
 task.defer(function()
     while not game.Players.LocalPlayer do task.wait() end
 
     local viewport = workspace.CurrentCamera.ViewportSize
     local w, h = 280, 70
     local x, y = viewport.X/2 - w/2, 60
-    local loaded = false
 
     local function notif(titleText, bodyText, isLoaded)
         local bg = Drawing.new("Square")
@@ -110,7 +109,6 @@ task.defer(function()
     for _, v in pairs(n) do v:Remove() end
 
     -- Loaded notification
-    task.wait(0.1)
     local n2 = notif("Catstar Pro", "Loaded!", true)
     task.wait(2)
     for _, v in pairs(n2) do v:Remove() end
