@@ -6,9 +6,16 @@ if game.GameId ~= 3508322461 then return end
 print("Catstar Running")
 
 local WindUI
-local File, Day = "WindUI_Cache.lua", "--" .. os.date("%d")
-local Content = writefile and readfile and isfile and isfile(File) and readfile(File)
+local File = "WindUI_Cache.lua"
+local Day = "--" .. os.date("%d")
+local Content = nil
 
+-- Check if file exists and read it
+if writefile and readfile and isfile and isfile(File) then
+    Content = readfile(File)
+end
+
+-- Validate cached content
 if not Content or Content:sub(1, #Day) ~= Day then
     local WindUrl = "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
     
@@ -20,11 +27,12 @@ if not Content or Content:sub(1, #Day) ~= Day then
     end)
     
     if Success and type(Response) == "table" and Response.StatusCode == 200 and Response.Body and type(Response.Body) == "string" then
-        Content = Response.Body
+        Content = Day .. "\n" .. Response.Body
         if writefile then
-            Content = Day .. "\n" .. Response.Body
             writefile(File, Content)
         end
+    else
+        Content = nil
     end
 end
 
@@ -40,9 +48,7 @@ local CoreGui = cloneref(game:GetService("CoreGui"))
 local Players = cloneref(game:GetService("Players"))
 
 task.defer(function()
-    if not Players.LocalPlayer then
-        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    end
+    while not Players.LocalPlayer do task.wait() end
 
     local robloxGui = CoreGui:WaitForChild("RobloxGui", 99)
     if robloxGui then
@@ -194,6 +200,7 @@ local function Load(Name)
 
     return Result
 end
+
 task.spawn(function()
     Load("fixes")
 end)
@@ -204,10 +211,7 @@ local ModuleFailed = {}
 local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 task.spawn(function()
-    if not Players.LocalPlayer then
-        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-        while not Players.LocalPlayer or not Players.LocalPlayer.UserId do task.wait() end 
-    end
+    while not Players.LocalPlayer do task.wait() end
     for _, Name in ipairs(ModuleList) do
         task.spawn(function()
             local Result = Load(Name)
@@ -220,6 +224,7 @@ task.spawn(function()
     end
 end)
 
+while not Players.LocalPlayer do task.wait() end --WINDUI NEEDS LOCALPLAYER FIRST
 WindUI = loadstring(Content)()
 
 -- Window Setup
