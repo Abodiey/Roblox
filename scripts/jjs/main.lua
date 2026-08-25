@@ -47,19 +47,73 @@ local StarterGui = cloneref(game:GetService("StarterGui"))
 local CoreGui = cloneref(game:GetService("CoreGui"))
 local Players = cloneref(game:GetService("Players"))
 
+--Custom Notifications
+local loaded = false
 task.defer(function()
-    while not Players.LocalPlayer do task.wait() end
+    while not game.Players.LocalPlayer do task.wait() end
 
-    local robloxGui = CoreGui:WaitForChild("RobloxGui", 99)
-    if robloxGui then
-        robloxGui:WaitForChild("NotificationFrame", 99)
+    local viewport = workspace.CurrentCamera.ViewportSize
+    local w, h = 280, 70
+    local x, y = viewport.X/2 - w/2, 60
+    local loaded = false
+
+    local function notif(titleText, bodyText, isLoaded)
+        local bg = Drawing.new("Square")
+        bg.Visible = true
+        bg.Color = Color3.fromRGB(20, 20, 20)
+        bg.Filled = true
+        bg.Thickness = 0
+        bg.Position = Vector2.new(x, y)
+        bg.Size = Vector2.new(w, h)
+        bg.Transparency = 0.5
+
+        local border = Drawing.new("Square")
+        border.Visible = true
+        border.Color = isLoaded and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(80, 80, 80)
+        border.Filled = false
+        border.Thickness = isLoaded and 2 or 1
+        border.Position = Vector2.new(x - 1, y - 1)
+        border.Size = Vector2.new(w + 2, h + 2)
+        border.Transparency = 0.7
+
+        local title = Drawing.new("Text")
+        title.Visible = true
+        title.Color = Color3.fromRGB(255, 255, 255)
+        title.Font = 1
+        title.Size = 20
+        title.Position = Vector2.new(x + w/2, y + 16)
+        title.Text = titleText
+        title.Transparency = 0.9
+        title.Center = true
+
+        local body = Drawing.new("Text")
+        body.Visible = true
+        body.Color = isLoaded and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(180, 180, 180)
+        body.Font = 0
+        body.Size = 16
+        body.Position = Vector2.new(x + w/2, y + 44)
+        body.Text = bodyText
+        body.Transparency = 0.8
+        body.Center = true
+
+        return {bg = bg, border = border, title = title, body = body}
     end
 
-    StarterGui:SetCore("SendNotification", {
-        Title = "Catstar Pro",
-        Text = "Loading...",
-        Duration = 15
-    })
+    -- Loading notification with dots
+    local n = notif("Catstar Pro", "Loading")
+    local dots = 0
+    while not loaded do
+        task.wait(0.3)
+        dots = (dots % 3) + 1
+        n.body.Text = "Loading" .. string.rep(".", dots)
+    end
+    for _, v in pairs(n) do v:Remove() end
+
+    -- Loaded notification
+    task.wait(0.1)
+    local n2 = notif("Catstar Pro", "Loaded!", true)
+    task.wait(2)
+    for _, v in pairs(n2) do v:Remove() end
 end)
 
 local BaseUrl = "https://raw.githubusercontent.com/Abodiey/Roblox/refs/heads/main/scripts/jjs/"
@@ -330,8 +384,4 @@ for _, Element in ipairs(UiLayout) do
     task.wait()
 end
 
-StarterGui:SetCore("SendNotification", {
-    Title = "Catstar Pro",
-    Text = "Successfully loaded!",
-    Duration = 5
-})
+loaded = true
