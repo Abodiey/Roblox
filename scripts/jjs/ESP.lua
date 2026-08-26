@@ -67,6 +67,8 @@ local COLOR_BLACK = c3_new(0, 0, 0)
 local COLOR_GOLD = c3_new(1, 0.85, 0)
 local COLOR_PURPLE = c3_new(0.68, 0.1, 1)
 local COLOR_LIGHT_BLUE = Color3.fromRGB(50, 180, 255)
+local COLOR_SEAL_RED = c3_new(1, 0.2, 0.2)
+local COLOR_SEAL_GREEN = c3_new(0.2, 1, 0.2)
 
 local ultNamesModule = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UltNames"))
 
@@ -327,15 +329,17 @@ local function CreateAssets(p)
     assets.OverheatBar = createBarGroup()
     assets.MiraclesBar = createBarGroupWithTicks(6)
 
-    -- Moveset slots
+    -- Moveset slots (5 slots: 4 regular + 1 extra for Reggie's NextReceipt)
     assets.MovesetItems = {}
-    for i = 1, 4 do
+    for i = 1, 5 do
         assets.MovesetItems[i] = {
             Back = createDrawing("Square", { Filled = true, Color = c3_new(0.1, 0.1, 0.1), Transparency = 0.6, Visible = false }),
             Fill = createDrawing("Square", { Filled = true, Color = COLOR_LIGHT_BLUE, Transparency = 0.5, Visible = false }),
             Outline = createDrawing("Square", { Filled = false, Color = COLOR_BLACK, Thickness = 1, Visible = false }),
             Label = createDrawing("Text", { Size = 10, Center = true, Outline = true, OutlineColor = COLOR_BLACK, Color = COLOR_WHITE, Visible = false }),
-            Data = { Visible = false, Key = tostring(i), Name = "", Tip = "", CooldownRatio = 0 }
+            SealCircle = createDrawing("Circle", { Filled = true, Radius = 4, Color = COLOR_SEAL_RED, Visible = false }),
+            Data = { Visible = false, Key = tostring(i), Name = "", Tip = "", CooldownRatio = 0 },
+            MoveRef = nil  -- reference to the move instance (if any)
         }
     end
 
@@ -363,11 +367,11 @@ local function CreateAssets(p)
     assets.HexDistColor = "ffffff"
     assets.IsHidingKills = false
 
-    -- New fields for account age, friends, and miracles
+    -- Extra info
     assets.AgeDisplay = ""
     assets.FriendDisplay = ""
     assets.MiracleDisplay = ""
-    assets.ExtraInfo = ""  -- combined suffix for line 2
+    assets.ExtraInfo = ""
     
     return assets
 end
@@ -386,12 +390,13 @@ local function HideAllAssets(assets)
     if assets.MiraclesBar then setBarGroupVisible(assets.MiraclesBar, false) end
     
     if assets.MovesetItems then
-        for i = 1, 4 do
+        for i = 1, 5 do
             local item = assets.MovesetItems[i]
             item.Back.Visible = false
             item.Fill.Visible = false
             item.Outline.Visible = false
             item.Label.Visible = false
+            item.SealCircle.Visible = false
         end
     end
 end
@@ -416,12 +421,13 @@ local function CleanupCacheEntry(p, assets)
     if assets.MiraclesBar then removeBarGroup(assets.MiraclesBar) end
 
     if assets.MovesetItems then
-        for i = 1, 4 do
+        for i = 1, 5 do
             local item = assets.MovesetItems[i]
             safeRemove(item.Back)
             safeRemove(item.Fill)
             safeRemove(item.Outline)
             safeRemove(item.Label)
+            safeRemove(item.SealCircle)
         end
     end
     
@@ -662,7 +668,8 @@ function ESP.Init(State)
         if not cam or not lp then return end
         local viewportSize = cam.ViewportSize
         local char_lp = lp.Character
-        local myRoot = char_lp and char_lp:FindFirstChild("HumanoidRootPart")
+        -- Use PrimaryPart if available, fallback to HumanoidRootPart
+        local myRoot = char_lp and (char_lp.PrimaryPart or char_lp:FindFirstChild("HumanoidRootPart"))
         
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
@@ -680,7 +687,7 @@ function ESP.Init(State)
             if p == lp then continue end
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
-            local root = char and char:FindFirstChild("HumanoidRootPart")
+            local root = char and (char.PrimaryPart or char:FindFirstChild("HumanoidRootPart"))
 
             if root and hum then
                 local c = Cache[p]
@@ -757,9 +764,11 @@ function ESP.Init(State)
 
                     local isRyu = (movesetName == "Ryu")
                     local isHaruta = (movesetName == "Haruta")
+                    local isReggie = (movesetName == "Reggie")
                     local info = char:FindFirstChild("Info")
                     local overheatObj = info and info:FindFirstChild("Overheat")
                     local miraclesObj = info and info:FindFirstChild("Miracles")
+                    local nextReceiptObj = info and info:FindFirstChild("NextReceipt") -- for Reggie
 
                     -- 1. Health Bar
                     local hWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
@@ -948,7 +957,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Moveset Slots
+                    -- 5. Moveset Slots (now 5 slots)
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
@@ -956,11 +965,13 @@ function ESP.Init(State)
                     local hasActiveMoveset = false
 
                     if c.MovesetItems then
-                        for index = 1, 4 do
+                        -- Reset visibility for all 5 slots
+                        for index = 1, 5 do
                             c.MovesetItems[index].Data.Visible = false
+                            c.MovesetItems[index].MoveRef = nil
                         end
 
-                        local movesetFolder = char:FindFirstChild("Moveset")
+                        -- Populate slots 1-4 from moveset folder
                         if movesetFolder then
                             for _, move in ipairs(movesetFolder:GetChildren()) do
                                 local slotKey = move:GetAttribute("Key")
@@ -971,6 +982,7 @@ function ESP.Init(State)
                                         item.Data.Visible = true
                                         item.Data.Key = tostring(slotKey)
                                         item.Data.Name = move.Name
+                                        item.MoveRef = move  -- store for seal
 
                                         local lastUsedStamp = move:GetAttribute("LastUse")
                                         local totalCdDuration = tonumber(move.Value)
@@ -987,11 +999,23 @@ function ESP.Init(State)
                             end
                         end
 
+                        -- Slot 5: for Reggie if NextReceipt exists
+                        if isReggie and nextReceiptObj then
+                            local item = c.MovesetItems[5]
+                            hasActiveMoveset = true
+                            item.Data.Visible = true
+                            item.Data.Key = "5"
+                            item.Data.Name = tostring(nextReceiptObj.Value)  -- display the value
+                            item.Data.CooldownRatio = 0  -- no cooldown
+                            item.MoveRef = nil  -- no seal
+                        end
+
+                        -- Compute total width for all active slots (now up to 5)
                         local itemWidths = {}
                         local totalMovesetWidth = 0
                         local activeCount = 0
 
-                        for i = 1, 4 do
+                        for i = 1, 5 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 activeCount = activeCount + 1
@@ -1013,7 +1037,7 @@ function ESP.Init(State)
                         local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
                         local currentSlotX = movesetStartX
 
-                        for i = 1, 4 do
+                        for i = 1, 5 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 local slotW = itemWidths[i]
@@ -1026,6 +1050,7 @@ function ESP.Init(State)
                                 item.Outline.Position = v2_new(currentSlotX, slotY)
                                 item.Outline.Size = v2_new(slotW, slotHeight)
 
+                                -- Cooldown overlay
                                 local cdRatio = item.Data.CooldownRatio
                                 if cdRatio > 0 then
                                     local cdFillH = m_floor(slotHeight * cdRatio)
@@ -1038,6 +1063,7 @@ function ESP.Init(State)
                                     item.Fill.Visible = false
                                 end
 
+                                -- Label
                                 item.Label.Visible = true
                                 item.Label.Outline = true
                                 item.Label.OutlineColor = COLOR_BLACK
@@ -1045,12 +1071,31 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
 
+                                -- Seal Circle (if move has Seal attribute)
+                                local seal = item.MoveRef and item.MoveRef:GetAttribute("Seal")
+                                if seal and (seal == 1 or seal == 2) then
+                                    local radius = m_floor(m_clamp(4 * scaleFactor, 3, 8))
+                                    local padding = m_floor(m_clamp(2 * scaleFactor, 1, 4))
+                                    item.SealCircle.Visible = true
+                                    item.SealCircle.Radius = radius
+                                    if seal == 1 then
+                                        item.SealCircle.Color = COLOR_SEAL_RED
+                                    else -- seal == 2
+                                        item.SealCircle.Color = COLOR_SEAL_GREEN
+                                    end
+                                    -- Position: top-right corner
+                                    item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding)
+                                else
+                                    item.SealCircle.Visible = false
+                                end
+
                                 currentSlotX = currentSlotX + slotW + slotGap
                             else
                                 item.Back.Visible = false
                                 item.Fill.Visible = false
                                 item.Outline.Visible = false
                                 item.Label.Visible = false
+                                item.SealCircle.Visible = false
                             end
                         end
                     end
@@ -1103,9 +1148,6 @@ function ESP.Init(State)
                         local rawJackpot = char:GetAttribute("JackpotInRow")
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
-
-                        -- Miracles – removed from name line, will be added to end
-                        -- No longer in name line
 
                         -- Left tag (ULT)
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
@@ -1183,12 +1225,10 @@ function ESP.Init(State)
 
                         -- Build extra info (Miracles, Age, Friends)
                         local extra = ""
-                        -- Miracles: only show number with color
                         if isHaruta and miraclesObj then
                             local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
                             extra = extra .. s_format(" • <font color='#%s'>[M: %s]</font>", harutaHex, tostring(miraclesObj.Value))
                         end
-                        -- Age and Friends (updated by periodic loop)
                         if c.AgeDisplay and c.AgeDisplay ~= "" then
                             extra = extra .. c.AgeDisplay
                         end
