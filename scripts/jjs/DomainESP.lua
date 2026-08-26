@@ -1,8 +1,8 @@
 local DomainESP = {}
 
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local Workspace = cloneref(game:GetService("Workspace"))
+local RunService = cloneref(game:GetService("RunService"))
+local Players = cloneref(game:GetService("Players"))
 
 local Domains = Workspace:WaitForChild("Domains")
 local activeEsp = {}
@@ -87,7 +87,7 @@ local function resolveCasterInfo(domain)
 						and math.abs(localPos.Y) <= halfSize.Y 
 						and math.abs(localPos.Z) <= halfSize.Z then
 						
-						local playerName = player.DisplayName or player.Name
+						local playerName = player.Name
 						local moveset = character:GetAttribute("Moveset") or "Unknown"
 						return {
 							PlayerName = playerName,
