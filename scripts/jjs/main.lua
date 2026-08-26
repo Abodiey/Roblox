@@ -206,7 +206,7 @@ local CatstarState = StateStructure
 local function Load(Name)
     local Url = BaseUrl .. Name .. ".lua"
     local MaxRetries = 5
-    local DelayTime = 2 + math.random()
+    local DelayTime = 1 + math.random()
     local Response = nil
     local Success = false
 
