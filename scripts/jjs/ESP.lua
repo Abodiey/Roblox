@@ -370,6 +370,7 @@ local function CreateAssets(p)
     -- Extra info
     assets.AgeDisplay = ""
     assets.FriendDisplay = ""
+    assets.GamepassDisplay = ""
     assets.MiracleDisplay = ""
     assets.ExtraInfo = ""
     
@@ -444,11 +445,11 @@ local function CleanupAllESP()
 end
 
 -- ============================================================================
--- PLAYER INFO UPDATER (Account Age & Friends)
+-- PLAYER INFO UPDATER (Account Age, Friends, Gamepasses)
 -- ============================================================================
 
 local function UpdatePlayerInfo(p, assets)
-    -- Account age (in days)
+    -- Account age (colored, no prefix)
     local age = p.AccountAge or 0
     local ageStr
     if age >= 1 then
@@ -458,18 +459,34 @@ local function UpdatePlayerInfo(p, assets)
     else
         ageStr = s_format("%dm", m_floor(age * 24 * 60))
     end
-    assets.AgeDisplay = " • Age: " .. ageStr
+    assets.AgeDisplay = s_format("<font color='#FFA500'>%s</font>", ageStr)
 
     -- Friend count (async)
     task.spawn(function()
-        local success, friends = pcall(function()
-            return p:GetFriendsAsync()
+        local success, count = pcall(function()
+            return p:GetFriendsCountAsync()
         end)
-        if success and friends then
-            local count = #friends
-            assets.FriendDisplay = " • Friends: " .. tostring(count)
+        if success and count then
+            assets.FriendDisplay = s_format("<font color='#00BFFF'>%s</font>", tostring(count))
         else
             assets.FriendDisplay = ""
+        end
+    end)
+
+    -- Gamepasses count (count of attributes in Gamepass folder)
+    task.spawn(function()
+        local gamepassFolder = p:FindFirstChild("Gamepass")
+        if gamepassFolder then
+            local attrs = gamepassFolder:GetAttributes()
+            local count = 0
+            for _ in pairs(attrs) do count = count + 1 end
+            if count > 0 then
+                assets.GamepassDisplay = s_format("<font color='#00FF00'>%sG</font>", tostring(count))
+            else
+                assets.GamepassDisplay = ""
+            end
+        else
+            assets.GamepassDisplay = ""
         end
     end)
 end
@@ -589,7 +606,7 @@ local function SetupPlayerSignals(p, assets)
     end
     checkLeaderstats()
 
-    -- Start periodic updates for account age and friends
+    -- Start periodic updates for account age, friends, and gamepasses
     StartPeriodicInfoUpdates(p, assets)
 end
 
@@ -1223,17 +1240,20 @@ function ESP.Init(State)
                             c.CachedMoveset = ""
                         end
 
-                        -- Build extra info (Miracles, Age, Friends)
+                        -- Build extra info (Miracles, Age, Friends, Gamepasses)
                         local extra = ""
                         if isHaruta and miraclesObj then
                             local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
                             extra = extra .. s_format(" • <font color='#%s'>[M: %s]</font>", harutaHex, tostring(miraclesObj.Value))
                         end
                         if c.AgeDisplay and c.AgeDisplay ~= "" then
-                            extra = extra .. c.AgeDisplay
+                            extra = extra .. " • " .. c.AgeDisplay
                         end
                         if c.FriendDisplay and c.FriendDisplay ~= "" then
-                            extra = extra .. c.FriendDisplay
+                            extra = extra .. " • " .. c.FriendDisplay
+                        end
+                        if c.GamepassDisplay and c.GamepassDisplay ~= "" then
+                            extra = extra .. " • " .. c.GamepassDisplay
                         end
                         c.ExtraInfo = extra
                     end
