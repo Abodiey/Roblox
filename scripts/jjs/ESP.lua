@@ -329,7 +329,7 @@ local function CreateAssets(p)
     -- Single extra bar for both Overheat and Miracles (and future uses)
     assets.ExtraBar = createBarGroupWithTicks(9) -- will change ticks per usage
 
-    -- Moveset slots: 0 = Special placeholder, 1-4 = regular moves, 5 = Reggie's extra
+    -- Moveset slots: 0 = Special (cooldown based), 1-4 = regular moves, 5 = Reggie's extra
     assets.MovesetItems = {}
     for i = 0, 5 do
         assets.MovesetItems[i] = {
@@ -342,6 +342,12 @@ local function CreateAssets(p)
             MoveRef = nil
         }
     end
+
+    -- Special cooldown end timestamp (for Itadori Feint)
+    assets.SpecialCooldownEnd = 0
+
+    -- Dead state (updated via signal)
+    assets.IsDead = false
 
     -- Connections
     assets.Connections = {}
@@ -618,6 +624,13 @@ local function SetupCharacterSignals(assets, char, hum)
 
     if not hum then return end
 
+    -- Listen to Dead attribute changes
+    local function onDeadChanged()
+        assets.IsDead = char:GetAttribute("Dead") or false
+    end
+    assets.CharacterConnections[#assets.CharacterConnections+1] = char:GetAttributeChangedSignal("Dead"):Connect(onDeadChanged)
+    onDeadChanged() -- initial
+
     local function updateBarsInline()
         if assets.LastDist < 10 then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
@@ -672,6 +685,28 @@ function ESP.Init(State)
         table_insert(State.Connections, markConn)
     end
 
+    -- Itadori Special (Feint) cooldown listener
+    local itadoriService = KnitFolder and KnitFolder:FindFirstChild("Knit") 
+        and KnitFolder.Knit:FindFirstChild("Services")
+        and KnitFolder.Knit.Services:FindFirstChild("ItadoriService")
+    if itadoriService then
+        local itadoriRE = itadoriService:FindFirstChild("RE") and itadoriService.RE:FindFirstChild("Effects")
+        if itadoriRE then
+            local feintConn = itadoriRE.OnClientEvent:Connect(function(action, charInstance, ...)
+                if action == "Feint" and typeof(charInstance) == "Instance" then
+                    -- Find the player cache entry for this character
+                    for p, c in pairs(Cache) do
+                        if p.Character == charInstance then
+                            c.SpecialCooldownEnd = o_clock() + 2  -- 2 second cooldown
+                            break
+                        end
+                    end
+                end
+            end)
+            table_insert(State.Connections, feintConn)
+        end
+    end
+
     local playerRemovingConn = Players.PlayerRemoving:Connect(function(player)
         if player == lp then
             CleanupAllESP()
@@ -701,8 +736,8 @@ function ESP.Init(State)
             if not p or not p.Parent then CleanupCacheEntry(p, assets) end
         end
 
+        -- Include LocalPlayer for debugging (no skip)
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= p then continue end --  TEST
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
             local root = char and char.PrimaryPart  -- use PrimaryPart
@@ -873,12 +908,6 @@ function ESP.Init(State)
                         local ohVal = overheatObj.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
                         
-                        -- Ensure ticks count is 9
-                        if #c.ExtraBar.Lines ~= 9 then
-                            -- Recreate with 9 lines? Simpler: just adjust visibility count.
-                            -- We'll just use the existing lines, but we need to control visibility per frame.
-                            -- We'll just set visible for first 9 lines.
-                        end
                         -- Set lines count to 9
                         local lineCount = 9
                         for i = 1, #c.ExtraBar.Lines do
@@ -920,7 +949,6 @@ function ESP.Init(State)
                         local mirVal = miraclesObj.Value
                         local mirRatio = m_clamp(mirVal / 6, 0, 1)
                         
-                        -- Set lines count to 6
                         for i = 1, #c.ExtraBar.Lines do
                             c.ExtraBar.Lines[i].Visible = (i <= 6 and mirRatio > 0.02)
                         end
@@ -991,7 +1019,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Moveset Slots: slot 0 = Special placeholder, 1-4 = regular moves, 5 = Reggie's extra
+                    -- 5. Moveset Slots: slot 0 = Special (cooldown), 1-4 = regular moves, 5 = Reggie's extra
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
@@ -1005,12 +1033,15 @@ function ESP.Init(State)
                             c.MovesetItems[i].MoveRef = nil
                         end
 
-                        -- Slot 0: Special placeholder
+                        -- Slot 0: Special (always visible, cooldown based on SpecialCooldownEnd)
                         local specialItem = c.MovesetItems[0]
                         specialItem.Data.Visible = true
                         specialItem.Data.Key = "0"
                         specialItem.Data.Name = "Special"
-                        specialItem.Data.CooldownRatio = 0
+                        -- Compute cooldown ratio
+                        local remaining = m_max(0, c.SpecialCooldownEnd - o_clock())
+                        local cdRatio = m_clamp(remaining / 2, 0, 1)  -- 2 second cooldown
+                        specialItem.Data.CooldownRatio = cdRatio
                         specialItem.MoveRef = nil
                         hasActiveMoveset = true
 
@@ -1197,8 +1228,7 @@ function ESP.Init(State)
 
                     -- 6. Heavy updates (only every 2 frames)
                     if shouldUpdateHeavy then
-                        local isDead = char:GetAttribute("Dead")
-                        local inUlt = char:GetAttribute("InUlt")
+                        local inUlt = char:GetAttribute("InUlt")  -- still attribute for now
 
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         local usesCustomLook = false
@@ -1306,10 +1336,10 @@ function ESP.Init(State)
                         if burstTag ~= "" then trailingBrackets = trailingBrackets .. burstTag end
                         if emoteTag ~= "" then trailingBrackets = trailingBrackets .. emoteTag end
 
-                        -- Name line (without miracle)
+                        -- Name line using c.IsDead
                         if hideNameAndHealth then
                             c.NameDisplay = vcTag .. trailingBrackets
-                        elseif isDead then
+                        elseif c.IsDead then
                             c.NameDisplay = s_format("%s%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, vcTag, c.GroupRoleTag, emoteTag, p.Name, trailingBrackets)
                         else
                             local nameColorHex = "FFFFFF"
