@@ -10,10 +10,9 @@ local activeEsp = {}
 local CULL_DISTANCE = 1000
 
 -- Sphere configuration: UV sphere with latitude rings and longitude lines
-local LATITUDE_RINGS = 4  -- Number of horizontal rings (excluding poles)
-local LONGITUDE_RIBS = 8  -- Number of vertical meridian lines
+local LATITUDE_RINGS = 4
+local LONGITUDE_RIBS = 8
 
--- Precompute Unit Sphere Edge Vectors (Unit Sphere with Radius = 1)
 local LOCAL_EDGES = {}
 
 -- 1. Generate Latitude Circles
@@ -33,7 +32,7 @@ for lat = 1, LATITUDE_RINGS do
 	end
 end
 
--- 2. Generate Longitude Meridians (Poles to Poles)
+-- 2. Generate Longitude Meridians
 local topPole = Vector3.new(0, 1, 0)
 local bottomPole = Vector3.new(0, -1, 0)
 
@@ -44,7 +43,6 @@ for lon = 1, LONGITUDE_RIBS do
 
 	local prevPoint = topPole
 
-	-- Connect from Top Pole through each latitude ring down to Bottom Pole
 	for lat = 1, LATITUDE_RINGS do
 		local phi = (lat / (LATITUDE_RINGS + 1)) * math.pi
 		local ringRadius = math.sin(phi)
@@ -60,8 +58,52 @@ end
 
 local TOTAL_LINES = #LOCAL_EDGES
 
--- Locate and return the caster's name and moveset for a given domain
-local function resolveCasterInfo(domain)
+-- Clip a 3D line segment against the camera near plane
+local function clipLineToCamera(p1, p2, camCF, invCF)
+	local cp1 = invCF * p1
+	local cp2 = invCF * p2
+
+	local nearZ = -0.1
+
+	if cp1.Z > nearZ and cp2.Z > nearZ then
+		return nil, nil
+	end
+
+	if cp1.Z > nearZ then
+		local t = (nearZ - cp1.Z) / (cp2.Z - cp1.Z)
+		cp1 = cp1:Lerp(cp2, t)
+	elseif cp2.Z > nearZ then
+		local t = (nearZ - cp2.Z) / (cp1.Z - cp2.Z)
+		cp2 = cp2:Lerp(cp1, t)
+	end
+
+	return camCF * cp1, camCF * cp2
+end
+
+-- Simple function to find the closest player within 5 studs of a position
+local function findClosestPlayer(position)
+	local bestDist = 5 -- maximum distance in studs
+	local bestPlayer = nil
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		local character = player.Character
+		if character then
+			local hrp = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+			if hrp then
+				local dist = (hrp.Position - position).Magnitude
+				if dist < bestDist then
+					bestDist = dist
+					bestPlayer = player
+				end
+			end
+		end
+	end
+
+	return bestPlayer
+end
+
+-- Fallback: resolve using DomainTag (original method)
+local function resolveCasterViaTag(domain)
 	local targetPart = domain:FindFirstChild("DomainCollider") or domain
 	if not targetPart or not targetPart:IsA("BasePart") then
 		return nil
@@ -75,23 +117,16 @@ local function resolveCasterInfo(domain)
 		if character then
 			local info = character:FindFirstChild("Info")
 			local domainTag = info and info:FindFirstChild("DomainTag")
-
-			-- Verify if this player is the caster via DomainTag attribute 'O'
 			if domainTag and domainTag:GetAttribute("O") then
 				local hrp = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
 				if hrp then
 					local localPos = partCF:PointToObjectSpace(hrp.Position)
-					
-					-- Verify the character is within domain bounds
 					if math.abs(localPos.X) <= halfSize.X 
 						and math.abs(localPos.Y) <= halfSize.Y 
 						and math.abs(localPos.Z) <= halfSize.Z then
-						
-						local playerName = player.Name
-						local moveset = character:GetAttribute("Moveset") or "Unknown"
 						return {
-							PlayerName = playerName,
-							Moveset = tostring(moveset)
+							PlayerName = player.Name,
+							Moveset = tostring(character:GetAttribute("Moveset") or "Unknown")
 						}
 					end
 				end
@@ -100,29 +135,6 @@ local function resolveCasterInfo(domain)
 	end
 
 	return nil
-end
-
--- Clip a 3D line segment against the camera near plane (Z = -0.1 in camera space)
-local function clipLineToCamera(p1, p2, camCF, invCF)
-	local cp1 = invCF * p1
-	local cp2 = invCF * p2
-
-	local nearZ = -0.1 -- Near plane in camera space
-
-	if cp1.Z > nearZ and cp2.Z > nearZ then
-		return nil, nil -- Fully behind camera
-	end
-
-	if cp1.Z > nearZ then
-		local t = (nearZ - cp1.Z) / (cp2.Z - cp1.Z)
-		cp1 = cp1:Lerp(cp2, t)
-	elseif cp2.Z > nearZ then
-		local t = (nearZ - cp2.Z) / (cp1.Z - cp2.Z)
-		cp2 = cp2:Lerp(cp1, t)
-	end
-
-	-- Transform back to world space
-	return camCF * cp1, camCF * cp2
 end
 
 local function createEsp(domain)
@@ -148,8 +160,8 @@ local function createEsp(domain)
 	local espData = {
 		Lines = lines,
 		Text = textLabel,
-		CasterInfo = nil, -- Persistent cache for caster data
-		Connections = {}
+		CasterInfo = nil,        -- will be set when found
+		Connections = {},
 	}
 	activeEsp[domain] = espData
 
@@ -162,6 +174,16 @@ local function createEsp(domain)
 	updateColor()
 
 	table.insert(espData.Connections, domain:GetPropertyChangedSignal("CanCollide"):Connect(updateColor))
+
+	-- Try to find the caster immediately (if the player is already within 5 studs)
+	local closest = findClosestPlayer(domain.Position)
+	if closest then
+		local character = closest.Character
+		espData.CasterInfo = {
+			PlayerName = closest.Name,
+			Moveset = tostring(character and character:GetAttribute("Moveset") or "Unknown")
+		}
+	end
 end
 
 local function removeEsp(domain)
@@ -214,9 +236,23 @@ function DomainESP.Init(State)
 					local size = domain.Size
 					local radius = math.max(size.X, math.max(size.Y, size.Z)) * 0.5
 
-					-- Resolve and cache the domain caster if not already found
+					-- If we haven't found the caster yet, try to find it now
 					if not espData.CasterInfo then
-						espData.CasterInfo = resolveCasterInfo(domain)
+						-- 1. Try closest player within 5 studs
+						local closest = findClosestPlayer(pos)
+						if closest then
+							local character = closest.Character
+							espData.CasterInfo = {
+								PlayerName = closest.Name,
+								Moveset = tostring(character and character:GetAttribute("Moveset") or "Unknown")
+							}
+						else
+							-- 2. Fallback to DomainTag method (for when the player is inside but not at center)
+							local tagInfo = resolveCasterViaTag(domain)
+							if tagInfo then
+								espData.CasterInfo = tagInfo
+							end
+						end
 					end
 
 					local playerName = espData.CasterInfo and espData.CasterInfo.PlayerName or "Unknown"
@@ -224,7 +260,7 @@ function DomainESP.Init(State)
 
 					espData.Text.Text = string.format("%s's Domain [%s]", playerName, moveset)
 
-					-- 1. Dynamic Text Projection
+					-- Text projection
 					local textPoint, textOnScreen = camera:WorldToViewportPoint(pos + Vector3.new(0, radius + 1, 0))
 					if textOnScreen and textPoint.Z > 0 then
 						espData.Text.Position = Vector2.new(textPoint.X, textPoint.Y)
@@ -233,7 +269,7 @@ function DomainESP.Init(State)
 						espData.Text.Visible = false
 					end
 
-					-- 2. Symmetrical Sphere Wireframe Projection
+					-- Wireframe projection
 					for i = 1, TOTAL_LINES do
 						local edge = LOCAL_EDGES[i]
 						local w1 = cframe * (edge[1] * radius)
@@ -253,7 +289,6 @@ function DomainESP.Init(State)
 						end
 					end
 				else
-					-- Out of range: hide drawings
 					espData.Text.Visible = false
 					for i = 1, TOTAL_LINES do
 						espData.Lines[i].Visible = false
