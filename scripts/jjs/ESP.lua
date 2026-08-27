@@ -326,12 +326,12 @@ local function CreateAssets(p)
     assets.UltBar = createBarGroup()
     assets.HealthBar = createBarGroup()
     assets.EvadeBar = createBarGroup()
-    assets.OverheatBar = createBarGroup()
-    assets.MiraclesBar = createBarGroupWithTicks(6)
+    -- Single extra bar for both Overheat and Miracles (and future uses)
+    assets.ExtraBar = createBarGroupWithTicks(9) -- will change ticks per usage
 
-    -- Moveset slots (5 slots: 4 regular + 1 extra for Reggie's NextReceipt)
+    -- Moveset slots: 0 = Special placeholder, 1-4 = regular moves, 5 = Reggie's extra
     assets.MovesetItems = {}
-    for i = 1, 5 do
+    for i = 0, 5 do
         assets.MovesetItems[i] = {
             Back = createDrawing("Square", { Filled = true, Color = c3_new(0.1, 0.1, 0.1), Transparency = 0.6, Visible = false }),
             Fill = createDrawing("Square", { Filled = true, Color = COLOR_LIGHT_BLUE, Transparency = 0.5, Visible = false }),
@@ -387,11 +387,10 @@ local function HideAllAssets(assets)
     if assets.UltBar then setBarGroupVisible(assets.UltBar, false) end
     if assets.HealthBar then setBarGroupVisible(assets.HealthBar, false) end
     if assets.EvadeBar then setBarGroupVisible(assets.EvadeBar, false) end
-    if assets.OverheatBar then setBarGroupVisible(assets.OverheatBar, false) end
-    if assets.MiraclesBar then setBarGroupVisible(assets.MiraclesBar, false) end
+    if assets.ExtraBar then setBarGroupVisible(assets.ExtraBar, false) end
     
     if assets.MovesetItems then
-        for i = 1, 5 do
+        for i = 0, 5 do
             local item = assets.MovesetItems[i]
             item.Back.Visible = false
             item.Fill.Visible = false
@@ -418,11 +417,10 @@ local function CleanupCacheEntry(p, assets)
     if assets.UltBar then removeBarGroup(assets.UltBar) end
     if assets.HealthBar then removeBarGroup(assets.HealthBar) end
     if assets.EvadeBar then removeBarGroup(assets.EvadeBar) end
-    if assets.OverheatBar then removeBarGroup(assets.OverheatBar) end
-    if assets.MiraclesBar then removeBarGroup(assets.MiraclesBar) end
+    if assets.ExtraBar then removeBarGroup(assets.ExtraBar) end
 
     if assets.MovesetItems then
-        for i = 1, 5 do
+        for i = 0, 5 do
             local item = assets.MovesetItems[i]
             safeRemove(item.Back)
             safeRemove(item.Fill)
@@ -434,7 +432,6 @@ local function CleanupCacheEntry(p, assets)
     
     Cache[p] = nil
 end
-
 
 local function CleanupAllESP()
     for p, assets in pairs(Cache) do
@@ -690,8 +687,7 @@ function ESP.Init(State)
         if not cam or not lp then return end
         local viewportSize = cam.ViewportSize
         local char_lp = lp.Character
-        -- Use PrimaryPart if available, fallback to HumanoidRootPart
-        local myRoot = char_lp and (char_lp.PrimaryPart or char_lp:FindFirstChild("HumanoidRootPart"))
+        local myRoot = char_lp and char_lp.PrimaryPart  -- use PrimaryPart
         
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
@@ -706,10 +702,10 @@ function ESP.Init(State)
         end
 
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= p then continue end --TEST
+            if p ~= p then continue end --  TEST
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
-            local root = char and (char.PrimaryPart or char:FindFirstChild("HumanoidRootPart"))
+            local root = char and char.PrimaryPart  -- use PrimaryPart
 
             if root and hum then
                 local c = Cache[p]
@@ -867,79 +863,95 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 3. Overheat or Miracles Bar
+                    -- 3. Extra Bar (Overheat or Miracles)
                     local ohGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local ohX = eX + eWidth + ohGap
 
+                    -- Determine which bar to show and its ticks
                     if isRyu and overheatObj then
+                        -- Overheat: 9 ticks (like default)
                         local ohVal = overheatObj.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
                         
+                        -- Ensure ticks count is 9
+                        if #c.ExtraBar.Lines ~= 9 then
+                            -- Recreate with 9 lines? Simpler: just adjust visibility count.
+                            -- We'll just use the existing lines, but we need to control visibility per frame.
+                            -- We'll just set visible for first 9 lines.
+                        end
+                        -- Set lines count to 9
+                        local lineCount = 9
+                        for i = 1, #c.ExtraBar.Lines do
+                            c.ExtraBar.Lines[i].Visible = (i <= lineCount and ohRatio > 0.02)
+                        end
+                        
                         if ohRatio <= 0.02 then
-                            setBarGroupVisible(c.OverheatBar, false)
+                            setBarGroupVisible(c.ExtraBar, false)
                         else
-                            setBarGroupVisible(c.OverheatBar, true)
+                            setBarGroupVisible(c.ExtraBar, true)
 
-                            c.OverheatBar.Back.Position = v2_new(ohX, eY)
-                            c.OverheatBar.Back.Size = v2_new(eWidth, eH)
-                            c.OverheatBar.Outline.Position = v2_new(ohX, eY)
-                            c.OverheatBar.Outline.Size = v2_new(eWidth, eH)
+                            c.ExtraBar.Back.Position = v2_new(ohX, eY)
+                            c.ExtraBar.Back.Size = v2_new(eWidth, eH)
+                            c.ExtraBar.Outline.Position = v2_new(ohX, eY)
+                            c.ExtraBar.Outline.Size = v2_new(eWidth, eH)
 
                             local ohFillH = m_floor(eH * ohRatio)
-                            c.OverheatBar.Fill.Position = v2_new(ohX, eY + (eH - ohFillH))
-                            c.OverheatBar.Fill.Size = v2_new(eWidth, ohFillH)
+                            c.ExtraBar.Fill.Position = v2_new(ohX, eY + (eH - ohFillH))
+                            c.ExtraBar.Fill.Size = v2_new(eWidth, ohFillH)
 
                             local ohColor
                             if ohVal >= 50 then
                                 ohColor = COLOR_YELLOW
-                                for i = 1, 9 do c.OverheatBar.Lines[i].Visible = false end
+                                for i = 1, 9 do c.ExtraBar.Lines[i].Visible = false end
                             else
                                 ohColor = c3_new(0, 0.66, 1):Lerp(c3_new(1, 0, 0.5), ohRatio)
                                 for i = 1, 9 do
                                     local lineY = m_floor(eY + (eH * 0.1 * i))
-                                    c.OverheatBar.Lines[i].From = v2_new(ohX, lineY)
-                                    c.OverheatBar.Lines[i].To = v2_new(ohX + eWidth, lineY)
-                                    c.OverheatBar.Lines[i].Visible = true
+                                    c.ExtraBar.Lines[i].From = v2_new(ohX, lineY)
+                                    c.ExtraBar.Lines[i].To = v2_new(ohX + eWidth, lineY)
+                                    c.ExtraBar.Lines[i].Visible = true
                                 end
                             end
-                            c.OverheatBar.Fill.Color = ohColor
+                            c.ExtraBar.Fill.Color = ohColor
                         end
-                        setBarGroupVisible(c.MiraclesBar, false)
 
                     elseif isHaruta and miraclesObj then
+                        -- Miracles: 6 ticks
                         local mirVal = miraclesObj.Value
                         local mirRatio = m_clamp(mirVal / 6, 0, 1)
                         
+                        -- Set lines count to 6
+                        for i = 1, #c.ExtraBar.Lines do
+                            c.ExtraBar.Lines[i].Visible = (i <= 6 and mirRatio > 0.02)
+                        end
+                        
                         if mirRatio <= 0.02 then
-                            setBarGroupVisible(c.MiraclesBar, false)
+                            setBarGroupVisible(c.ExtraBar, false)
                         else
-                            setBarGroupVisible(c.MiraclesBar, true)
+                            setBarGroupVisible(c.ExtraBar, true)
 
-                            local bar = c.MiraclesBar
                             local harutaColor = c3_fromHex("#" .. (MOVESET_COLORS["Haruta"] or "A77DCB"))
 
-                            bar.Back.Position = v2_new(ohX, eY)
-                            bar.Back.Size = v2_new(eWidth, eH)
-                            bar.Outline.Position = v2_new(ohX, eY)
-                            bar.Outline.Size = v2_new(eWidth, eH)
+                            c.ExtraBar.Back.Position = v2_new(ohX, eY)
+                            c.ExtraBar.Back.Size = v2_new(eWidth, eH)
+                            c.ExtraBar.Outline.Position = v2_new(ohX, eY)
+                            c.ExtraBar.Outline.Size = v2_new(eWidth, eH)
 
                             local mirFillH = m_floor(eH * mirRatio)
-                            bar.Fill.Position = v2_new(ohX, eY + (eH - mirFillH))
-                            bar.Fill.Size = v2_new(eWidth, mirFillH)
-                            bar.Fill.Color = harutaColor
+                            c.ExtraBar.Fill.Position = v2_new(ohX, eY + (eH - mirFillH))
+                            c.ExtraBar.Fill.Size = v2_new(eWidth, mirFillH)
+                            c.ExtraBar.Fill.Color = harutaColor
 
                             for i = 1, 6 do
                                 local lineY = m_floor(eY + (eH * (i / 6)))
-                                bar.Lines[i].From = v2_new(ohX, lineY)
-                                bar.Lines[i].To = v2_new(ohX + eWidth, lineY)
-                                bar.Lines[i].Visible = true
+                                c.ExtraBar.Lines[i].From = v2_new(ohX, lineY)
+                                c.ExtraBar.Lines[i].To = v2_new(ohX + eWidth, lineY)
+                                c.ExtraBar.Lines[i].Visible = true
                             end
                         end
-                        setBarGroupVisible(c.OverheatBar, false)
 
                     else
-                        setBarGroupVisible(c.OverheatBar, false)
-                        setBarGroupVisible(c.MiraclesBar, false)
+                        setBarGroupVisible(c.ExtraBar, false)
                     end
 
                     -- 4. Ultimate Bar
@@ -979,7 +991,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Moveset Slots (slots 1-4) + Reggie's extra slot (5) separately
+                    -- 5. Moveset Slots: slot 0 = Special placeholder, 1-4 = regular moves, 5 = Reggie's extra
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
@@ -987,11 +999,20 @@ function ESP.Init(State)
                     local hasActiveMoveset = false
 
                     if c.MovesetItems then
-                        -- Reset visibility for all 5 slots
-                        for index = 1, 5 do
-                            c.MovesetItems[index].Data.Visible = false
-                            c.MovesetItems[index].MoveRef = nil
+                        -- Reset visibility for all slots
+                        for i = 0, 5 do
+                            c.MovesetItems[i].Data.Visible = false
+                            c.MovesetItems[i].MoveRef = nil
                         end
+
+                        -- Slot 0: Special placeholder
+                        local specialItem = c.MovesetItems[0]
+                        specialItem.Data.Visible = true
+                        specialItem.Data.Key = "0"
+                        specialItem.Data.Name = "Special"
+                        specialItem.Data.CooldownRatio = 0
+                        specialItem.MoveRef = nil
+                        hasActiveMoveset = true
 
                         -- Populate slots 1-4 from moveset folder
                         if movesetFolder then
@@ -1007,7 +1028,6 @@ function ESP.Init(State)
                                         local tag = move:GetAttribute("Tag")
                                         if tag and move.Name ~= "-" then
                                             item.Data.Name = tostring(tag)
-                                            -- Connect to Tag changes for live update
                                             if not item._tagConn then
                                                 item._tagConn = move:GetAttributeChangedSignal("Tag"):Connect(function()
                                                     local newTag = move:GetAttribute("Tag")
@@ -1039,40 +1059,39 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Slot 5: for Reggie if NextReceipt exists (rendered separately to the right)
+                        -- Slot 5: Reggie's extra (only if Reggie and NextReceipt exists)
+                        local reggieItem = c.MovesetItems[5]
                         if isReggie and nextReceiptObj then
-                            local item = c.MovesetItems[5]
-                            hasActiveMoveset = true
-                            item.Data.Visible = true
-                            item.Data.Key = "5"
-                            -- Update name on value change
+                            reggieItem.Data.Visible = true
+                            reggieItem.Data.Key = "5"
                             local function updateReceipt()
-                                item.Data.Name = tostring(nextReceiptObj.Value)
+                                reggieItem.Data.Name = tostring(nextReceiptObj.Value)
                             end
                             updateReceipt()
                             if not c._receiptConn then
                                 c._receiptConn = nextReceiptObj:GetPropertyChangedSignal("Value"):Connect(updateReceipt)
                                 table_insert(c.Connections, c._receiptConn)
                             end
-                            item.Data.CooldownRatio = 0  -- no cooldown
-                            item.MoveRef = nil
+                            reggieItem.Data.CooldownRatio = 0
+                            reggieItem.MoveRef = nil
+                            hasActiveMoveset = true
+                        else
+                            reggieItem.Data.Visible = false
                         end
 
-                        -- Compute total width for slots 1-4 only (for centering)
+                        -- Compute total width for slots 0-4 (special + regular moves)
                         local itemWidths = {}
                         local totalMovesetWidth = 0
                         local activeCount = 0
-                        for i = 1, 4 do  -- only slots 1-4
+                        for i = 0, 4 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 activeCount = activeCount + 1
-                                -- Make square: width = height (ensure at least slotHeight)
                                 item.Label.Text = item.Data.Name
                                 item.Label.Size = moveFontSize
                                 local textW = item.Label.TextBounds.X
                                 local slotW = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
-                                -- Ensure square: width = height
-                                slotW = m_floor(m_max(slotW, slotHeight))
+                                slotW = m_floor(m_max(slotW, slotHeight))  -- ensure square
                                 itemWidths[i] = slotW
                                 totalMovesetWidth = totalMovesetWidth + slotW
                             else
@@ -1083,14 +1102,13 @@ function ESP.Init(State)
                             totalMovesetWidth = totalMovesetWidth + ((activeCount - 1) * slotGap)
                         end
 
-                        -- Render slots 1-4 centered
+                        -- Render slots 0-4 centered
                         local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
                         local currentSlotX = movesetStartX
-                        for i = 1, 4 do
+                        for i = 0, 4 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 local slotW = itemWidths[i]
-                                -- Ensure square (already done)
                                 item.Back.Visible = true
                                 item.Back.Position = v2_new(currentSlotX, slotY)
                                 item.Back.Size = v2_new(slotW, slotHeight)
@@ -1118,7 +1136,7 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
 
-                                -- Seal Circle: if seal == 2 -> green, else if seal == 1 -> red
+                                -- Seal Circle (only for moves with MoveRef)
                                 local seal = item.MoveRef and item.MoveRef:GetAttribute("Seal")
                                 if seal and (seal == 1 or seal == 2) then
                                     local radius = m_floor(m_clamp(4 * scaleFactor, 3, 8))
@@ -1130,7 +1148,6 @@ function ESP.Init(State)
                                     else
                                         item.SealCircle.Color = COLOR_SEAL_RED
                                     end
-                                    -- Position: top-right corner, lower Y (padding + radius offset)
                                     item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding + radius * 0.5)
                                 else
                                     item.SealCircle.Visible = false
@@ -1146,17 +1163,14 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Render Reggie's slot 5 separately to the right of slots 1-4
-                        local reggieItem = c.MovesetItems[5]
-                        if isReggie and nextReceiptObj and reggieItem.Data.Visible then
-                            -- Position it to the right of the last rendered slot
-                            local lastSlotEnd = currentSlotX - slotGap  -- since we added gap after last
-                            -- Compute width for reggie slot based on text
+                        -- Render Reggie's slot 5 separately to the right
+                        if reggieItem and reggieItem.Data.Visible then
+                            local lastSlotEnd = currentSlotX - slotGap
                             reggieItem.Label.Text = reggieItem.Data.Name
                             reggieItem.Label.Size = moveFontSize
                             local textW = reggieItem.Label.TextBounds.X
                             local reggieWidth = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
-                            reggieWidth = m_floor(m_clamp(reggieWidth, slotHeight, 80)) -- limit to not be too wide
+                            reggieWidth = m_floor(m_clamp(reggieWidth, slotHeight, 80))
                             local reggieX = lastSlotEnd + slotGap
                             reggieItem.Back.Visible = true
                             reggieItem.Back.Position = v2_new(reggieX, slotY)
@@ -1164,8 +1178,7 @@ function ESP.Init(State)
                             reggieItem.Outline.Visible = true
                             reggieItem.Outline.Position = v2_new(reggieX, slotY)
                             reggieItem.Outline.Size = v2_new(reggieWidth, slotHeight)
-                            reggieItem.Fill.Visible = false  -- no cooldown
-
+                            reggieItem.Fill.Visible = false
                             reggieItem.Label.Visible = true
                             reggieItem.Label.Outline = true
                             reggieItem.Label.OutlineColor = COLOR_BLACK
@@ -1173,7 +1186,6 @@ function ESP.Init(State)
                             reggieItem.Label.Size = moveFontSize
                             reggieItem.Label.Position = v2_new(reggieX + m_floor(reggieWidth / 2), slotY + m_floor((slotHeight - reggieItem.Label.TextBounds.Y) / 2))
                             reggieItem.SealCircle.Visible = false
-                            hasActiveMoveset = true
                         else
                             reggieItem.Back.Visible = false
                             reggieItem.Fill.Visible = false
@@ -1277,7 +1289,8 @@ function ESP.Init(State)
                         local vcTag = ""
                         local audioDevice = p:FindFirstChild("AudioDeviceInput")
                         if audioDevice then
-                            local muted = audioDevice:GetAttribute("Muted")
+                            -- Muted is a property, not attribute
+                            local muted = audioDevice.Muted
                             if muted == true then
                                 vcTag = "<font color='#FF0000'><b>[VC]</b></font> "
                             else
@@ -1285,6 +1298,7 @@ function ESP.Init(State)
                             end
                         end
 
+                        -- Build trailing brackets (only once)
                         local trailingBrackets = ""
                         if markTag ~= "" then trailingBrackets = trailingBrackets .. markTag end
                         if itfgTag ~= "" then trailingBrackets = trailingBrackets .. itfgTag end
@@ -1306,7 +1320,7 @@ function ESP.Init(State)
                             end
 
                             local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
-                            c.NameDisplay = s_format("%s%s%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, vcTag, permBadges, c.GroupRoleTag, emoteTag, nameColorHex, nameStr, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, vcTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
                         -- Distance color
