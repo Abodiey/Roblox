@@ -330,6 +330,7 @@ local function CreateAssets(p)
     assets.MiraclesBar = createBarGroupWithTicks(6)
 
     -- Moveset slots (5 slots: 4 regular + 1 extra for Reggie's NextReceipt)
+    -- Slot 5 will be rendered separately to the right
     assets.MovesetItems = {}
     for i = 1, 5 do
         assets.MovesetItems[i] = {
@@ -339,7 +340,7 @@ local function CreateAssets(p)
             Label = createDrawing("Text", { Size = 10, Center = true, Outline = true, OutlineColor = COLOR_BLACK, Color = COLOR_WHITE, Visible = false }),
             SealCircle = createDrawing("Circle", { Filled = true, Radius = 4, Color = COLOR_SEAL_RED, Visible = false }),
             Data = { Visible = false, Key = tostring(i), Name = "", Tip = "", CooldownRatio = 0 },
-            MoveRef = nil  -- reference to the move instance (if any)
+            MoveRef = nil
         }
     end
 
@@ -461,27 +462,32 @@ local function UpdatePlayerInfo(p, assets)
     end
     assets.AgeDisplay = s_format("<font color='#FFA500'>%s</font>", ageStr)
 
-    -- Friend count (async)
+    -- Friend count (async) - show as number + "F"
     task.spawn(function()
-        local success, count = pcall(function()
-            return p:GetFriendsCountAsync()
+        local success, friends = pcall(function()
+            return p:GetFriendsAsync()
         end)
-        if success and count then
-            assets.FriendDisplay = s_format("<font color='#00BFFF'>%s</font>", tostring(count))
+        if success and friends then
+            local count = #friends
+            if count > 0 then
+                assets.FriendDisplay = s_format("<font color='#00BFFF'>%dF</font>", count)
+            else
+                assets.FriendDisplay = ""
+            end
         else
             assets.FriendDisplay = ""
         end
     end)
 
-    -- Gamepasses count (count of attributes in Gamepass folder)
+    -- Gamepasses count (count of attributes in Gamepasses folder)
     task.spawn(function()
-        local gamepassFolder = p:FindFirstChild("Gamepass")
+        local gamepassFolder = p:FindFirstChild("Gamepasses")
         if gamepassFolder then
             local attrs = gamepassFolder:GetAttributes()
             local count = 0
             for _ in pairs(attrs) do count = count + 1 end
             if count > 0 then
-                assets.GamepassDisplay = s_format("<font color='#00FF00'>%sG</font>", tostring(count))
+                assets.GamepassDisplay = s_format("<font color='#00FF00'>%dG</font>", count)
             else
                 assets.GamepassDisplay = ""
             end
@@ -974,13 +980,14 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Moveset Slots (now 5 slots)
+                    -- 5. Moveset Slots (slots 1-4) + Reggie's extra slot (5) separately
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
                     local slotY = uY - slotHeight - m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hasActiveMoveset = false
 
+                    -- We'll render slots 1-4 normally, and slot 5 (Reggie) to the right
                     if c.MovesetItems then
                         -- Reset visibility for all 5 slots
                         for index = 1, 5 do
@@ -999,7 +1006,7 @@ function ESP.Init(State)
                                         item.Data.Visible = true
                                         item.Data.Key = tostring(slotKey)
                                         item.Data.Name = move.Name
-                                        item.MoveRef = move  -- store for seal
+                                        item.MoveRef = move
 
                                         local lastUsedStamp = move:GetAttribute("LastUse")
                                         local totalCdDuration = tonumber(move.Value)
@@ -1016,49 +1023,59 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Slot 5: for Reggie if NextReceipt exists
+                        -- Slot 5: for Reggie if NextReceipt exists (rendered separately to the right)
                         if isReggie and nextReceiptObj then
                             local item = c.MovesetItems[5]
                             hasActiveMoveset = true
                             item.Data.Visible = true
                             item.Data.Key = "5"
-                            item.Data.Name = tostring(nextReceiptObj.Value)  -- display the value
+                            -- Update name on value change
+                            local function updateReceipt()
+                                item.Data.Name = tostring(nextReceiptObj.Value)
+                            end
+                            updateReceipt()
+                            -- connect to value change
+                            if not c._receiptConn then
+                                c._receiptConn = nextReceiptObj:GetPropertyChangedSignal("Value"):Connect(updateReceipt)
+                                table_insert(c.Connections, c._receiptConn)
+                            end
                             item.Data.CooldownRatio = 0  -- no cooldown
-                            item.MoveRef = nil  -- no seal
+                            item.MoveRef = nil
                         end
 
-                        -- Compute total width for all active slots (now up to 5)
+                        -- Compute total width for slots 1-4 only (for centering)
                         local itemWidths = {}
                         local totalMovesetWidth = 0
                         local activeCount = 0
-
-                        for i = 1, 5 do
+                        for i = 1, 4 do  -- only slots 1-4
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 activeCount = activeCount + 1
+                                -- Make square: width = height
                                 item.Label.Text = item.Data.Name
                                 item.Label.Size = moveFontSize
                                 local textW = item.Label.TextBounds.X
-                                local slotW = m_floor(m_clamp(textW + m_clamp(8 * scaleFactor, 4, 12), 24, 160))
+                                -- slot width = max(textW + padding, slotHeight)
+                                local slotW = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
                                 itemWidths[i] = slotW
                                 totalMovesetWidth = totalMovesetWidth + slotW
                             else
                                 itemWidths[i] = 0
                             end
                         end
-
                         if activeCount > 0 then
                             totalMovesetWidth = totalMovesetWidth + ((activeCount - 1) * slotGap)
                         end
 
+                        -- Render slots 1-4 centered
                         local movesetStartX = m_floor(root2D.X - (totalMovesetWidth / 2))
                         local currentSlotX = movesetStartX
-
-                        for i = 1, 5 do
+                        for i = 1, 4 do
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 local slotW = itemWidths[i]
-
+                                -- Ensure square: width = height
+                                slotW = m_floor(m_max(slotW, slotHeight))
                                 item.Back.Visible = true
                                 item.Back.Position = v2_new(currentSlotX, slotY)
                                 item.Back.Size = v2_new(slotW, slotHeight)
@@ -1067,7 +1084,6 @@ function ESP.Init(State)
                                 item.Outline.Position = v2_new(currentSlotX, slotY)
                                 item.Outline.Size = v2_new(slotW, slotHeight)
 
-                                -- Cooldown overlay
                                 local cdRatio = item.Data.CooldownRatio
                                 if cdRatio > 0 then
                                     local cdFillH = m_floor(slotHeight * cdRatio)
@@ -1080,7 +1096,6 @@ function ESP.Init(State)
                                     item.Fill.Visible = false
                                 end
 
-                                -- Label
                                 item.Label.Visible = true
                                 item.Label.Outline = true
                                 item.Label.OutlineColor = COLOR_BLACK
@@ -1088,7 +1103,7 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
 
-                                -- Seal Circle (if move has Seal attribute)
+                                -- Seal Circle (lower position)
                                 local seal = item.MoveRef and item.MoveRef:GetAttribute("Seal")
                                 if seal and (seal == 1 or seal == 2) then
                                     local radius = m_floor(m_clamp(4 * scaleFactor, 3, 8))
@@ -1097,11 +1112,11 @@ function ESP.Init(State)
                                     item.SealCircle.Radius = radius
                                     if seal == 1 then
                                         item.SealCircle.Color = COLOR_SEAL_RED
-                                    else -- seal == 2
+                                    else
                                         item.SealCircle.Color = COLOR_SEAL_GREEN
                                     end
-                                    -- Position: top-right corner
-                                    item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding)
+                                    -- Position: top-right corner, lower Y (padding + radius offset)
+                                    item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding + radius * 0.5)
                                 else
                                     item.SealCircle.Visible = false
                                 end
@@ -1114,6 +1129,37 @@ function ESP.Init(State)
                                 item.Label.Visible = false
                                 item.SealCircle.Visible = false
                             end
+                        end
+
+                        -- Render Reggie's slot 5 separately to the right of slots 1-4
+                        local reggieItem = c.MovesetItems[5]
+                        if isReggie and nextReceiptObj and reggieItem.Data.Visible then
+                            -- Position it to the right of the last rendered slot
+                            local lastSlotEnd = currentSlotX - slotGap  -- since we added gap after last
+                            local reggieWidth = m_floor(m_clamp(slotHeight * 1.2, 30, 60))  -- slightly wider
+                            local reggieX = lastSlotEnd + slotGap
+                            reggieItem.Back.Visible = true
+                            reggieItem.Back.Position = v2_new(reggieX, slotY)
+                            reggieItem.Back.Size = v2_new(reggieWidth, slotHeight)
+                            reggieItem.Outline.Visible = true
+                            reggieItem.Outline.Position = v2_new(reggieX, slotY)
+                            reggieItem.Outline.Size = v2_new(reggieWidth, slotHeight)
+                            reggieItem.Fill.Visible = false  -- no cooldown
+
+                            reggieItem.Label.Visible = true
+                            reggieItem.Label.Outline = true
+                            reggieItem.Label.OutlineColor = COLOR_BLACK
+                            reggieItem.Label.Text = reggieItem.Data.Name
+                            reggieItem.Label.Size = moveFontSize
+                            reggieItem.Label.Position = v2_new(reggieX + m_floor(reggieWidth / 2), slotY + m_floor((slotHeight - reggieItem.Label.TextBounds.Y) / 2))
+                            reggieItem.SealCircle.Visible = false  -- no seal
+                            hasActiveMoveset = true  -- ensure it's counted
+                        else
+                            reggieItem.Back.Visible = false
+                            reggieItem.Fill.Visible = false
+                            reggieItem.Outline.Visible = false
+                            reggieItem.Label.Visible = false
+                            reggieItem.SealCircle.Visible = false
                         end
                     end
 
@@ -1150,15 +1196,15 @@ function ESP.Init(State)
                             c.CashDisplay = ""
                         end
 
-                        -- Perm badges
+                        -- Perm badges (no emojis)
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
-                            permBadges = permBadges .. "<font color='#FFDF00'>[👑 Owner]</font> "
+                            permBadges = permBadges .. "<font color='#FFDF00'>[Owner]</font> "
                         elseif p:GetAttribute("PS_Perms") == true then
-                            permBadges = permBadges .. "<font color='#FFAA00'>[⚙️ Admin]</font> "
+                            permBadges = permBadges .. "<font color='#FFAA00'>[Admin]</font> "
                         end
                         if p:GetAttribute("Workshop") == true then
-                            permBadges = permBadges .. "<font color='#AE00FF'>[🛠️ Workshop]</font> "
+                            permBadges = permBadges .. "<font color='#AE00FF'>[Workshop]</font> "
                         end
 
                         -- Jackpot
@@ -1188,11 +1234,11 @@ function ESP.Init(State)
                             itfgTag = s_format("<font color='#DF00FF'><b>[IT %d/2]</b></font> ", itfgVal)
                         end
 
-                        -- EXEC
+                        -- EXEC (max 3)
                         local execTag = ""
                         local execVal = char:GetAttribute("EXEC")
                         if type(execVal) == "number" and execVal > 0 then
-                            execTag = s_format("<font color='#FFFF00'><b>[EXEC %d/2]</b></font> ", execVal)
+                            execTag = s_format("<font color='#FFFF00'><b>[EXEC %d/3]</b></font> ", execVal)
                         end
 
                         -- Burst
@@ -1209,7 +1255,12 @@ function ESP.Init(State)
 
                         -- Name line (without miracle)
                         if hideNameAndHealth then
-                            c.NameDisplay = trailingBrackets
+                            -- Show mutual info if applicable
+                            local mutualStr = ""
+                            if c.IsMutual then
+                                mutualStr = "[MF] "
+                            end
+                            c.NameDisplay = mutualStr .. trailingBrackets
                         elseif isDead then
                             c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
                         else
@@ -1243,8 +1294,9 @@ function ESP.Init(State)
                         -- Build extra info (Miracles, Age, Friends, Gamepasses)
                         local extra = ""
                         if isHaruta and miraclesObj then
+                            -- Show plain number with color
                             local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
-                            extra = extra .. s_format(" • <font color='#%s'>[M: %s]</font>", harutaHex, tostring(miraclesObj.Value))
+                            extra = extra .. s_format(" • <font color='#%s'>%s</font>", harutaHex, tostring(miraclesObj.Value))
                         end
                         if c.AgeDisplay and c.AgeDisplay ~= "" then
                             extra = extra .. " • " .. c.AgeDisplay
