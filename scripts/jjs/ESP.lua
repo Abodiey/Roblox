@@ -343,11 +343,13 @@ local function CreateAssets(p)
         }
     end
 
-    -- Special cooldown end timestamp (for Itadori Feint)
-    assets.SpecialCooldownEnd = 0
+    -- Special cooldown end timestamps (for Itadori and Hakari)
+    assets.SpecialCooldownEnd = 0  -- Itadori
+    assets.HakariSpecialCooldownEnd = 0  -- Hakari Counter
 
     -- Dead state (updated via signal)
     assets.IsDead = false
+    assets.CurrentCharacter = nil  -- track to detect respawn
 
     -- Connections
     assets.Connections = {}
@@ -619,10 +621,14 @@ local function SetupPlayerSignals(p, assets)
 end
 
 local function SetupCharacterSignals(assets, char, hum)
+    -- Cleanup old character connections
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
     table_clear(assets.CharacterConnections)
 
     if not hum then return end
+
+    -- Reset dead state
+    assets.IsDead = false
 
     -- Listen to Dead attribute changes
     local function onDeadChanged()
@@ -670,40 +676,70 @@ function ESP.Init(State)
 
     -- Hook Charles Mark Replication Remote Stream
     local KnitFolder = ReplicatedStorage:FindFirstChild("Knit")
-    local EffectsEvent = KnitFolder and KnitFolder:FindFirstChild("Knit") 
-        and KnitFolder.Knit:FindFirstChild("Services")
-        and KnitFolder.Knit.Services:FindFirstChild("CharlesService")
-        and KnitFolder.Knit.Services.CharlesService:FindFirstChild("RE")
-        and KnitFolder.Knit.Services.CharlesService.RE:FindFirstChild("Effects")
+    if not KnitFolder then KnitFolder = ReplicatedStorage:WaitForChild("Knit") end
+    local Knit = KnitFolder:FindFirstChild("Knit")
+    if not Knit then Knit = KnitFolder:WaitForChild("Knit") end
+    local Services = Knit:FindFirstChild("Services")
+    if not Services then Services = Knit:WaitForChild("Services") end
 
-    if EffectsEvent then
-        local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markValueObject)
-            if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markValueObject) == "Instance" then
-                ActiveMarks[charInstance] = markValueObject
+    -- Charles Mark
+    local CharlesService = Services:FindFirstChild("CharlesService")
+    if CharlesService then
+        local CharlesRE = CharlesService:FindFirstChild("RE")
+        if CharlesRE then
+            local EffectsEvent = CharlesRE:FindFirstChild("Effects")
+            if EffectsEvent then
+                local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markValueObject)
+                    if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markValueObject) == "Instance" then
+                        ActiveMarks[charInstance] = markValueObject
+                    end
+                end)
+                table_insert(State.Connections, markConn)
             end
-        end)
-        table_insert(State.Connections, markConn)
+        end
     end
 
     -- Itadori Special (Feint) cooldown listener
-    local itadoriService = KnitFolder and KnitFolder:FindFirstChild("Knit") 
-        and KnitFolder.Knit:FindFirstChild("Services")
-        and KnitFolder.Knit.Services:FindFirstChild("ItadoriService")
-    if itadoriService then
-        local itadoriRE = itadoriService:FindFirstChild("RE") and itadoriService.RE:FindFirstChild("Effects")
-        if itadoriRE then
-            local feintConn = itadoriRE.OnClientEvent:Connect(function(action, charInstance, ...)
-                if action == "Feint" and typeof(charInstance) == "Instance" then
-                    -- Find the player cache entry for this character
-                    for p, c in pairs(Cache) do
-                        if p.Character == charInstance then
-                            c.SpecialCooldownEnd = o_clock() + 2  -- 2 second cooldown
-                            break
+    local ItadoriService = Services:FindFirstChild("ItadoriService")
+    if ItadoriService then
+        local ItadoriRE = ItadoriService:FindFirstChild("RE")
+        if ItadoriRE then
+            local ItadoriEffects = ItadoriRE:FindFirstChild("Effects")
+            if ItadoriEffects then
+                local feintConn = ItadoriEffects.OnClientEvent:Connect(function(action, charInstance, ...)
+                    if action == "Feint" and typeof(charInstance) == "Instance" then
+                        for p, c in pairs(Cache) do
+                            if p.Character == charInstance then
+                                c.SpecialCooldownEnd = o_clock() + 2  -- 2 second cooldown
+                                break
+                            end
                         end
                     end
-                end
-            end)
-            table_insert(State.Connections, feintConn)
+                end)
+                table_insert(State.Connections, feintConn)
+            end
+        end
+    end
+
+    -- Hakari Special (Counter) cooldown listener
+    local HakariService = Services:FindFirstChild("HakariService")
+    if HakariService then
+        local HakariRE = HakariService:FindFirstChild("RE")
+        if HakariRE then
+            local HakariEffects = HakariRE:FindFirstChild("Effects")
+            if HakariEffects then
+                local counterConn = HakariEffects.OnClientEvent:Connect(function(action, charInstance, ...)
+                    if action == "Counter" and typeof(charInstance) == "Instance" then
+                        for p, c in pairs(Cache) do
+                            if p.Character == charInstance then
+                                c.HakariSpecialCooldownEnd = o_clock() + 16  -- 16 second cooldown
+                                break
+                            end
+                        end
+                    end
+                end)
+                table_insert(State.Connections, counterConn)
+            end
         end
     end
 
@@ -742,15 +778,38 @@ function ESP.Init(State)
             local hum = char and char:FindFirstChild("Humanoid")
             local root = char and char.PrimaryPart  -- use PrimaryPart
 
+            local c = Cache[p]
+            if not c then 
+                c = CreateAssets(p)
+                Cache[p] = c 
+                c.LastPosition = root and root.Position or v3_new(0,0,0)
+                c.LastMoveTime = gameClock
+                SetupPlayerSignals(p, c)
+                -- SetupCharacterSignals will be called later when root exists
+            end
+
+            -- Check if character changed (respawn)
+            if c.CurrentCharacter ~= char then
+                -- Character changed, cleanup old connections and set up new
+                c.CurrentCharacter = char
+                if char and hum then
+                    SetupCharacterSignals(c, char, hum)
+                else
+                    -- No character, clear connections
+                    for _, conn in ipairs(c.CharacterConnections) do conn:Disconnect() end
+                    table_clear(c.CharacterConnections)
+                    c.IsDead = false
+                end
+            end
+
             if root and hum then
-                local c = Cache[p]
-                if not c then 
-                    c = CreateAssets(p)
-                    Cache[p] = c 
+                -- Update AFK and other per-frame data
+                if c.LastPosition and (c.LastPosition - root.Position).Magnitude > 0.1 then
                     c.LastPosition = root.Position
                     c.LastMoveTime = gameClock
-                    SetupPlayerSignals(p, c)
-                    SetupCharacterSignals(c, char, hum)
+                    c.IsAFK = false
+                elseif (gameClock - c.LastMoveTime) >= 300 then
+                    c.IsAFK = true
                 end
                 
                 -- Project root, head, and feet
@@ -779,15 +838,6 @@ function ESP.Init(State)
                         sX, sY = m_floor(viewportSize.X * 0.5), m_floor(viewportSize.Y)
                     end
 
-                    local currentPos = root.Position
-                    if (currentPos - c.LastPosition).Magnitude > 0.1 then
-                        c.LastPosition = currentPos
-                        c.LastMoveTime = gameClock
-                        c.IsAFK = false
-                    elseif (gameClock - c.LastMoveTime) >= 300 then
-                        c.IsAFK = true
-                    end
-                    
                     local hideNameAndHealth = (dist < 10)
 
                     -- Compute moveset name once per frame
@@ -1037,10 +1087,21 @@ function ESP.Init(State)
                         local specialItem = c.MovesetItems[0]
                         specialItem.Data.Visible = true
                         specialItem.Data.Key = "0"
-                        specialItem.Data.Name = "Special"
-                        -- Compute cooldown ratio
-                        local remaining = m_max(0, c.SpecialCooldownEnd - o_clock())
-                        local cdRatio = m_clamp(remaining / 2, 0, 1)  -- 2 second cooldown
+                        -- Determine which special cooldown to show: Itadori or Hakari
+                        local now = o_clock()
+                        local remainingItadori = m_max(0, c.SpecialCooldownEnd - now)
+                        local remainingHakari = m_max(0, c.HakariSpecialCooldownEnd - now)
+                        local cdRatio = 0
+                        if remainingItadori > 0 then
+                            cdRatio = m_clamp(remainingItadori / 2, 0, 1)
+                            specialItem.Data.Name = "Feint"
+                        elseif remainingHakari > 0 then
+                            cdRatio = m_clamp(remainingHakari / 16, 0, 1)
+                            specialItem.Data.Name = "Counter"
+                        else
+                            cdRatio = 0
+                            specialItem.Data.Name = "Special"  -- default name
+                        end
                         specialItem.Data.CooldownRatio = cdRatio
                         specialItem.MoveRef = nil
                         hasActiveMoveset = true
@@ -1417,8 +1478,18 @@ function ESP.Init(State)
                 else
                     HideAllAssets(c)
                 end
-            elseif Cache[p] then
-                HideAllAssets(Cache[p])
+            else
+                -- No character, hide assets and clear character connections
+                if c then
+                    HideAllAssets(c)
+                    if c.CurrentCharacter then
+                        -- Clean up character connections
+                        for _, conn in ipairs(c.CharacterConnections) do conn:Disconnect() end
+                        table_clear(c.CharacterConnections)
+                        c.CurrentCharacter = nil
+                        c.IsDead = false
+                    end
+                end
             end
         end
     end)
