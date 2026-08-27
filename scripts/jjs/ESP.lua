@@ -330,7 +330,6 @@ local function CreateAssets(p)
     assets.MiraclesBar = createBarGroupWithTicks(6)
 
     -- Moveset slots (5 slots: 4 regular + 1 extra for Reggie's NextReceipt)
-    -- Slot 5 will be rendered separately to the right
     assets.MovesetItems = {}
     for i = 1, 5 do
         assets.MovesetItems[i] = {
@@ -987,7 +986,6 @@ function ESP.Init(State)
                     local slotY = uY - slotHeight - m_floor(m_clamp(4 * scaleFactor, 2, 8))
                     local hasActiveMoveset = false
 
-                    -- We'll render slots 1-4 normally, and slot 5 (Reggie) to the right
                     if c.MovesetItems then
                         -- Reset visibility for all 5 slots
                         for index = 1, 5 do
@@ -1005,7 +1003,25 @@ function ESP.Init(State)
                                         hasActiveMoveset = true
                                         item.Data.Visible = true
                                         item.Data.Key = tostring(slotKey)
-                                        item.Data.Name = move.Name
+                                        -- Check for Tag override: if move has Tag attribute and move.Name ~= "-"
+                                        local tag = move:GetAttribute("Tag")
+                                        if tag and move.Name ~= "-" then
+                                            item.Data.Name = tostring(tag)
+                                            -- Connect to Tag changes for live update
+                                            if not item._tagConn then
+                                                item._tagConn = move:GetAttributeChangedSignal("Tag"):Connect(function()
+                                                    local newTag = move:GetAttribute("Tag")
+                                                    if newTag and move.Name ~= "-" then
+                                                        item.Data.Name = tostring(newTag)
+                                                    else
+                                                        item.Data.Name = move.Name
+                                                    end
+                                                end)
+                                                table_insert(c.Connections, item._tagConn)
+                                            end
+                                        else
+                                            item.Data.Name = move.Name
+                                        end
                                         item.MoveRef = move
 
                                         local lastUsedStamp = move:GetAttribute("LastUse")
@@ -1034,7 +1050,6 @@ function ESP.Init(State)
                                 item.Data.Name = tostring(nextReceiptObj.Value)
                             end
                             updateReceipt()
-                            -- connect to value change
                             if not c._receiptConn then
                                 c._receiptConn = nextReceiptObj:GetPropertyChangedSignal("Value"):Connect(updateReceipt)
                                 table_insert(c.Connections, c._receiptConn)
@@ -1051,12 +1066,13 @@ function ESP.Init(State)
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 activeCount = activeCount + 1
-                                -- Make square: width = height
+                                -- Make square: width = height (ensure at least slotHeight)
                                 item.Label.Text = item.Data.Name
                                 item.Label.Size = moveFontSize
                                 local textW = item.Label.TextBounds.X
-                                -- slot width = max(textW + padding, slotHeight)
                                 local slotW = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
+                                -- Ensure square: width = height
+                                slotW = m_floor(m_max(slotW, slotHeight))
                                 itemWidths[i] = slotW
                                 totalMovesetWidth = totalMovesetWidth + slotW
                             else
@@ -1074,8 +1090,7 @@ function ESP.Init(State)
                             local item = c.MovesetItems[i]
                             if item.Data.Visible then
                                 local slotW = itemWidths[i]
-                                -- Ensure square: width = height
-                                slotW = m_floor(m_max(slotW, slotHeight))
+                                -- Ensure square (already done)
                                 item.Back.Visible = true
                                 item.Back.Position = v2_new(currentSlotX, slotY)
                                 item.Back.Size = v2_new(slotW, slotHeight)
@@ -1103,17 +1118,17 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
 
-                                -- Seal Circle (lower position)
+                                -- Seal Circle: if seal == 2 -> green, else if seal == 1 -> red
                                 local seal = item.MoveRef and item.MoveRef:GetAttribute("Seal")
                                 if seal and (seal == 1 or seal == 2) then
                                     local radius = m_floor(m_clamp(4 * scaleFactor, 3, 8))
                                     local padding = m_floor(m_clamp(2 * scaleFactor, 1, 4))
                                     item.SealCircle.Visible = true
                                     item.SealCircle.Radius = radius
-                                    if seal == 1 then
-                                        item.SealCircle.Color = COLOR_SEAL_RED
-                                    else
+                                    if seal == 2 then
                                         item.SealCircle.Color = COLOR_SEAL_GREEN
+                                    else
+                                        item.SealCircle.Color = COLOR_SEAL_RED
                                     end
                                     -- Position: top-right corner, lower Y (padding + radius offset)
                                     item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding + radius * 0.5)
@@ -1136,7 +1151,12 @@ function ESP.Init(State)
                         if isReggie and nextReceiptObj and reggieItem.Data.Visible then
                             -- Position it to the right of the last rendered slot
                             local lastSlotEnd = currentSlotX - slotGap  -- since we added gap after last
-                            local reggieWidth = m_floor(m_clamp(slotHeight * 1.2, 30, 60))  -- slightly wider
+                            -- Compute width for reggie slot based on text
+                            reggieItem.Label.Text = reggieItem.Data.Name
+                            reggieItem.Label.Size = moveFontSize
+                            local textW = reggieItem.Label.TextBounds.X
+                            local reggieWidth = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
+                            reggieWidth = m_floor(m_clamp(reggieWidth, slotHeight, 80)) -- limit to not be too wide
                             local reggieX = lastSlotEnd + slotGap
                             reggieItem.Back.Visible = true
                             reggieItem.Back.Position = v2_new(reggieX, slotY)
@@ -1152,8 +1172,8 @@ function ESP.Init(State)
                             reggieItem.Label.Text = reggieItem.Data.Name
                             reggieItem.Label.Size = moveFontSize
                             reggieItem.Label.Position = v2_new(reggieX + m_floor(reggieWidth / 2), slotY + m_floor((slotHeight - reggieItem.Label.TextBounds.Y) / 2))
-                            reggieItem.SealCircle.Visible = false  -- no seal
-                            hasActiveMoveset = true  -- ensure it's counted
+                            reggieItem.SealCircle.Visible = false
+                            hasActiveMoveset = true
                         else
                             reggieItem.Back.Visible = false
                             reggieItem.Fill.Visible = false
@@ -1247,22 +1267,36 @@ function ESP.Init(State)
                             burstTag = "<font color='#FFFFFF'><b>[BURST]</b></font> "
                         end
 
+                        -- Emote
+                        local emoteTag = ""
+                        if info and info:FindFirstChild("Emote") then
+                            emoteTag = "<font color='#FF69B4'><b>[EMOTE]</b></font> "
+                        end
+
+                        -- VC (AudioDeviceInput)
+                        local vcTag = ""
+                        local audioDevice = p:FindFirstChild("AudioDeviceInput")
+                        if audioDevice then
+                            local muted = audioDevice:GetAttribute("Muted")
+                            if muted == true then
+                                vcTag = "<font color='#FF0000'><b>[VC]</b></font> "
+                            else
+                                vcTag = "<font color='#00FF00'><b>[VC]</b></font> "
+                            end
+                        end
+
                         local trailingBrackets = ""
                         if markTag ~= "" then trailingBrackets = trailingBrackets .. markTag end
                         if itfgTag ~= "" then trailingBrackets = trailingBrackets .. itfgTag end
                         if execTag ~= "" then trailingBrackets = trailingBrackets .. execTag end
                         if burstTag ~= "" then trailingBrackets = trailingBrackets .. burstTag end
+                        if emoteTag ~= "" then trailingBrackets = trailingBrackets .. emoteTag end
 
                         -- Name line (without miracle)
                         if hideNameAndHealth then
-                            -- Show mutual info if applicable
-                            local mutualStr = ""
-                            if c.IsMutual then
-                                mutualStr = "[MF] "
-                            end
-                            c.NameDisplay = mutualStr .. trailingBrackets
+                            c.NameDisplay = vcTag .. trailingBrackets
                         elseif isDead then
-                            c.NameDisplay = s_format("%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, c.GroupRoleTag, p.Name, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s%s<font color='#FF0000'>[DEAD] %s</font> %s", afkTag, leftTag, jackpotTag, vcTag, c.GroupRoleTag, emoteTag, p.Name, trailingBrackets)
                         else
                             local nameColorHex = "FFFFFF"
                             if c.IsFriend then
@@ -1272,7 +1306,7 @@ function ESP.Init(State)
                             end
 
                             local nameStr = (dist < 50) and p.Name or "<b>" .. p.Name .. "</b>"
-                            c.NameDisplay = s_format("%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, permBadges, c.GroupRoleTag, nameColorHex, nameStr, trailingBrackets)
+                            c.NameDisplay = s_format("%s%s%s%s%s%s%s<font color='#%s'>%s</font> %s", afkTag, leftTag, jackpotTag, vcTag, permBadges, c.GroupRoleTag, emoteTag, nameColorHex, nameStr, trailingBrackets)
                         end
                         
                         -- Distance color
