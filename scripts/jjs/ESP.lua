@@ -707,7 +707,7 @@ function ESP.Init(State)
         end
 
         for _, p in pairs(Players:GetPlayers()) do
-            if p == lp then continue end
+            if p ~= p then continue end --TEST
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
             local root = char and (char.PrimaryPart or char:FindFirstChild("HumanoidRootPart"))
