@@ -117,10 +117,12 @@ function Noclip.Init(State)
                                 end
                                 continue
                             elseif charName == "MechamaruBot" then
-                                local torso, head = findFirstChild(char, "Torso"), char.Head
-                                if torso and head then
-                                    storedParts[torso], storedParts[head] = true, true
-                                    torso.CanCollide, head.CanCollide = false, false
+                                local torso, head = findFirstChild(char, "Torso"), findFirstChild(char, "Head"),
+                                if torso then
+                                    storedParts[torso], torso.CanCollide = true, true
+                                end
+                                if head then
+                                    storedParts[head], head.CanCollide = false, false
                                 end
                                 continue
                             elseif charName == "HarutaSwordNPC" then
