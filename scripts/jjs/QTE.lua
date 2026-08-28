@@ -18,8 +18,8 @@ local table_insert = table.insert
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
-local Event = ReplicatedStorage:WaitForChild("Knit", 99):WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 local CharactersFolder = workspace:WaitForChild("Characters", 99)
+local Event = ReplicatedStorage:WaitForChild("Knit", 99999):WaitForChild("Knit", 99999):WaitForChild("Services", 99999):WaitForChild("FinalJudgementService", 99999):WaitForChild("RE", 99999):WaitForChild("Effects", 99999)
 
 QTE.InitialDelay = 1
 QTE.MinimumDelay = 0.1
@@ -78,7 +78,7 @@ function QTE.Init(State)
 
                             local currentScale = healthBar.Size.X.Scale
 
-                            if currentScale > 0.75 then
+                            if currentScale > 0.65 then
                                 task.wait()
                                 continue
                             end
