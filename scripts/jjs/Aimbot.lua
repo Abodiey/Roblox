@@ -9,7 +9,7 @@ local GuiService = cloneref(game:GetService("GuiService"))
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
-while not Player or not Player.Parent or not CoreGui or not Camera do
+while not Camera do
     task.wait()
 end
 
