@@ -95,6 +95,8 @@ function ItemESP.Init(State)
                     local camPos = cam.CFrame.Position
                     local currentItems = itemsFolder:GetChildren()
                     local activeIds = {}
+
+                    -- Stacking lookup tracker using rounded world coordinates
                     local positionCounts = {}
 
                     for i = 1, #currentItems do
@@ -106,48 +108,38 @@ function ItemESP.Init(State)
                         local part = item:IsA("BasePart") and item or item:FindFirstChildOfClass("BasePart")
 
                         if part then
-                            -- If fully transparent, free the drawing and skip
-                            if part.Transparency >= 1 then
-                                if c then
-                                    DestroyESP(c)
-                                    Cache[id] = nil
-                                end
-                                -- continue to next item (no drawing)
+                            if not c then
+                                c = CreateESP()
+                                Cache[id] = c
+                            end
+
+                            local pos = part.Position
+                            local posKey = s_format("%d_%d_%d", m_floor(pos.X * 0.5), m_floor(pos.Y * 0.5), m_floor(pos.Z * 0.5))
+
+                            local stackIndex = positionCounts[posKey] or 0
+                            positionCounts[posKey] = stackIndex + 1
+
+                            -- Calculate vertical staggering offset in 3D space
+                            local worldPosOffset = pos + v3_new(0, 0.5 + (stackIndex * 1.5), 0)
+                            local screenPos, onScreen = cam:WorldToViewportPoint(worldPosOffset)
+
+                            if onScreen then
+                                local dist = (pos - camPos).Magnitude
+                                local distCol = getGradientColor(dist / 400)
+
+                                c.Text.Position = v2_new(screenPos.X, screenPos.Y)
+                                c.Text.Text = s_format("%s\n[%dm]", item.Name, m_floor(dist))
+                                c.Text.Color = distCol
+                                c.Text.Visible = true
                             else
-                                -- Ensure ESP object exists
-                                if not c then
-                                    c = CreateESP()
-                                    Cache[id] = c
-                                end
-
-                                local pos = part.Position
-                                local posKey = s_format("%d_%d_%d", m_floor(pos.X * 0.5), m_floor(pos.Y * 0.5), m_floor(pos.Z * 0.5))
-
-                                local stackIndex = positionCounts[posKey] or 0
-                                positionCounts[posKey] = stackIndex + 1
-
-                                local worldPosOffset = pos + v3_new(0, 0.5 + (stackIndex * 1.5), 0)
-                                local screenPos, onScreen = cam:WorldToViewportPoint(worldPosOffset)
-
-                                if onScreen then
-                                    local dist = (pos - camPos).Magnitude
-                                    local distCol = getGradientColor(dist / 400)
-
-                                    c.Text.Position = v2_new(screenPos.X, screenPos.Y)
-                                    c.Text.Text = s_format("%s\n[%dm]", item.Name, m_floor(dist))
-                                    c.Text.Color = distCol
-                                    c.Text.Visible = true
-                                else
-                                    c.Text.Visible = false
-                                end
+                                c.Text.Visible = false
                             end
                         elseif c then
-                            -- No part found, just hide the text (keep object)
                             c.Text.Visible = false
                         end
                     end
 
-                    -- Cleanup items that no longer exist in the folder
+                    -- Cleanup elements that no longer exist
                     for id, assets in pairs(Cache) do
                         if not activeIds[id] then
                             DestroyESP(assets)
@@ -157,11 +149,13 @@ function ItemESP.Init(State)
                 end)
             end
         else
+            -- Disconnect loop when disabled
             if loopConn then
                 loopConn:Disconnect()
                 loopConn = nil
             end
 
+            -- Clear drawing elements from memory
             for id, assets in pairs(Cache) do
                 DestroyESP(assets)
             end
