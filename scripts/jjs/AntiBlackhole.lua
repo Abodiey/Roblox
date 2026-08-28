@@ -5,8 +5,9 @@ local Players = cloneref(game:GetService("Players"))
 local LocalPlayer = Players.LocalPlayer
 
 local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
-local YukiService = ReplicatedStorage:WaitForChild("Knit"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("YukiService")
-local EffectsEvent = YukiService:WaitForChild("RE"):WaitForChild("Effects")
+local Knit = ReplicatedStorage:WaitForChild("Knit")
+local YukiService = Knit and Knit:WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("YukiService")
+local EffectsEvent = YukiService and YukiService:WaitForChild("RE"):WaitForChild("Effects")
 
 local effects = workspace:WaitForChild("Effects", 9999)
 
@@ -21,6 +22,7 @@ LocalPlayer.CharacterAdded:Connect(function(newCharacter)
 end)
 
 function AntiBlackHole.Init(State)
+	if not EffectsEvent then return end
 	local Connection = EffectsEvent.OnClientEvent:Connect(function(effectName, blackHolePart)
 		local Enabled = State.Toggles.AntiBlackhole.Value
 		if not Enabled or effectName ~= "BlackHole" or not blackHolePart then return end
