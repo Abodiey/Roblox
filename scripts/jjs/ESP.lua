@@ -52,7 +52,7 @@ end
 local TARGET_GROUP = 16357742
 
 local Cache = {}
-local ActiveMarks = {}
+local ActiveMarks = {} -- char -> { markObj, timestamp }
 local FrameTick = 0 
 
 -- Design Palette Constants
@@ -83,13 +83,19 @@ for movesetName, dataTable in pairs(ultNamesModule) do
     if typeof(colorObj) == "Color3" then
         MOVESET_COLORS[movesetName] = s_format("%02X%02X%02X", m_floor(colorObj.R * 255), m_floor(colorObj.G * 255), m_floor(colorObj.B * 255))
         
-        -- Flag dark colors for stroke readability (perceived luminance check)
         local luminance = (0.299 * colorObj.R) + (0.587 * colorObj.G) + (0.114 * colorObj.B)
         if luminance < 0.2 then
             DARK_MOVESETS[movesetName] = true
         end
     end
 end
+
+-- Special cooldowns: moveset -> { Name, Duration }
+local SPECIAL_COOLDOWNS = {
+    Itadori = { Name = "Feint", Duration = 2 },
+    Hakari = { Name = "Counter", Duration = 16 },
+    -- Add more as needed
+}
 
 local function getGradientColor(percent)
     percent = m_clamp(percent, 0, 1)
@@ -326,10 +332,9 @@ local function CreateAssets(p)
     assets.UltBar = createBarGroup()
     assets.HealthBar = createBarGroup()
     assets.EvadeBar = createBarGroup()
-    -- Single extra bar for both Overheat and Miracles (and future uses)
-    assets.ExtraBar = createBarGroupWithTicks(9) -- will change ticks per usage
+    assets.ExtraBar = createBarGroupWithTicks(9)
 
-    -- Moveset slots: 0 = Special (cooldown based), 1-4 = regular moves, 5 = Reggie's extra
+    -- Moveset slots: 0 = special, 1-4 = regular, 5 = extra (Reggie)
     assets.MovesetItems = {}
     for i = 0, 5 do
         assets.MovesetItems[i] = {
@@ -343,13 +348,15 @@ local function CreateAssets(p)
         }
     end
 
-    -- Special cooldown end timestamps (for Itadori and Hakari)
-    assets.SpecialCooldownEnd = 0  -- Itadori
-    assets.HakariSpecialCooldownEnd = 0  -- Hakari Counter
+    -- Single special cooldown end timestamp
+    assets.SpecialCooldownEnd = 0
 
-    -- Dead state (updated via signal)
+    -- Dead state
     assets.IsDead = false
-    assets.CurrentCharacter = nil  -- track to detect respawn
+    assets.CurrentCharacter = nil
+
+    -- Moveset tracking for resetting special on change
+    assets.CurrentMoveset = ""
 
     -- Connections
     assets.Connections = {}
@@ -445,16 +452,14 @@ local function CleanupAllESP()
     for p, assets in pairs(Cache) do
         CleanupCacheEntry(p, assets)
     end
-
     table_clear(ActiveMarks)
 end
 
 -- ============================================================================
--- PLAYER INFO UPDATER (Account Age, Friends, Gamepasses)
+-- PLAYER INFO UPDATER
 -- ============================================================================
 
 local function UpdatePlayerInfo(p, assets)
-    -- Account age (colored, no prefix)
     local age = p.AccountAge or 0
     local ageStr
     if age >= 1 then
@@ -466,7 +471,6 @@ local function UpdatePlayerInfo(p, assets)
     end
     assets.AgeDisplay = s_format("<font color='#FFA500'>%s</font>", ageStr)
 
-    -- Friend count (async) - show as number + "F"
     task.spawn(function()
         local success, friends = pcall(function()
             return p:GetFriendsAsync()
@@ -483,7 +487,6 @@ local function UpdatePlayerInfo(p, assets)
         end
     end)
 
-    -- Gamepasses count (count of attributes in Gamepasses folder)
     task.spawn(function()
         local gamepassFolder = p:FindFirstChild("Gamepasses")
         if gamepassFolder then
@@ -502,9 +505,7 @@ local function UpdatePlayerInfo(p, assets)
 end
 
 local function StartPeriodicInfoUpdates(p, assets)
-    -- Initial update
     UpdatePlayerInfo(p, assets)
-    -- Loop every 60 seconds
     task.spawn(function()
         while p and p.Parent do
             t_wait(60)
@@ -616,27 +617,37 @@ local function SetupPlayerSignals(p, assets)
     end
     checkLeaderstats()
 
-    -- Start periodic updates for account age, friends, and gamepasses
     StartPeriodicInfoUpdates(p, assets)
+
+    -- Listen to player's Moveset attribute changes to reset special
+    local function onPlayerMovesetChanged()
+        assets.SpecialCooldownEnd = 0
+    end
+    assets.Connections[#assets.Connections+1] = p:GetAttributeChangedSignal("Moveset"):Connect(onPlayerMovesetChanged)
 end
 
 local function SetupCharacterSignals(assets, char, hum)
-    -- Cleanup old character connections
     for _, conn in ipairs(assets.CharacterConnections) do conn:Disconnect() end
     table_clear(assets.CharacterConnections)
 
     if not hum then return end
 
-    -- Reset dead state
     assets.IsDead = false
 
-    -- Listen to Dead attribute changes
+    -- Dead attribute
     local function onDeadChanged()
         assets.IsDead = char:GetAttribute("Dead") or false
     end
     assets.CharacterConnections[#assets.CharacterConnections+1] = char:GetAttributeChangedSignal("Dead"):Connect(onDeadChanged)
-    onDeadChanged() -- initial
+    onDeadChanged()
 
+    -- Moveset attribute on character - reset special
+    local function onCharMovesetChanged()
+        assets.SpecialCooldownEnd = 0
+    end
+    assets.CharacterConnections[#assets.CharacterConnections+1] = char:GetAttributeChangedSignal("Moveset"):Connect(onCharMovesetChanged)
+
+    -- Health bar updates
     local function updateBarsInline()
         if assets.LastDist < 10 then return end
         local hpPerc = m_clamp(hum.Health / hum.MaxHealth, 0, 1)
@@ -674,81 +685,69 @@ function ESP.Init(State)
         end
     end
 
-    -- Hook Charles Mark Replication Remote Stream
-    local KnitFolder = ReplicatedStorage:FindFirstChild("Knit")
-    if not KnitFolder then KnitFolder = ReplicatedStorage:WaitForChild("Knit") end
-    local Knit = KnitFolder:FindFirstChild("Knit")
-    if not Knit then Knit = KnitFolder:WaitForChild("Knit") end
-    local Services = Knit:FindFirstChild("Services")
-    if not Services then Services = Knit:WaitForChild("Services") end
+    -- Get Knit and descendants using WaitForChild
+    local KnitFolder = ReplicatedStorage:WaitForChild("Knit")
+    local Knit = KnitFolder:WaitForChild("Knit")
+    local Services = Knit:WaitForChild("Services")
 
     -- Charles Mark
-    local CharlesService = Services:FindFirstChild("CharlesService")
-    if CharlesService then
-        local CharlesRE = CharlesService:FindFirstChild("RE")
-        if CharlesRE then
-            local EffectsEvent = CharlesRE:FindFirstChild("Effects")
-            if EffectsEvent then
-                local markConn = EffectsEvent.OnClientEvent:Connect(function(action, charInstance, pos, markValueObject)
-                    if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markValueObject) == "Instance" then
-                        ActiveMarks[charInstance] = markValueObject
-                    end
-                end)
-                table_insert(State.Connections, markConn)
-            end
+    local CharlesService = Services:WaitForChild("CharlesService")
+    local CharlesRE = CharlesService:WaitForChild("RE")
+    local CharlesEffects = CharlesRE:WaitForChild("Effects")
+    local markConn = CharlesEffects.OnClientEvent:Connect(function(action, charInstance, pos, markValueObject)
+        if action == "Mark" and typeof(charInstance) == "Instance" and typeof(markValueObject) == "Instance" then
+            -- Store mark with timestamp
+            ActiveMarks[charInstance] = {
+                mark = markValueObject,
+                timestamp = o_clock()
+            }
         end
-    end
+    end)
+    table_insert(State.Connections, markConn)
 
-    -- Itadori Special (Feint) cooldown listener
-    local ItadoriService = Services:FindFirstChild("ItadoriService")
-    if ItadoriService then
-        local ItadoriRE = ItadoriService:FindFirstChild("RE")
-        if ItadoriRE then
-            local ItadoriEffects = ItadoriRE:FindFirstChild("Effects")
-            if ItadoriEffects then
-                local feintConn = ItadoriEffects.OnClientEvent:Connect(function(action, charInstance, ...)
-                    if action == "Feint" and typeof(charInstance) == "Instance" then
-                        for p, c in pairs(Cache) do
-                            if p.Character == charInstance then
-                                c.SpecialCooldownEnd = o_clock() + 2  -- 2 second cooldown
-                                break
-                            end
-                        end
+    -- Itadori Feint
+    local ItadoriService = Services:WaitForChild("ItadoriService")
+    local ItadoriRE = ItadoriService:WaitForChild("RE")
+    local ItadoriEffects = ItadoriRE:WaitForChild("Effects")
+    local feintConn = ItadoriEffects.OnClientEvent:Connect(function(action, charInstance, ...)
+        if action == "Feint" and typeof(charInstance) == "Instance" then
+            for p, c in pairs(Cache) do
+                if p.Character == charInstance then
+                    local spec = SPECIAL_COOLDOWNS["Itadori"]
+                    if spec then
+                        c.SpecialCooldownEnd = o_clock() + spec.Duration
                     end
-                end)
-                table_insert(State.Connections, feintConn)
+                    break
+                end
             end
         end
-    end
+    end)
+    table_insert(State.Connections, feintConn)
 
-    -- Hakari Special (Counter) cooldown listener
-    local HakariService = Services:FindFirstChild("HakariService")
-    if HakariService then
-        local HakariRE = HakariService:FindFirstChild("RE")
-        if HakariRE then
-            local HakariEffects = HakariRE:FindFirstChild("Effects")
-            if HakariEffects then
-                local counterConn = HakariEffects.OnClientEvent:Connect(function(action, charInstance, ...)
-                    if action == "Counter" and typeof(charInstance) == "Instance" then
-                        for p, c in pairs(Cache) do
-                            if p.Character == charInstance then
-                                c.HakariSpecialCooldownEnd = o_clock() + 16  -- 16 second cooldown
-                                break
-                            end
-                        end
+    -- Hakari Counter
+    local HakariService = Services:WaitForChild("HakariService")
+    local HakariRE = HakariService:WaitForChild("RE")
+    local HakariEffects = HakariRE:WaitForChild("Effects")
+    local counterConn = HakariEffects.OnClientEvent:Connect(function(action, charInstance, ...)
+        if action == "Counter" and typeof(charInstance) == "Instance" then
+            for p, c in pairs(Cache) do
+                if p.Character == charInstance then
+                    local spec = SPECIAL_COOLDOWNS["Hakari"]
+                    if spec then
+                        c.SpecialCooldownEnd = o_clock() + spec.Duration
                     end
-                end)
-                table_insert(State.Connections, counterConn)
+                    break
+                end
             end
         end
-    end
+    end)
+    table_insert(State.Connections, counterConn)
 
     local playerRemovingConn = Players.PlayerRemoving:Connect(function(player)
         if player == lp then
             CleanupAllESP()
         end
     end)
-
     table_insert(State.Connections, playerRemovingConn)
 
     local conn = RunService.RenderStepped:Connect(function()
@@ -758,7 +757,7 @@ function ESP.Init(State)
         if not cam or not lp then return end
         local viewportSize = cam.ViewportSize
         local char_lp = lp.Character
-        local myRoot = char_lp and char_lp.PrimaryPart  -- use PrimaryPart
+        local myRoot = char_lp and char_lp.PrimaryPart
         
         FrameTick = FrameTick + 1
         local shouldUpdateHeavy = (FrameTick % 2 == 0)
@@ -768,15 +767,23 @@ function ESP.Init(State)
         local globalRainbowColor = Color3.fromHSV((gameClock * 0.4) % 1, 1, 1)
         local globalRainbowHex = s_format("%02x%02x%02x", m_floor(globalRainbowColor.R * 255), m_floor(globalRainbowColor.G * 255), m_floor(globalRainbowColor.B * 255))
 
+        -- Clean dead cache entries
         for p, assets in pairs(Cache) do
             if not p or not p.Parent then CleanupCacheEntry(p, assets) end
         end
 
-        -- Include LocalPlayer for debugging (no skip)
+        -- Remove expired marks (>25s)
+        for char, data in pairs(ActiveMarks) do
+            if gameClock - data.timestamp > 25 then
+                ActiveMarks[char] = nil
+            end
+        end
+
+        -- Loop through all players including local
         for _, p in pairs(Players:GetPlayers()) do
             local char = p.Character
             local hum = char and char:FindFirstChild("Humanoid")
-            local root = char and char.PrimaryPart  -- use PrimaryPart
+            local root = char and char.PrimaryPart
 
             local c = Cache[p]
             if not c then 
@@ -785,17 +792,17 @@ function ESP.Init(State)
                 c.LastPosition = root and root.Position or v3_new(0,0,0)
                 c.LastMoveTime = gameClock
                 SetupPlayerSignals(p, c)
-                -- SetupCharacterSignals will be called later when root exists
+                -- SetupCharacterSignals called below when char exists
             end
 
-            -- Check if character changed (respawn)
+            -- Check if character changed (respawn or first load)
             if c.CurrentCharacter ~= char then
-                -- Character changed, cleanup old connections and set up new
+                -- Reset special on respawn
+                c.SpecialCooldownEnd = 0
                 c.CurrentCharacter = char
                 if char and hum then
                     SetupCharacterSignals(c, char, hum)
                 else
-                    -- No character, clear connections
                     for _, conn in ipairs(c.CharacterConnections) do conn:Disconnect() end
                     table_clear(c.CharacterConnections)
                     c.IsDead = false
@@ -803,7 +810,7 @@ function ESP.Init(State)
             end
 
             if root and hum then
-                -- Update AFK and other per-frame data
+                -- AFK detection
                 if c.LastPosition and (c.LastPosition - root.Position).Magnitude > 0.1 then
                     c.LastPosition = root.Position
                     c.LastMoveTime = gameClock
@@ -812,7 +819,7 @@ function ESP.Init(State)
                     c.IsAFK = true
                 end
                 
-                -- Project root, head, and feet
+                -- Project positions
                 local root2D, visRoot = cam:WorldToViewportPoint(root.Position)
                 local head2D, visHead = cam:WorldToViewportPoint(root.Position + v3_new(0, 3.2, 0))
                 local feet2D, visFeet = cam:WorldToViewportPoint(root.Position - v3_new(0, 3.6, 0))
@@ -840,7 +847,7 @@ function ESP.Init(State)
 
                     local hideNameAndHealth = (dist < 10)
 
-                    -- Compute moveset name once per frame
+                    -- Moveset name
                     local movesetName = ""
                     local movesetFolder = char:FindFirstChild("Moveset")
                     local fullyCustom = isCustom(movesetFolder)
@@ -865,13 +872,16 @@ function ESP.Init(State)
                         movesetName = cm or pm or ""
                     end
 
+                    -- Update current moveset tracking
+                    c.CurrentMoveset = movesetName
+
                     local isRyu = (movesetName == "Ryu")
                     local isHaruta = (movesetName == "Haruta")
                     local isReggie = (movesetName == "Reggie")
                     local info = char:FindFirstChild("Info")
                     local overheatObj = info and info:FindFirstChild("Overheat")
                     local miraclesObj = info and info:FindFirstChild("Miracles")
-                    local nextReceiptObj = info and info:FindFirstChild("NextReceipt") -- for Reggie
+                    local nextReceiptObj = info and info:FindFirstChild("NextReceipt")
 
                     -- 1. Health Bar
                     local hWidth = m_floor(m_clamp(4 * scaleFactor, 2, 8))
@@ -948,42 +958,32 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 3. Extra Bar (Overheat or Miracles)
+                    -- 3. Extra Bar (Overheat / Miracles)
                     local ohGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local ohX = eX + eWidth + ohGap
 
-                    -- Determine which bar to show and its ticks
                     if isRyu and overheatObj then
-                        -- Overheat: 9 ticks (like default)
                         local ohVal = overheatObj.Value
                         local ohRatio = m_clamp(ohVal / 50, 0, 1)
-                        
-                        -- Set lines count to 9
-                        local lineCount = 9
                         for i = 1, #c.ExtraBar.Lines do
-                            c.ExtraBar.Lines[i].Visible = (i <= lineCount and ohRatio > 0.02)
+                            c.ExtraBar.Lines[i].Visible = (i <= 9 and ohRatio > 0.02)
                         end
-                        
                         if ohRatio <= 0.02 then
                             setBarGroupVisible(c.ExtraBar, false)
                         else
                             setBarGroupVisible(c.ExtraBar, true)
-
                             c.ExtraBar.Back.Position = v2_new(ohX, eY)
                             c.ExtraBar.Back.Size = v2_new(eWidth, eH)
                             c.ExtraBar.Outline.Position = v2_new(ohX, eY)
                             c.ExtraBar.Outline.Size = v2_new(eWidth, eH)
-
                             local ohFillH = m_floor(eH * ohRatio)
                             c.ExtraBar.Fill.Position = v2_new(ohX, eY + (eH - ohFillH))
                             c.ExtraBar.Fill.Size = v2_new(eWidth, ohFillH)
-
-                            local ohColor
                             if ohVal >= 50 then
-                                ohColor = COLOR_YELLOW
+                                c.ExtraBar.Fill.Color = COLOR_YELLOW
                                 for i = 1, 9 do c.ExtraBar.Lines[i].Visible = false end
                             else
-                                ohColor = c3_new(0, 0.66, 1):Lerp(c3_new(1, 0, 0.5), ohRatio)
+                                c.ExtraBar.Fill.Color = c3_new(0, 0.66, 1):Lerp(c3_new(1, 0, 0.5), ohRatio)
                                 for i = 1, 9 do
                                     local lineY = m_floor(eY + (eH * 0.1 * i))
                                     c.ExtraBar.Lines[i].From = v2_new(ohX, lineY)
@@ -991,35 +991,26 @@ function ESP.Init(State)
                                     c.ExtraBar.Lines[i].Visible = true
                                 end
                             end
-                            c.ExtraBar.Fill.Color = ohColor
                         end
-
                     elseif isHaruta and miraclesObj then
-                        -- Miracles: 6 ticks
                         local mirVal = miraclesObj.Value
                         local mirRatio = m_clamp(mirVal / 6, 0, 1)
-                        
                         for i = 1, #c.ExtraBar.Lines do
                             c.ExtraBar.Lines[i].Visible = (i <= 6 and mirRatio > 0.02)
                         end
-                        
                         if mirRatio <= 0.02 then
                             setBarGroupVisible(c.ExtraBar, false)
                         else
                             setBarGroupVisible(c.ExtraBar, true)
-
                             local harutaColor = c3_fromHex("#" .. (MOVESET_COLORS["Haruta"] or "A77DCB"))
-
                             c.ExtraBar.Back.Position = v2_new(ohX, eY)
                             c.ExtraBar.Back.Size = v2_new(eWidth, eH)
                             c.ExtraBar.Outline.Position = v2_new(ohX, eY)
                             c.ExtraBar.Outline.Size = v2_new(eWidth, eH)
-
                             local mirFillH = m_floor(eH * mirRatio)
                             c.ExtraBar.Fill.Position = v2_new(ohX, eY + (eH - mirFillH))
                             c.ExtraBar.Fill.Size = v2_new(eWidth, mirFillH)
                             c.ExtraBar.Fill.Color = harutaColor
-
                             for i = 1, 6 do
                                 local lineY = m_floor(eY + (eH * (i / 6)))
                                 c.ExtraBar.Lines[i].From = v2_new(ohX, lineY)
@@ -1027,7 +1018,6 @@ function ESP.Init(State)
                                 c.ExtraBar.Lines[i].Visible = true
                             end
                         end
-
                     else
                         setBarGroupVisible(c.ExtraBar, false)
                     end
@@ -1069,7 +1059,7 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 5. Moveset Slots: slot 0 = Special (cooldown), 1-4 = regular moves, 5 = Reggie's extra
+                    -- 5. Moveset Slots
                     local slotHeight = m_floor(m_clamp(22 * scaleFactor, 14, 32))
                     local slotGap = m_floor(m_clamp(3 * scaleFactor, 2, 6))
                     local moveFontSize = m_floor(m_clamp(10 * scaleFactor, 8, 15))
@@ -1077,36 +1067,31 @@ function ESP.Init(State)
                     local hasActiveMoveset = false
 
                     if c.MovesetItems then
-                        -- Reset visibility for all slots
+                        -- Reset visibility
                         for i = 0, 5 do
                             c.MovesetItems[i].Data.Visible = false
                             c.MovesetItems[i].MoveRef = nil
                         end
 
-                        -- Slot 0: Special (always visible, cooldown based on SpecialCooldownEnd)
+                        -- Slot 0: Special
                         local specialItem = c.MovesetItems[0]
                         specialItem.Data.Visible = true
                         specialItem.Data.Key = "0"
-                        -- Determine which special cooldown to show: Itadori or Hakari
-                        local now = o_clock()
-                        local remainingItadori = m_max(0, c.SpecialCooldownEnd - now)
-                        local remainingHakari = m_max(0, c.HakariSpecialCooldownEnd - now)
-                        local cdRatio = 0
-                        if remainingItadori > 0 then
-                            cdRatio = m_clamp(remainingItadori / 2, 0, 1)
-                            specialItem.Data.Name = "Feint"
-                        elseif remainingHakari > 0 then
-                            cdRatio = m_clamp(remainingHakari / 16, 0, 1)
-                            specialItem.Data.Name = "Counter"
+                        -- Determine name based on current moveset
+                        local specData = SPECIAL_COOLDOWNS[movesetName]
+                        if specData then
+                            specialItem.Data.Name = specData.Name
+                            local remaining = m_max(0, c.SpecialCooldownEnd - o_clock())
+                            local cdRatio = m_clamp(remaining / specData.Duration, 0, 1)
+                            specialItem.Data.CooldownRatio = cdRatio
                         else
-                            cdRatio = 0
-                            specialItem.Data.Name = "Special"  -- default name
+                            specialItem.Data.Name = "Special"
+                            specialItem.Data.CooldownRatio = 0
                         end
-                        specialItem.Data.CooldownRatio = cdRatio
                         specialItem.MoveRef = nil
                         hasActiveMoveset = true
 
-                        -- Populate slots 1-4 from moveset folder
+                        -- Slots 1-4: regular moves
                         if movesetFolder then
                             for _, move in ipairs(movesetFolder:GetChildren()) do
                                 local slotKey = move:GetAttribute("Key")
@@ -1116,7 +1101,6 @@ function ESP.Init(State)
                                         hasActiveMoveset = true
                                         item.Data.Visible = true
                                         item.Data.Key = tostring(slotKey)
-                                        -- Check for Tag override: if move has Tag attribute and move.Name ~= "-"
                                         local tag = move:GetAttribute("Tag")
                                         if tag and move.Name ~= "-" then
                                             item.Data.Name = tostring(tag)
@@ -1138,7 +1122,6 @@ function ESP.Init(State)
 
                                         local lastUsedStamp = move:GetAttribute("LastUse")
                                         local totalCdDuration = tonumber(move.Value)
-
                                         if type(lastUsedStamp) == "number" and type(totalCdDuration) == "number" and totalCdDuration > 0 then
                                             local serverNow = workspace:GetServerTimeNow()
                                             local remainingCd = (lastUsedStamp + totalCdDuration) - serverNow
@@ -1151,7 +1134,7 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Slot 5: Reggie's extra (only if Reggie and NextReceipt exists)
+                        -- Slot 5: extra for Reggie
                         local reggieItem = c.MovesetItems[5]
                         if isReggie and nextReceiptObj then
                             reggieItem.Data.Visible = true
@@ -1171,7 +1154,7 @@ function ESP.Init(State)
                             reggieItem.Data.Visible = false
                         end
 
-                        -- Compute total width for slots 0-4 (special + regular moves)
+                        -- Compute widths for slots 0-4
                         local itemWidths = {}
                         local totalMovesetWidth = 0
                         local activeCount = 0
@@ -1183,7 +1166,7 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 local textW = item.Label.TextBounds.X
                                 local slotW = m_floor(m_max(slotHeight, textW + m_clamp(8 * scaleFactor, 4, 12)))
-                                slotW = m_floor(m_max(slotW, slotHeight))  -- ensure square
+                                slotW = m_floor(m_max(slotW, slotHeight))
                                 itemWidths[i] = slotW
                                 totalMovesetWidth = totalMovesetWidth + slotW
                             else
@@ -1228,17 +1211,16 @@ function ESP.Init(State)
                                 item.Label.Size = moveFontSize
                                 item.Label.Position = v2_new(currentSlotX + m_floor(slotW / 2), slotY + m_floor((slotHeight - item.Label.TextBounds.Y) / 2))
 
-                                -- Seal Circle (only for moves with MoveRef)
                                 local seal = item.MoveRef and item.MoveRef:GetAttribute("Seal")
-                                if seal and (seal == 1 or seal == 2) then
+                                if seal then
                                     local radius = m_floor(m_clamp(4 * scaleFactor, 3, 8))
                                     local padding = m_floor(m_clamp(2 * scaleFactor, 1, 4))
                                     item.SealCircle.Visible = true
                                     item.SealCircle.Radius = radius
-                                    if seal == 2 then
-                                        item.SealCircle.Color = COLOR_SEAL_GREEN
-                                    else
+                                    if seal == 1 then
                                         item.SealCircle.Color = COLOR_SEAL_RED
+                                    else -- seal > 1
+                                        item.SealCircle.Color = COLOR_SEAL_GREEN
                                     end
                                     item.SealCircle.Position = v2_new(currentSlotX + slotW - radius - padding, slotY + padding + radius * 0.5)
                                 else
@@ -1255,7 +1237,7 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Render Reggie's slot 5 separately to the right
+                        -- Render Reggie slot 5 to the right
                         if reggieItem and reggieItem.Data.Visible then
                             local lastSlotEnd = currentSlotX - slotGap
                             reggieItem.Label.Text = reggieItem.Data.Name
@@ -1287,13 +1269,12 @@ function ESP.Init(State)
                         end
                     end
 
-                    -- 6. Heavy updates (only every 2 frames)
+                    -- 6. Heavy updates
                     if shouldUpdateHeavy then
-                        local inUlt = char:GetAttribute("InUlt")  -- still attribute for now
+                        local inUlt = char:GetAttribute("InUlt")
 
                         local hexColor = MOVESET_COLORS[movesetName] or "FFFFFF"
                         local usesCustomLook = false
-                        
                         if movesetName == "Custom" or fullyCustom then
                             usesCustomLook = true
                             hexColor = globalRainbowHex
@@ -1301,7 +1282,6 @@ function ESP.Init(State)
                         else
                             c.UltBar.Fill.Color = c3_fromHex("#" .. hexColor)
                         end
-                        
                         if hexColor == "000000" and not usesCustomLook then
                             c.UltBar.Back.Color = c3_new(0.18, 0.18, 0.18)
                             if ultValue < 100 then c.UltBar.Outline.Color = COLOR_WHITE end
@@ -1319,7 +1299,7 @@ function ESP.Init(State)
                             c.CashDisplay = ""
                         end
 
-                        -- Perm badges (no emojis)
+                        -- Perm badges
                         local permBadges = ""
                         if p:GetAttribute("PS_Owner") == true then
                             permBadges = permBadges .. "<font color='#FFDF00'>[Owner]</font> "
@@ -1335,19 +1315,16 @@ function ESP.Init(State)
                         local jackpotCount = type(rawJackpot) == "number" and rawJackpot or 0
                         local jackpotTag = (jackpotCount > 0) and s_format("<font color='#00FF00'>[%sx JP]</font> ", jackpotCount) or ""
 
-                        -- Left tag (ULT)
                         local leftTag = inUlt and "<font color='#FF007F'>[ULT]</font> " or ""
                         local afkTag = c.IsAFK and "<font color='#A0A0A0'>[AFK]</font> " or ""
                         
                         -- Mark
                         local markTag = ""
-                        local currentMarkObj = ActiveMarks[char]
-                        if currentMarkObj then
-                            if currentMarkObj.Parent and char.Parent then
-                                markTag = "<font color='#9D8D6D'><b>[MARK]</b></font> "
-                            else
-                                ActiveMarks[char] = nil
-                            end
+                        local markData = ActiveMarks[char]
+                        if markData and markData.mark and markData.mark.Parent and char.Parent then
+                            markTag = "<font color='#9D8D6D'><b>[MARK]</b></font> "
+                        else
+                            ActiveMarks[char] = nil
                         end
 
                         -- ITFG
@@ -1357,7 +1334,7 @@ function ESP.Init(State)
                             itfgTag = s_format("<font color='#DF00FF'><b>[IT %d/2]</b></font> ", itfgVal)
                         end
 
-                        -- EXEC (max 3)
+                        -- EXEC
                         local execTag = ""
                         local execVal = char:GetAttribute("EXEC")
                         if type(execVal) == "number" and execVal > 0 then
@@ -1376,11 +1353,10 @@ function ESP.Init(State)
                             emoteTag = "<font color='#FF69B4'><b>[EMOTE]</b></font> "
                         end
 
-                        -- VC (AudioDeviceInput)
+                        -- VC
                         local vcTag = ""
                         local audioDevice = p:FindFirstChild("AudioDeviceInput")
                         if audioDevice then
-                            -- Muted is a property, not attribute
                             local muted = audioDevice.Muted
                             if muted == true then
                                 vcTag = "<font color='#FF0000'><b>[VC]</b></font> "
@@ -1389,7 +1365,6 @@ function ESP.Init(State)
                             end
                         end
 
-                        -- Build trailing brackets (only once)
                         local trailingBrackets = ""
                         if markTag ~= "" then trailingBrackets = trailingBrackets .. markTag end
                         if itfgTag ~= "" then trailingBrackets = trailingBrackets .. itfgTag end
@@ -1397,7 +1372,7 @@ function ESP.Init(State)
                         if burstTag ~= "" then trailingBrackets = trailingBrackets .. burstTag end
                         if emoteTag ~= "" then trailingBrackets = trailingBrackets .. emoteTag end
 
-                        -- Name line using c.IsDead
+                        -- Name line
                         if hideNameAndHealth then
                             c.NameDisplay = vcTag .. trailingBrackets
                         elseif c.IsDead then
@@ -1430,10 +1405,9 @@ function ESP.Init(State)
                             c.CachedMoveset = ""
                         end
 
-                        -- Build extra info (Miracles, Age, Friends, Gamepasses)
+                        -- Extra info
                         local extra = ""
                         if isHaruta and miraclesObj then
-                            -- Show plain number with color
                             local harutaHex = MOVESET_COLORS["Haruta"] or "A77DCB"
                             extra = extra .. s_format(" • <font color='#%s'>%s</font>", harutaHex, tostring(miraclesObj.Value))
                         end
@@ -1479,15 +1453,15 @@ function ESP.Init(State)
                     HideAllAssets(c)
                 end
             else
-                -- No character, hide assets and clear character connections
+                -- No character
                 if c then
                     HideAllAssets(c)
                     if c.CurrentCharacter then
-                        -- Clean up character connections
                         for _, conn in ipairs(c.CharacterConnections) do conn:Disconnect() end
                         table_clear(c.CharacterConnections)
                         c.CurrentCharacter = nil
                         c.IsDead = false
+                        c.SpecialCooldownEnd = 0
                     end
                 end
             end
