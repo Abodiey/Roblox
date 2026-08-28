@@ -19,10 +19,11 @@ local table_insert = table.insert
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 local CharactersFolder = workspace:WaitForChild("Characters", 99)
-local Event = ReplicatedStorage:WaitForChild("Knit", 99999):WaitForChild("Knit", 99999):WaitForChild("Services", 99999):WaitForChild("FinalJudgementService", 99999):WaitForChild("RE", 99999):WaitForChild("Effects", 99999)
+local Knit = ReplicatedStorage:WaitForChild("Knit", 99)
+local Event = Knit and Knit:WaitForChild("Knit", 99):WaitForChild("Services", 99):WaitForChild("FinalJudgementService", 99):WaitForChild("RE", 99):WaitForChild("Effects", 99)
 
 QTE.InitialDelay = 1
-QTE.MinimumDelay = 0.1
+QTE.MinimumDelay = 0.15
 QTE.RampSpeed = 0.21
 
 -- Current Execution Instance Identifier for immediate thread termination
@@ -46,7 +47,7 @@ function QTE.Init(State)
     local function handleToggleChange()
         local isEnabled = toggleObject.Value
 
-        if isEnabled then
+        if isEnabled and Event then
             if not networkConn then
                 local remoteTarget = nil
 
