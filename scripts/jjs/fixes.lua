@@ -20,7 +20,9 @@ end
 
 -- Setup services as fast as possible
 task.spawn(function()
-    local Services = ReplicatedStorage:WaitForChild("Knit",99):WaitForChild("Knit",99):WaitForChild("Services",99)
+    local Knit = ReplicatedStorage:WaitForChild("Knit",99)
+    if not Knit then return end
+    local Services = Knit:WaitForChild("Knit",99):WaitForChild("Services",99)
     for _, v in ipairs({"DebreeService", "HandicapService", "BlockService"}) do
         task.spawn(function()
             local service = Services:WaitForChild(v, 99)
