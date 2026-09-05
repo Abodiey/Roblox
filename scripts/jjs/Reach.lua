@@ -12,6 +12,11 @@ local character = LocalPlayer.Character
 local localRoot = character and character:WaitForChild("HumanoidRootPart", 9999)
 local oldNamecall = nil
 
+local Blacklist = {
+    ["HarutaSwordNPC"] = true, 
+    ["FrameNPC"] = true, 
+    ["MechamaruBot"] = true
+}
 -- Character Setup
 local function setupCharacter(newChar)
     character = newChar
@@ -40,7 +45,7 @@ local function getClosestCharacter()
     local closest, shortest = nil, maxDistance
 
     for _, char in ipairs(CharactersFolder:GetChildren()) do
-        if char ~= character then
+        if char ~= character and not Blacklist[char.Name] then
             local root = char:FindFirstChild("HumanoidRootPart")
             if root and char:FindFirstChild("Info") and not char.Info:FindFirstChild("Block") then
                 local d = (root.Position - localRoot.Position).Magnitude
