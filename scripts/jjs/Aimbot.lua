@@ -151,7 +151,7 @@ function Aimbot.Toggle(State)
     Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
-        if obj == Player.Character or obj:GetAttribute("Dead") or Blacklsit[obj.Name] then continue end
+        if obj == Player.Character or obj:GetAttribute("Dead") or Blacklist[obj.Name] then continue end
         
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
