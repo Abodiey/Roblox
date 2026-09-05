@@ -27,6 +27,12 @@ local R6_PART_NAMES = {
     "Right Leg"
 }
 
+local Blacklist = {
+    ["HarutaSwordNPC"] = true, 
+    ["FrameNPC"] = true, 
+    ["MechamaruBot"] = true
+}
+
 local BOX_CORNERS = {
     Vector3.new(-1,  1, -1),
     Vector3.new( 1,  1, -1),
@@ -145,7 +151,7 @@ function Aimbot.Toggle(State)
     Camera = workspace.CurrentCamera
 
     for _, obj in ipairs(characterFolder:GetChildren()) do
-        if obj == Player.Character or obj:GetAttribute("Dead") then continue end
+        if obj == Player.Character or obj:GetAttribute("Dead") or Blacklsit[obj.Name] then continue end
         
         local hrp = obj:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
