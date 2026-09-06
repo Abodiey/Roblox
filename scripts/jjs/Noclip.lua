@@ -243,7 +243,11 @@ local function startNoclip()
         for part, state in pairs(trackedParts) do
             local characterState = characterStates[state.character]
 
-            if part.Parent and characterState and not characterState.dead then
+            if part.Parent
+                and state.character ~= localPlayer.Character
+                and characterState
+                and not characterState.dead
+            then
                 if part.CanCollide ~= state.canCollide then
                     part.CanCollide = state.canCollide
                 end
