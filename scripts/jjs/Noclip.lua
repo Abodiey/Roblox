@@ -22,10 +22,6 @@ local trackedParts = {}
 local originalCollision = {}
 local characterStates = {}
 
-setmetatable(trackedParts, { __mode = "k" })
-setmetatable(originalCollision, { __mode = "k" })
-setmetatable(characterStates, { __mode = "k" })
-
 local runtimeConnections = {}
 local enabled = false
 
@@ -58,10 +54,13 @@ local function trackPart(part, character, canCollide)
     end
 end
 
-local function untrackCharacter(character)
+local function untrackCharacter(character, discardOriginal)
     for part, state in pairs(trackedParts) do
         if state.character == character then
             trackedParts[part] = nil
+            if discardOriginal then
+                originalCollision[part] = nil
+            end
         end
     end
 end
@@ -154,7 +153,7 @@ local function removeCharacter(character)
     disconnect(state.descendantAdded)
     disconnect(state.descendantRemoving)
 
-    untrackCharacter(character)
+    untrackCharacter(character, true)
     characterStates[character] = nil
 end
 
@@ -198,6 +197,7 @@ local function addCharacter(character)
 
     state.descendantRemoving = character.DescendantRemoving:Connect(function(descendant)
         trackedParts[descendant] = nil
+        originalCollision[descendant] = nil
     end)
 
     rebuildCharacter(character)
@@ -211,14 +211,14 @@ local function stopNoclip()
     end
     table.clear(runtimeConnections)
 
-    for character in pairs(characterStates) do
-        removeCharacter(character)
-    end
-
     for part, originalState in pairs(originalCollision) do
         if part and part.Parent then
             part.CanCollide = originalState == 1
         end
+    end
+
+    for character in pairs(characterStates) do
+        removeCharacter(character)
     end
 
     table.clear(trackedParts)
@@ -243,16 +243,15 @@ local function startNoclip()
         for part, state in pairs(trackedParts) do
             local characterState = characterStates[state.character]
 
-            if part.Parent
-                and state.character ~= localPlayer.Character
-                and characterState
-                and not characterState.dead
-            then
-                if part.CanCollide ~= state.canCollide then
-                    part.CanCollide = state.canCollide
-                end
-            else
+            if not part.Parent or not characterState then
                 trackedParts[part] = nil
+                originalCollision[part] = nil
+            elseif state.character == localPlayer.Character then
+                part.CanCollide = originalCollision[part] == 1
+                trackedParts[part] = nil
+                originalCollision[part] = nil
+            elseif not characterState.dead and part.CanCollide ~= state.canCollide then
+                part.CanCollide = state.canCollide
             end
         end
     end)
