@@ -260,7 +260,10 @@ end)
 local Modules = {}
 local ModuleFailed = {}
 
-local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
+CatstarState.Modules = Modules
+CatstarState.ModuleFailed = ModuleFailed
+
+local ModuleList = {"ESPAssets", "ESPTracking", "ESPEffects", "ESPRenderer", "ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 task.spawn(function()
     while not Players.LocalPlayer do task.wait() end
@@ -383,3 +386,4 @@ for _, Element in ipairs(UiLayout) do
 end
 
 loaded = true
+
