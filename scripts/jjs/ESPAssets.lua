@@ -368,7 +368,7 @@ local function DestroyAssets(assets)
             safeRemove(item.SealCircle)
         end
     end
-    
+end
 
 ESPAssets.Colors = {
     Red = COLOR_RED,
@@ -396,5 +396,4 @@ ESPAssets.SetBarVisible = setBarGroupVisible
 ESPAssets.RenderRichText = renderRichText
 
 return ESPAssets
-
 

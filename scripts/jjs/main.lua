@@ -169,6 +169,13 @@ local ToggleDefaults = {
     DomainESP = true,
     DummyESP = true, 
     ESP = true, 
+    ESPEvadeBar = true,
+    ESPExtraBar = true,
+    ESPHealthBar = true,
+    ESPMoveset = true,
+    ESPPlayerInfo = true,
+    ESPTracers = true,
+    ESPUltimateBar = true,
     Gamepasses = true,
     InstantInteract = true,
     ItemESP = true, 
@@ -263,7 +270,7 @@ local ModuleFailed = {}
 CatstarState.Modules = Modules
 CatstarState.ModuleFailed = ModuleFailed
 
-local ModuleList = {"ESPAssets", "ESPTracking", "ESPEffects", "ESPRenderer", "ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
+local ModuleList = {"ESPAssets", "ESPTracking", "ESPEffects", "ESPBars", "ESPMoveset", "ESPPlayerInfo", "ESPTracers", "ESPRenderer", "ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 task.spawn(function()
     while not Players.LocalPlayer do task.wait() end
@@ -330,6 +337,14 @@ local UiLayout = {
 
     {Type = "Section",  Args = {Title = "Visual Mechanics"}},
     {Type = "Toggle",   Module = "ESP",               Args = {Title = "Player ESP", Value = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
+    {Type = "Section",  Args = {Title = "Player ESP Components"}},
+    {Type = "Toggle",   Args = {Title = "Tracers", Value = CatstarState.Toggles.ESPTracers.Value, Callback = function(V) CatstarState.Toggles.ESPTracers.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Player Info", Value = CatstarState.Toggles.ESPPlayerInfo.Value, Callback = function(V) CatstarState.Toggles.ESPPlayerInfo.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Health Bar", Value = CatstarState.Toggles.ESPHealthBar.Value, Callback = function(V) CatstarState.Toggles.ESPHealthBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Evade Bar", Value = CatstarState.Toggles.ESPEvadeBar.Value, Callback = function(V) CatstarState.Toggles.ESPEvadeBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Ultimate Bar", Value = CatstarState.Toggles.ESPUltimateBar.Value, Callback = function(V) CatstarState.Toggles.ESPUltimateBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Special Meter", Value = CatstarState.Toggles.ESPExtraBar.Value, Callback = function(V) CatstarState.Toggles.ESPExtraBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Moveset Cooldowns", Value = CatstarState.Toggles.ESPMoveset.Value, Callback = function(V) CatstarState.Toggles.ESPMoveset.Value = V end}},
     {Type = "Toggle",   Module = "DomainESP",         Args = {Title = "Domain ESP", Value = CatstarState.Toggles.DomainESP.Value, Callback = function(V) CatstarState.Toggles.DomainESP.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",          Args = {Title = "Dummy ESP", Value = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
     {Type = "Toggle",   Module = "ItemESP",           Args = {Title = "Item ESP", Value = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},

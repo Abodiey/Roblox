@@ -29,8 +29,20 @@ function ESP.Init(State)
     local TrackingModule = awaitDependency(State, "ESPTracking")
     local Effects = awaitDependency(State, "ESPEffects")
     local Renderer = awaitDependency(State, "ESPRenderer")
+    local BarsModule = awaitDependency(State, "ESPBars")
+    local MovesetModule = awaitDependency(State, "ESPMoveset")
+    local PlayerInfoModule = awaitDependency(State, "ESPPlayerInfo")
+    local TracersModule = awaitDependency(State, "ESPTracers")
 
-    if not Assets or not TrackingModule or not Effects or not Renderer then
+    if not Assets
+        or not TrackingModule
+        or not Effects
+        or not Renderer
+        or not BarsModule
+        or not MovesetModule
+        or not PlayerInfoModule
+        or not TracersModule
+    then
         warn("ESP dependencies failed to load")
         return
     end
@@ -68,6 +80,7 @@ function ESP.Init(State)
     table.insert(State.Connections, playerRemovingConnection)
 
     local renderFrame = Renderer.new({
+        State = State,
         Assets = Assets,
         Tracking = Tracking,
         Cache = Cache,
@@ -75,6 +88,10 @@ function ESP.Init(State)
         SpecialCooldowns = SPECIAL_COOLDOWNS,
         Toggle = toggle,
         CleanupCacheEntry = cleanupCacheEntry,
+        BarsModule = BarsModule,
+        MovesetModule = MovesetModule,
+        PlayerInfoModule = PlayerInfoModule,
+        TracersModule = TracersModule,
     })
 
     local renderConnection = RunService.RenderStepped:Connect(renderFrame)
@@ -87,5 +104,4 @@ function ESP.Init(State)
 end
 
 return ESP
-
 
