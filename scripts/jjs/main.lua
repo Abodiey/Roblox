@@ -169,13 +169,13 @@ local ToggleDefaults = {
     DomainESP = true,
     DummyESP = true, 
     ESP = true, 
-    ESPEvadeBar = true,
-    ESPExtraBar = true,
-    ESPHealthBar = true,
-    ESPMoveset = true,
-    ESPPlayerInfo = true,
-    ESPTracers = true,
-    ESPUltimateBar = true,
+    HealthBar = true,
+    EvadeBar = true,
+    SpecialMeter = true,
+    UltimateBar = true,
+    Moveset = true,
+    PlayerInfo = true,
+    Tracers = true,
     Gamepasses = true,
     InstantInteract = true,
     ItemESP = true, 
@@ -267,16 +267,36 @@ end)
 local Modules = {}
 local ModuleFailed = {}
 
-CatstarState.Modules = Modules
-CatstarState.ModuleFailed = ModuleFailed
-
-local ModuleList = {"ESPAssets", "ESPTracking", "ESPEffects", "ESPBars", "ESPMoveset", "ESPPlayerInfo", "ESPTracers", "ESPRenderer", "ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
+local ModuleList = {"ESP", "Aimbot", "Noclip", "Gamepasses", "AutoBurst", "Aura", "AntiBlackhole", "InstantInteract", "QTE", "DomainESP", "Reach", "AntiVoid", "ItemESP", "BlackFlash", "Ratio", "DummyESP", "Rejoin", "Train", "Targeting", "KillSound", "DiamondInTheSky"}
 
 task.spawn(function()
     while not Players.LocalPlayer do task.wait() end
     for _, Name in ipairs(ModuleList) do
         task.spawn(function()
             local Result = Load(Name)
+            if Result and Name == "ESP" then
+                local Dependencies = {}
+                local Pending = 7
+                local Failed = false
+                for _, Feature in ipairs({"HealthBar", "EvadeBar", "SpecialMeter", "UltimateBar", "Moveset", "PlayerInfo", "Tracers"}) do
+                    task.spawn(function()
+                        local FeatureModule = Load(Feature)
+                        if type(FeatureModule) == "table" and type(FeatureModule.Init) == "function" then
+                            Dependencies[Feature] = FeatureModule
+                        else
+                            Failed = true
+                            warn("Player ESP could not load " .. Feature)
+                        end
+                        Pending = Pending - 1
+                    end)
+                end
+                while Pending > 0 do task.wait() end
+                if Failed then
+                    Result = nil
+                else
+                    Result.Dependencies = Dependencies
+                end
+            end
             if Result then
                 Modules[Name] = Result
             else
@@ -337,14 +357,13 @@ local UiLayout = {
 
     {Type = "Section",  Args = {Title = "Visual Mechanics"}},
     {Type = "Toggle",   Module = "ESP",               Args = {Title = "Player ESP", Value = CatstarState.Toggles.ESP.Value, Callback = function(V) CatstarState.Toggles.ESP.Value = V end}},
-    {Type = "Section",  Args = {Title = "Player ESP Components"}},
-    {Type = "Toggle",   Args = {Title = "Tracers", Value = CatstarState.Toggles.ESPTracers.Value, Callback = function(V) CatstarState.Toggles.ESPTracers.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Player Info", Value = CatstarState.Toggles.ESPPlayerInfo.Value, Callback = function(V) CatstarState.Toggles.ESPPlayerInfo.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Health Bar", Value = CatstarState.Toggles.ESPHealthBar.Value, Callback = function(V) CatstarState.Toggles.ESPHealthBar.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Evade Bar", Value = CatstarState.Toggles.ESPEvadeBar.Value, Callback = function(V) CatstarState.Toggles.ESPEvadeBar.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Ultimate Bar", Value = CatstarState.Toggles.ESPUltimateBar.Value, Callback = function(V) CatstarState.Toggles.ESPUltimateBar.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Special Meter", Value = CatstarState.Toggles.ESPExtraBar.Value, Callback = function(V) CatstarState.Toggles.ESPExtraBar.Value = V end}},
-    {Type = "Toggle",   Args = {Title = "Moveset Cooldowns", Value = CatstarState.Toggles.ESPMoveset.Value, Callback = function(V) CatstarState.Toggles.ESPMoveset.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Tracers", Value = CatstarState.Toggles.Tracers.Value, Callback = function(V) CatstarState.Toggles.Tracers.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Player Info", Value = CatstarState.Toggles.PlayerInfo.Value, Callback = function(V) CatstarState.Toggles.PlayerInfo.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Health Bar", Value = CatstarState.Toggles.HealthBar.Value, Callback = function(V) CatstarState.Toggles.HealthBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Evade Bar", Value = CatstarState.Toggles.EvadeBar.Value, Callback = function(V) CatstarState.Toggles.EvadeBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Ultimate Bar", Value = CatstarState.Toggles.UltimateBar.Value, Callback = function(V) CatstarState.Toggles.UltimateBar.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Special Meter", Value = CatstarState.Toggles.SpecialMeter.Value, Callback = function(V) CatstarState.Toggles.SpecialMeter.Value = V end}},
+    {Type = "Toggle",   Args = {Title = "Moveset Cooldowns", Value = CatstarState.Toggles.Moveset.Value, Callback = function(V) CatstarState.Toggles.Moveset.Value = V end}},
     {Type = "Toggle",   Module = "DomainESP",         Args = {Title = "Domain ESP", Value = CatstarState.Toggles.DomainESP.Value, Callback = function(V) CatstarState.Toggles.DomainESP.Value = V end}},
     {Type = "Toggle",   Module = "DummyESP",          Args = {Title = "Dummy ESP", Value = CatstarState.Toggles.DummyESP.Value, Callback = function(V) CatstarState.Toggles.DummyESP.Value = V end}},
     {Type = "Toggle",   Module = "ItemESP",           Args = {Title = "Item ESP", Value = CatstarState.Toggles.ItemESP.Value, Callback = function(V) CatstarState.Toggles.ItemESP.Value = V end}},
@@ -369,7 +388,7 @@ for _, Element in ipairs(UiLayout) do
             local TargetModule = Element.Module
             
             local StartTime = os.clock()
-            while not Modules[TargetModule] and not ModuleFailed[TargetModule] and (os.clock() - StartTime) < 15 do
+            while not Modules[TargetModule] and not ModuleFailed[TargetModule] and (TargetModule == "ESP" or (os.clock() - StartTime) < 15) do
                 task.wait()
             end
             
